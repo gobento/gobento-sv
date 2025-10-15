@@ -8,4 +8,4 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		user: locals.user,
 		session: locals.session
 	};
-};
+}; 
