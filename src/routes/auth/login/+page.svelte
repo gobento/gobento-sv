@@ -2,10 +2,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
 
-	import FluentEmojiStation from '~icons/fluent-emoji/station';
-	import LogosGoogleIcon from '~icons/logos/google-icon';
-</script>
+import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
 
+import LogosGoogleIcon from '~icons/logos/google-icon';
+</script> 
+ 
 <svelte:head>
 	<title>Login - Train Station Search</title>
 	<meta name="description" content="Login to access Train Station Search features" />
@@ -14,7 +15,7 @@
 <!-- Header -->
 <header class="mb-10 text-center">
 	<div class="mb-4 flex justify-center">
-		<FluentEmojiStation class="h-16 w-16" />
+		<FluentEmojiFlatBentoBox class="h-16 w-16" />
 	</div>
 	<h1 class="text-3xl font-bold text-white">Train Station Search</h1>
 	<p class="mt-2 text-lg text-white/70">Sign in to continue</p>

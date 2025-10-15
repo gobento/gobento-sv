@@ -8,16 +8,16 @@
 			user:User
 			isAdmin: boolean;
 			
-		};
+		}; 
 	}
 
 	let { data }: Props = $props();
 </script>
-
+ 
 {#if data.user}
 	<div class="card">
 		<div class="card-body">
-			<h2 class="card-title">
+			<h2 class="card-title"> 
 				{data.user.name}
 			</h2>
 			<p class="card-text">

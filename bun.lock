@@ -20,6 +20,7 @@
         "@eslint/compat": "1.4.0",
         "@eslint/js": "9.37.0",
         "@iconify-json/fluent-emoji": "1.2.6",
+        "@iconify-json/fluent-emoji-flat": "^1.2.5",
         "@iconify-json/heroicons": "1.2.3",
         "@iconify-json/logos": "^1.2.9",
         "@iconify-json/material-symbols": "^1.2.41",
@@ -394,6 +395,8 @@
     "@humanwhocodes/retry": ["@humanwhocodes/retry@0.4.3", "", {}, "sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ=="],
 
     "@iconify-json/fluent-emoji": ["@iconify-json/fluent-emoji@1.2.6", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-TFkiu9IyryZT1ZQCI/P9Tr9moswv7uzHrj53a08a7zdbmrAFYdm3h3yNAVRC+9N+mrWJsgclhOXVlr75N1kKKQ=="],
+
+    "@iconify-json/fluent-emoji-flat": ["@iconify-json/fluent-emoji-flat@1.2.5", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-5ShoOHJ0ezYEIMfp2zvbRiZpL1Af8Prg5v9pElaIQhfqwbyD57pzrp70g/rK2EjigajBq9/cPrJXh224HaP3TQ=="],
 
     "@iconify-json/heroicons": ["@iconify-json/heroicons@1.2.3", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-n+vmCEgTesRsOpp5AB5ILB6srsgsYK+bieoQBNlafvoEhjVXLq8nIGN4B0v/s4DUfa0dOrjwE/cKJgIKdJXOEg=="],
 
