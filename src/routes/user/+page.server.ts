@@ -5,6 +5,8 @@ import { users } from '$lib/server/schema';
 import { eq, and } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
+console.log('🔍 User - Loading user:', locals);
+
 	if (!locals.user) {
 		throw redirect(302, `/auth/login?next=${encodeURIComponent(url.pathname)}`);
 	}

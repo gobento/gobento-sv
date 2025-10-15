@@ -3,7 +3,7 @@ import { OAuth2RequestError } from 'arctic';
 import { google, generateSessionToken, createSession } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { eq } from 'drizzle-orm';
-import type { RequestHandler } from './$types';
+import type { RequestHandler } from './callback/$types';
 import { users } from '$lib/server/schema';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
