@@ -99,8 +99,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		cookies.delete('google_code_verifier', { path: '/' });
 
 		if (e instanceof OAuth2RequestError) {
-			return new Response('OAuth error', { status: 400 });
+			return new Response('❌ OAuth error', { status: 400 });
 		}
-		return new Response('Server error', { status: 500 });
+		return new Response('❌ Server error', { status: 500 });
 	}
 };

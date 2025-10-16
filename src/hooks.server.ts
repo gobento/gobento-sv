@@ -2,12 +2,13 @@ import { validateSessionToken } from '$lib/server/auth';
 import type { Handle } from '@sveltejs/kit';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	console.log('HOOKS SERVER');
 	const token = event.cookies.get('session');
 
 	if (token) {
 		const result = await validateSessionToken(token);
 		if (result) {
-			event.locals.user = result.user; 
+			event.locals.user = result.user;
 			event.locals.session = result.session;
 		}
 	}

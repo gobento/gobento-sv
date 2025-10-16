@@ -1,6 +1,8 @@
+
+
+
+
 <script lang="ts">
-	import CookieBanner from '$lib/components/CookieBanner.svelte';
-	import '../app.css';
 
 	let { children } = $props();
 </script>
@@ -9,9 +11,11 @@
 	class="flex min-h-dvh w-dvw items-center justify-center p-4"
 	style="font-family:'HP Simplified'"
 >
-	{@render children()}
+	<div class="flex w-full flex-col sm:w-3xl">
+		{@render children()}
+	</div>
 
-	BASE
+UNAUTHORIZED
+
 </div>
 
-<CookieBanner />

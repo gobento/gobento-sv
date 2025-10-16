@@ -14,7 +14,7 @@
 		We at <strong>Militaernews</strong> (“we”, “us”, or “our”) are committed to protecting your
 		privacy. This Privacy Policy explains how we collect, use, and safeguard your personal data when
 		you visit our website
-		<a class="link link-primary" href="https://geo-mn.vercel.app/">https://geo-mn.vercel.app/</a> (the
+		<a class="link link-primary" href="https://geo-mn.vercel.app/">https://gobento-sv.vercel.app/</a> (the
 		“Site”), in accordance with the General Data Protection Regulation (EU) 2016/679 (“GDPR”).
 	</p>
 
