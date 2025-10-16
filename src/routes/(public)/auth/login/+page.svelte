@@ -3,7 +3,6 @@
 	import { page } from '$app/state';
 
 import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
-
 import LogosGoogleIcon from '~icons/logos/google-icon';
 </script> 
  
