@@ -2,10 +2,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
 
-import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
-import LogosGoogleIcon from '~icons/logos/google-icon';
-</script> 
- 
+	import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
+	import LogosGoogleIcon from '~icons/logos/google-icon';
+</script>
+
 <svelte:head>
 	<title>Login - Train Station Search</title>
 	<meta name="description" content="Login to access Train Station Search features" />
@@ -33,7 +33,11 @@ import LogosGoogleIcon from '~icons/logos/google-icon';
 			</a>
 
 			<div class="mt-4 text-center text-sm text-white/60">
-				By signing in, you agree to our terms of service
+				By signing in, you agree to our
+				<a class="link link-primary" href="/terms-of-service"> Terms of Service </a>
+				and
+				<a class="link link-primary" href="/privacy-policy"> Privacy Policy </a>
+				.
 			</div>
 		</div>
 	</div>

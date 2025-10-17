@@ -10,7 +10,6 @@ import {
 	serial
 } from 'drizzle-orm/pg-core';
 
-
 export const users = pgTable('users', {
 	id: text('id').primaryKey(),
 	email: text('email').notNull().unique(),
@@ -27,6 +26,5 @@ export const sessions = pgTable('sessions', {
 		.references(() => users.id, { onDelete: 'cascade' }),
 	expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull()
 });
-
 
 export type User = typeof users.$inferSelect;
