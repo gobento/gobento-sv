@@ -6,6 +6,3 @@ export const load = ({ locals, url }) => {
 		throw redirect(302, '/');
 	}
 };
-
-//  prerendered content can only be updated by building and deploying a new version of the application.
-export const prerender = true;
