@@ -42,6 +42,4 @@
 	{@render children()}
 </div>
 
-BASE
-
 <CookieBanner />
