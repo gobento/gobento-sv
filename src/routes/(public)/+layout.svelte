@@ -9,6 +9,4 @@
 	<div class="flex w-full flex-col sm:w-3xl">
 		{@render children()}
 	</div>
-
-	UNAUTHORIZED
 </div>

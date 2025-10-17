@@ -22,7 +22,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 	// Extract the random state and redirect URL
 	const [storedState, encodedRedirect] = storedStateWithRedirect.split('|');
-	const redirectTo = encodedRedirect ? decodeURIComponent(encodedRedirect) : '/';
+	let redirectTo = encodedRedirect ? decodeURIComponent(encodedRedirect) : '/';
 
 	console.log('🔍 Callback - Extracted redirect URL:', redirectTo);
 
@@ -64,6 +64,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				})
 				.returning();
 			user = newUser[0];
+			redirectTo = '/welcome';
 		} else {
 			console.log('✅ User already exists');
 			user = existingUser[0];
