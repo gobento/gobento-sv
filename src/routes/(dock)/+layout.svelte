@@ -1,30 +1,37 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import HomeIcon from '~icons/mdi/home';
-	import HomeFilledIcon from '~icons/mdi/home-variant';
-	import InboxIcon from '~icons/mdi/inbox';
-	import InboxFilledIcon from '~icons/mdi/inbox-full';
-	import AccountIcon from '~icons/mdi/account';
-	import AccountFilledIcon from '~icons/mdi/account-circle';
+	import CompassIcon from '~icons/fluent/compass-northwest-24-regular';
+	import CompassFilledIcon from '~icons/fluent/compass-northwest-24-filled';
+	import SearchIcon from '~icons/fluent/search-24-regular';
+	import SearchFilledIcon from '~icons/fluent/search-24-filled';
+	import HeartIcon from '~icons/fluent/heart-24-regular';
+	import HeartFilledIcon from '~icons/fluent/heart-24-filled';
+	import PersonIcon from '~icons/fluent/person-24-regular';
+	import PersonFilledIcon from '~icons/fluent/person-24-filled';
 
 	let { children } = $props();
 
 	// Derive active states from current path
-	const isHome = $derived($page.url.pathname === '/');
-	const isInbox = $derived($page.url.pathname === '/inbox');
-	const isProfile = $derived($page.url.pathname === '/user');
+	const isDiscover = $derived($page.url.pathname === '/');
+	const isSearch = $derived($page.url.pathname === '/search');
+	const isFavorites = $derived($page.url.pathname === '/favorites');
+	const isProfile = $derived($page.url.pathname === '/profile');
 
-	function goToHome() {
+	function goToDiscover() {
 		goto('/');
 	}
 
-	function goToInbox() {
-		goto('/inbox');
+	function goToSearch() {
+		goto('/search');
+	}
+
+	function goToFavorites() {
+		goto('/favorites');
 	}
 
 	function goToProfile() {
-		goto('/user');
+		goto('/profile');
 	}
 </script>
 
@@ -33,30 +40,41 @@
 </div>
 
 <div class="dock dock-md">
-	<button onclick={goToHome} class:dock-active={isHome}>
-		{#if isHome}
-			<HomeFilledIcon class="size-5" />
+	<button onclick={goToDiscover} class:dock-active={isDiscover}>
+		{#if isDiscover}
+			<CompassFilledIcon class="size-6" />
 		{:else}
-			<HomeIcon class="size-5" />
+			<CompassIcon class="size-6" />
 		{/if}
-		<span class="dock-label">Home</span>
+		<span class="dock-label">Discover</span>
 	</button>
 
-	<button onclick={goToInbox} class:dock-active={isInbox}>
-		{#if isInbox}
-			<InboxFilledIcon class="size-5" />
+	<button onclick={goToSearch} class:dock-active={isSearch}>
+		{#if isSearch}
+			<SearchFilledIcon class="size-6" />
 		{:else}
-			<InboxIcon class="size-5" />
+			<SearchIcon class="size-6" />
 		{/if}
-		<span class="dock-label">Inbox</span>
+		<span class="dock-label">Search</span>
+	</button>
+
+	<button onclick={goToFavorites} class:dock-active={isFavorites}>
+		{#if isFavorites}
+			<HeartFilledIcon class="size-6" />
+		{:else}
+			<HeartIcon class="size-6" />
+		{/if}
+		<span class="dock-label">Favorites</span>
 	</button>
 
 	<button onclick={goToProfile} class:dock-active={isProfile}>
 		{#if isProfile}
-			<AccountFilledIcon class="size-5" />
+			<PersonFilledIcon class="size-6" />
 		{:else}
-			<AccountIcon class="size-5" />
+			<PersonIcon class="size-6" />
 		{/if}
 		<span class="dock-label">Profile</span>
 	</button>
 </div>
+
+<!-- TODO: use different navigation depending on if profile is business, user or charity. currently, it is just user 	-->
