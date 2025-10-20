@@ -47,6 +47,9 @@
 
 	let step = $state<number>(1);
 	let selectedType = $state<number | null>(null);
+	let uploading = $state<boolean>(false);
+	let selectedFile = $state<File | null>(null);
+	let previewUrl = $state<string | null>(null);
 
 	// Form data
 	let formData = $state({
@@ -71,12 +74,47 @@
 		step = 1;
 	}
 
-	function handleSubmit() {
-		console.log('Form submitted:', {
-			accountType: selectedType,
-			...formData
-		});
-		// Submit form data to server
+	function handleFileSelect(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+
+		if (file) {
+			selectedFile = file;
+			// Create preview URL
+			previewUrl = URL.createObjectURL(file);
+		}
+	}
+
+	async function handleSubmit() {
+		uploading = true;
+
+		try {
+			const formDataToSend = new FormData();
+			formDataToSend.append('accountType', String(selectedType));
+			formDataToSend.append('name', formData.name);
+			formDataToSend.append('description', formData.description);
+			formDataToSend.append('bankAccount', formData.bankAccount);
+			formDataToSend.append('bankRoutingNumber', formData.bankRoutingNumber);
+
+			if (selectedFile && isBusinessOrCharity()) {
+				formDataToSend.append('picture', selectedFile);
+			}
+
+			const response = await fetch('?/setup', {
+				method: 'POST',
+				body: formDataToSend
+			});
+
+			if (response.ok) {
+				// Redirect to profile or dashboard
+				window.location.href = '/profile';
+			}
+		} catch (error) {
+			console.error('Error submitting form:', error);
+			alert('An error occurred. Please try again.');
+		} finally {
+			uploading = false;
+		}
 	}
 
 	function isBusinessOrCharity() {
@@ -189,15 +227,24 @@
 
 								<div class="form-control">
 									<label class="label" for="picture">
-										<span class="label-text font-medium">Logo/Picture URL</span>
+										<span class="label-text font-medium">Logo/Picture</span>
 									</label>
 									<input
 										id="picture"
-										type="url"
-										placeholder="https://example.com/logo.png"
-										class="input-bordered input w-full"
-										bind:value={formData.pictureUrl}
+										type="file"
+										accept="image/*"
+										class="file-input-bordered file-input w-full"
+										onchange={handleFileSelect}
 									/>
+									{#if previewUrl}
+										<div class="mt-3">
+											<img
+												src={previewUrl}
+												alt="Preview"
+												class="h-32 w-32 rounded-lg object-cover"
+											/>
+										</div>
+									{/if}
 								</div>
 							{/if}
 
@@ -237,12 +284,19 @@
 
 				<!-- Navigation Buttons -->
 				<div class="mt-6 flex items-center justify-between">
-					<button class="btn btn-circle btn-lg" onclick={handleBack}>
+					<button class="btn btn-circle btn-lg" onclick={handleBack} disabled={uploading}>
 						<IconArrowLeft class="h-6 w-6" />
 					</button>
 
 					{#if canSubmit()}
-						<button class="btn btn-lg btn-primary" onclick={handleSubmit}> Complete Setup </button>
+						<button class="btn btn-lg btn-primary" onclick={handleSubmit} disabled={uploading}>
+							{#if uploading}
+								<span class="loading loading-spinner"></span>
+								Uploading...
+							{:else}
+								Complete Setup
+							{/if}
+						</button>
 					{/if}
 				</div>
 			</div>
