@@ -50,6 +50,38 @@ export const businessProfiles = pgTable('business_profiles', {
 		.references(() => files.id, { onDelete: 'restrict' })
 });
 
+// Business locations
+export const businessLocations = pgTable('business_locations', {
+	id: text('id').primaryKey(), // UUID
+	businessAccountId: text('business_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	name: text('name').notNull(), // e.g., "Downtown Branch", "Main Office"
+	address: text('address').notNull(),
+	city: text('city').notNull(),
+	state: text('state'),
+	zipCode: text('zip_code'),
+	country: text('country').notNull(),
+	latitude: doublePrecision('latitude').notNull(),
+	longitude: doublePrecision('longitude').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+// Business offers
+export const businessOffers = pgTable('business_offers', {
+	id: text('id').primaryKey(), // UUID
+	businessAccountId: text('business_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	locationId: text('location_id').references(() => businessLocations.id, { onDelete: 'cascade' }), // null = all locations
+	name: text('name').notNull(),
+	description: text('description').notNull(),
+	price: doublePrecision('price').notNull(),
+	currency: text('currency').notNull().default('EUR'),
+	isActive: boolean('is_active').notNull().default(true),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+});
+
 // Charity-specific data
 export const charityProfiles = pgTable('charity_profiles', {
 	accountId: text('account_id')
@@ -82,6 +114,8 @@ export type Account = typeof accounts.$inferSelect;
 export type File = typeof files.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type BusinessProfile = typeof businessProfiles.$inferSelect;
+export type BusinessLocation = typeof businessLocations.$inferSelect;
+export type BusinessOffer = typeof businessOffers.$inferSelect;
 export type CharityProfile = typeof charityProfiles.$inferSelect;
 export type AdminProfile = typeof adminProfiles.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
