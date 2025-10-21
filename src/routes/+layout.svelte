@@ -36,7 +36,7 @@
 </svelte:head>
 
 <div
-	class="flex min-h-dvh w-dvw items-center justify-center p-4"
+	class="flex min-h-dvh max-w-lvw items-center justify-center"
 	style="font-family:'HP Simplified'"
 >
 	{@render children()}
