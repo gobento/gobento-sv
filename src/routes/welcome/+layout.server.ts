@@ -1,14 +1,14 @@
 import { redirect } from '@sveltejs/kit';
 
 export const load = ({ locals }) => {
-	if (!locals.user || !locals.session) {
+	if (!locals.account || !locals.session) {
 		throw redirect(302, '/auth/login');
 	}
 
 	// todo add support for ?next=url
 
 	return {
-		user: locals.user,
+		account: locals.account,
 		session: locals.session
 	};
 };

@@ -1,23 +1,13 @@
-// See https://svelte.dev/docs/kit/types#app.d.ts
-// for information about these interfaces
+// src/app.d.ts
+import type { Account, Session } from '$lib/server/schema';
+
 declare global {
 	namespace App {
 		interface Locals {
-			user: {
-				id: string;
-				email: string;
-				name: string;
-				picture: string | null;
-				isAdmin: boolean;
-			} | null;
-			session: {
-				id: string;
-				expiresAt: Date;
-			} | null;
+			account: Account | null;
+			session: Session | null;
 		}
 	}
 }
-
-export {};
 
 export {};

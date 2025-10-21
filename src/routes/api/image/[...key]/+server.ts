@@ -1,39 +1,38 @@
-// src/routes/api/image/[...key]/+server.ts
-import { error } from '@sveltejs/kit';
+// src/routes/api/file/[id]/+server.ts
+import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { db } from '$lib/server/db';
+import { files } from '$lib/server/schema';
+import { eq } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
-export const GET: RequestHandler = async ({ params, fetch }) => {
-	const { key } = params;
+export const GET: RequestHandler = async ({ params }) => {
+	const fileId = params.id;
 
-	if (!key) {
-		throw error(400, 'Image key is required');
+	if (!fileId) {
+		throw error(400, 'File ID required');
 	}
 
 	try {
-		// Generate signed URL valid for 1 hour
-		const signedUrl = await getSignedDownloadUrl(key, 3600);
+		// Look up file in database
+		const fileRecord = await db.query.files.findFirst({
+			where: eq(files.id, fileId)
+		});
 
-		// Fetch the image from Backblaze
-		const response = await fetch(signedUrl);
-
-		if (!response.ok) {
-			throw error(response.status, 'Failed to fetch image from storage');
+		if (!fileRecord) {
+			throw error(404, 'File not found');
 		}
 
-		// Get the image data and content type
-		const imageBuffer = await response.arrayBuffer();
-		const contentType = response.headers.get('content-type') || 'image/jpeg';
+		// Generate signed URL (valid for 1 hour)
+		const signedUrl = await getSignedDownloadUrl(fileRecord.key, 3600);
 
-		// Return the image directly
-		return new Response(imageBuffer, {
-			headers: {
-				'Content-Type': contentType,
-				'Cache-Control': 'public, max-age=3600'
-			}
-		});
+		// Redirect to signed URL
+		throw redirect(302, signedUrl);
 	} catch (err) {
-		console.error('Error serving image:', err);
-		throw error(500, 'Failed to load image');
+		if (err instanceof Error && 'status' in err) {
+			throw err; // Re-throw SvelteKit errors
+		}
+		console.error('Error generating signed URL:', err);
+		throw error(500, 'Failed to retrieve file');
 	}
 };
