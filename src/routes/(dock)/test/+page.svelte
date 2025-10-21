@@ -20,42 +20,25 @@
 	>([]);
 	let showToast = $state(false);
 	let toastMessage = $state('');
-
-	// Initialize history from localStorage
-	$effect(() => {
-		const stored = localStorage.getItem('uploadHistory');
-		if (stored) {
-			try {
-				uploadHistory = JSON.parse(stored);
-			} catch {
-				uploadHistory = [];
-			}
-		}
-	});
-
-	// When form succeeds, add to history
-	$effect(() => {
-		if (form?.success && form?.url && form?.key && form?.fileName) {
-			saveToHistory(form.url, form.key, form.fileName);
-		}
-	});
+	let toastType = $state<'info' | 'success' | 'error'>('info');
 
 	function saveToHistory(url: string, key: string, fileName: string) {
 		const newItem = { url, key, fileName, timestamp: Date.now() };
 		const exists = uploadHistory.some((item) => item.key === key);
 		if (!exists) {
 			uploadHistory = [newItem, ...uploadHistory].slice(0, 10);
-			localStorage.setItem('uploadHistory', JSON.stringify(uploadHistory));
 		}
 	}
 
 	function clearHistory() {
 		uploadHistory = [];
-		localStorage.removeItem('uploadHistory');
 	}
 
 	function copyUrl(url: string) {
-		navigator.clipboard.writeText(url);
+		// Convert relative URL to absolute for copying
+		const absoluteUrl = new URL(url, window.location.origin).toString();
+		navigator.clipboard.writeText(absoluteUrl);
+		toastType = 'success';
 		showToast = true;
 		toastMessage = 'URL copied to clipboard!';
 		setTimeout(() => {
@@ -65,6 +48,7 @@
 
 	function handleUploadSuccess(data: { url: string; fileName: string; key: string }) {
 		saveToHistory(data.url, data.key, data.fileName);
+		toastType = 'success';
 		showToast = true;
 		toastMessage = 'Upload successful!';
 		setTimeout(() => {
@@ -73,12 +57,20 @@
 	}
 
 	function handleUploadError(error: string) {
+		toastType = 'error';
 		showToast = true;
 		toastMessage = error;
 		setTimeout(() => {
 			showToast = false;
 		}, 3000);
 	}
+
+	// When form succeeds, add to history
+	$effect(() => {
+		if (form?.success && form?.url && form?.key && form?.fileName) {
+			saveToHistory(form.url, form.key, form.fileName);
+		}
+	});
 </script>
 
 <div class="min-h-screen bg-base-200 px-3 py-6 sm:px-4 sm:py-8">
@@ -88,8 +80,8 @@
 			<div class="mb-3 inline-flex items-center justify-center rounded-2xl bg-primary/10 p-3">
 				<IconCloudArrowUp class="h-8 w-8 text-primary sm:h-10 sm:w-10" />
 			</div>
-			<h1 class="mb-2 text-2xl font-bold sm:text-4xl">Backblaze Upload</h1>
-			<p class="text-sm text-base-content/70 sm:text-base">Test your B2 configuration</p>
+			<h1 class="mb-2 text-2xl font-bold sm:text-4xl">File Upload</h1>
+			<p class="text-sm text-base-content/70 sm:text-base">Test your Backblaze B2 configuration</p>
 		</div>
 
 		<!-- Upload Form -->
@@ -210,7 +202,7 @@
 
 		<!-- Info Footer -->
 		<div class="mt-6 text-center text-xs text-base-content/60 sm:text-sm">
-			<p>Testing Backblaze B2 configuration</p>
+			<p>Files are tracked in the database with uploader and timestamp info</p>
 		</div>
 	</div>
 </div>
@@ -218,7 +210,12 @@
 <!-- Toast Notification -->
 {#if showToast}
 	<div class="toast toast-center toast-top">
-		<div class="alert alert-info">
+		<div
+			class="alert"
+			class:alert-info={toastType === 'info'}
+			class:alert-success={toastType === 'success'}
+			class:alert-error={toastType === 'error'}
+		>
 			<span>{toastMessage}</span>
 		</div>
 	</div>

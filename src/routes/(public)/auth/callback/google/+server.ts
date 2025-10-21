@@ -3,8 +3,8 @@ import { OAuth2RequestError } from 'arctic';
 import { google, generateSessionToken, createSession } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { eq } from 'drizzle-orm';
-import type { RequestHandler } from './callback/$types';
-import { users } from '$lib/server/schema';
+import type { RequestHandler } from './$types';
+import { accounts, userProfiles } from '$lib/server/schema';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
 	const code = url.searchParams.get('code');
@@ -42,37 +42,43 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 		console.log('👤 Google user:', googleUser.email);
 
-		// Check if user exists, if not create them
-		const existingUser = await db
+		// Check if account exists, if not create them
+		const existingAccount = await db
 			.select()
-			.from(users)
-			.where(eq(users.email, googleUser.email))
+			.from(accounts)
+			.where(eq(accounts.email, googleUser.email))
 			.limit(1);
 
-		let user;
-		if (existingUser.length === 0) {
-			console.log('✨ Creating new user');
-			// Create new user (not admin by default)
-			const newUser = await db
-				.insert(users)
+		let account;
+		if (existingAccount.length === 0) {
+			console.log('✨ Creating new account');
+
+			// Create new account (as regular user)
+			const newAccount = await db
+				.insert(accounts)
 				.values({
 					id: googleUser.sub,
 					email: googleUser.email,
-					name: googleUser.name,
-					picture: googleUser.picture,
-					isAdmin: false
+					accountType: 'user'
 				})
 				.returning();
-			user = newUser[0];
+
+			account = newAccount[0];
+
+			// Create corresponding user profile
+			await db.insert(userProfiles).values({
+				accountId: account.id
+			});
+
 			redirectTo = '/welcome';
 		} else {
-			console.log('✅ User already exists');
-			user = existingUser[0];
+			console.log('✅ Account already exists');
+			account = existingAccount[0];
 		}
 
 		// Create session
 		const sessionToken = generateSessionToken();
-		const session = await createSession(sessionToken, user.id);
+		const session = await createSession(sessionToken, account.id);
 
 		cookies.set('session', sessionToken, {
 			httpOnly: true,
