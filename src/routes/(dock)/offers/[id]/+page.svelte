@@ -12,11 +12,26 @@
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
+	import IconQr from '~icons/fluent/qr-code-24-regular';
 	import { goto } from '$app/navigation';
 
 	let { data, form } = $props();
 
 	let isSubmitting = $state(false);
+	let showReservationDialog = $state(false);
+	let pickupFrom = $state('');
+	let pickupUntil = $state('');
+
+	// Initialize default pickup times (today + 1 hour to today + 2 hours)
+	$effect(() => {
+		const now = new Date();
+		const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+		const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+		// Format for datetime-local input
+		pickupFrom = oneHourLater.toISOString().slice(0, 16);
+		pickupUntil = twoHoursLater.toISOString().slice(0, 16);
+	});
 
 	const formatPrice = (price: number, currency: string) => {
 		return new Intl.NumberFormat('de-DE', {
@@ -118,19 +133,21 @@
 			</div>
 		</div>
 
-		<h1 class="mb-3 text-4xl font-bold text-base-content">{data.offer.name}</h1>
+		<div class="px-6 pb-6">
+			<h1 class="mb-3 text-4xl font-bold text-base-content">{data.offer.name}</h1>
 
-		<!-- Offer Description -->
-		<div class="prose mb-6 max-w-none">
-			<p class="text-base leading-relaxed whitespace-pre-wrap text-base-content/80">
-				{data.offer.description}
-			</p>
+			<!-- Offer Description -->
+			<div class="prose mb-6 max-w-none">
+				<p class="text-base leading-relaxed whitespace-pre-wrap text-base-content/80">
+					{data.offer.description}
+				</p>
+			</div>
 		</div>
 
 		<!-- Location Details (clickable to location page) -->
 		<a
 			href="/locations/{data.location.id}"
-			class="group block px-6 pt-4 pb-6 transition-colors duration-200 hover:bg-base-200/50"
+			class="group block border-t border-base-content/10 px-6 pt-4 pb-6 transition-colors duration-200 hover:bg-base-200/50"
 		>
 			<div class="flex items-start justify-between">
 				<div class="flex-1">
@@ -155,7 +172,7 @@
 		</a>
 	</div>
 {:else}
-	<div class="flex items-center gap-3 rounded-2xl bg-base-300 p-6">
+	<div class="mb-6 flex items-center gap-3 rounded-2xl bg-base-300 p-6">
 		<IconStore class="size-6 text-base-content/70" />
 		<div>
 			<p class="font-medium text-base-content">Available at all locations</p>
@@ -164,10 +181,22 @@
 			</p>
 		</div>
 	</div>
+
+	<!-- Offer Header -->
+	<div class="mb-6 rounded-2xl bg-base-300 p-6">
+		<h1 class="mb-3 text-4xl font-bold text-base-content">{data.offer.name}</h1>
+
+		<!-- Offer Description -->
+		<div class="prose max-w-none">
+			<p class="text-base leading-relaxed whitespace-pre-wrap text-base-content/80">
+				{data.offer.description}
+			</p>
+		</div>
+	</div>
 {/if}
 
-<!-- Offer Header -->
-<div class="mb-6">
+<!-- Pricing and Details -->
+<div class="mb-6 rounded-2xl bg-base-300 p-6">
 	<!-- Tags Row -->
 	<div class="mb-4 flex flex-wrap items-center gap-3">
 		<div class="text-4xl font-bold text-primary">
@@ -215,6 +244,32 @@
 				</p>
 			</div>
 		</div>
+
+		<!-- Pickup Time Window -->
+		<div class="mb-4 rounded-lg bg-base-100 p-4">
+			<div class="mb-2 flex items-center gap-2 text-base-content">
+				<IconClock class="size-5" />
+				<span class="font-medium">Pickup Window</span>
+			</div>
+			<div class="space-y-1 text-sm text-base-content/70">
+				<p>From: {formatDateTime(data.userReservation.pickupFrom)}</p>
+				<p>Until: {formatDateTime(data.userReservation.pickupUntil)}</p>
+			</div>
+		</div>
+
+		<!-- Claim Token Display -->
+		<div class="rounded-lg bg-base-100 p-4">
+			<div class="mb-2 flex items-center gap-2 text-base-content">
+				<IconQr class="size-5" />
+				<span class="font-medium">Claim Code</span>
+			</div>
+			<div class="flex items-center gap-3">
+				<code class="rounded bg-base-200 px-4 py-2 font-mono text-2xl font-bold tracking-wider">
+					{data.userReservation.claimToken}
+				</code>
+				<p class="text-xs text-base-content/70">Show this code to staff when picking up</p>
+			</div>
+		</div>
 	</div>
 {:else if data.isUser && data.offer.isActive}
 	{#if data.isReserved}
@@ -230,27 +285,10 @@
 		</div>
 	{:else}
 		<!-- Available to reserve -->
-		<form
-			method="POST"
-			action="?/reserve"
-			use:enhance={() => {
-				isSubmitting = true;
-				return async ({ update }) => {
-					await update();
-					isSubmitting = false;
-				};
-			}}
-		>
-			<button type="submit" disabled={isSubmitting} class="btn w-full btn-lg btn-primary">
-				{#if isSubmitting}
-					<span class="loading loading-md loading-spinner"></span>
-					Processing...
-				{:else}
-					<IconCheckmark class="size-6" />
-					Reserve This Offer
-				{/if}
-			</button>
-		</form>
+		<button onclick={() => (showReservationDialog = true)} class="btn w-full btn-lg btn-primary">
+			<IconCheckmark class="size-6" />
+			Reserve This Offer
+		</button>
 	{/if}
 {:else if data.isOwner}
 	<!-- Owner controls -->
@@ -275,10 +313,12 @@
 	<!-- Not logged in -->
 	<div class="alert border-0 bg-base-200">
 		<div class="flex-1">
-			<IconCheckmark class="size-6 text-primary" />
-			<div>
-				<h3 class="font-semibold">Want to reserve this offer?</h3>
-				<p class="text-sm text-base-content/70">Log in with your user account to get started</p>
+			<div class="flex items-start gap-3">
+				<IconCheckmark class="size-6 text-primary" />
+				<div>
+					<h3 class="font-semibold">Want to reserve this offer?</h3>
+					<p class="text-sm text-base-content/70">Log in with your user account to get started</p>
+				</div>
 			</div>
 		</div>
 		<a href="/login" class="btn btn-primary">Log In</a>
@@ -287,5 +327,85 @@
 	<!-- Inactive offer -->
 	<div class="alert alert-warning">
 		<span>This offer is currently inactive and cannot be reserved</span>
+	</div>
+{/if}
+
+<!-- Reservation Dialog -->
+{#if showReservationDialog}
+	<div class="modal-open modal">
+		<div class="modal-box">
+			<h3 class="mb-4 text-lg font-bold">Choose Pickup Time</h3>
+
+			<form
+				method="POST"
+				action="?/reserve"
+				use:enhance={() => {
+					isSubmitting = true;
+					return async ({ update }) => {
+						await update();
+						isSubmitting = false;
+						showReservationDialog = false;
+					};
+				}}
+			>
+				<div class="space-y-4">
+					<!-- Pickup From -->
+					<div class="form-control">
+						<label for="pickupFrom" class="label">
+							<span class="label-text">Pickup From</span>
+						</label>
+						<input
+							type="datetime-local"
+							id="pickupFrom"
+							name="pickupFrom"
+							bind:value={pickupFrom}
+							required
+							class="input-bordered input"
+						/>
+					</div>
+
+					<!-- Pickup Until -->
+					<div class="form-control">
+						<label for="pickupUntil" class="label">
+							<span class="label-text">Pickup Until</span>
+						</label>
+						<input
+							type="datetime-local"
+							id="pickupUntil"
+							name="pickupUntil"
+							bind:value={pickupUntil}
+							required
+							class="input-bordered input"
+						/>
+					</div>
+				</div>
+
+				<div class="modal-action">
+					<button
+						type="button"
+						onclick={() => (showReservationDialog = false)}
+						disabled={isSubmitting}
+						class="btn"
+					>
+						Cancel
+					</button>
+					<button type="submit" disabled={isSubmitting} class="btn btn-primary">
+						{#if isSubmitting}
+							<span class="loading loading-md loading-spinner"></span>
+							Processing...
+						{:else}
+							Confirm Reservation
+						{/if}
+					</button>
+				</div>
+			</form>
+		</div>
+		<button
+			class="modal-backdrop"
+			onclick={() => (showReservationDialog = false)}
+			disabled={isSubmitting}
+		>
+			Close
+		</button>
 	</div>
 {/if}

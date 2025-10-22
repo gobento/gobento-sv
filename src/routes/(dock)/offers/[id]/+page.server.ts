@@ -85,14 +85,32 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		userReservation: userReservation
 			? {
 					id: userReservation.id,
-					reservedAt: userReservation.reservedAt
+					reservedAt: userReservation.reservedAt,
+					pickupFrom: userReservation.pickupFrom,
+					pickupUntil: userReservation.pickupUntil,
+					claimToken: userReservation.claimToken
 				}
 			: null
 	};
 };
 
+/**
+ * Generates a secure random claim token for staff scanning
+ */
+function generateClaimToken(): string {
+	// Generate a random 8-character alphanumeric token
+	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+	let token = '';
+	const array = new Uint8Array(8);
+	crypto.getRandomValues(array);
+	for (let i = 0; i < 8; i++) {
+		token += chars[array[i] % chars.length];
+	}
+	return token;
+}
+
 export const actions: Actions = {
-	reserve: async ({ params, locals }) => {
+	reserve: async ({ params, locals, request }) => {
 		const session = locals.session;
 		const account = locals.account;
 
@@ -102,6 +120,31 @@ export const actions: Actions = {
 
 		if (account.accountType !== 'user') {
 			throw error(403, 'Only user accounts can reserve offers');
+		}
+
+		// Get form data for pickup times
+		const formData = await request.formData();
+		const pickupFromStr = formData.get('pickupFrom');
+		const pickupUntilStr = formData.get('pickupUntil');
+
+		if (!pickupFromStr || !pickupUntilStr) {
+			return fail(400, { error: 'Pickup time range is required' });
+		}
+
+		const pickupFrom = new Date(pickupFromStr as string);
+		const pickupUntil = new Date(pickupUntilStr as string);
+
+		// Validate pickup times
+		if (isNaN(pickupFrom.getTime()) || isNaN(pickupUntil.getTime())) {
+			return fail(400, { error: 'Invalid pickup times' });
+		}
+
+		if (pickupFrom >= pickupUntil) {
+			return fail(400, { error: 'Pickup start time must be before end time' });
+		}
+
+		if (pickupFrom < new Date()) {
+			return fail(400, { error: 'Pickup time cannot be in the past' });
 		}
 
 		// Check if offer exists and is active
@@ -132,12 +175,18 @@ export const actions: Actions = {
 			return fail(400, { error: 'This offer is already reserved by another user' });
 		}
 
+		// Generate unique claim token for staff scanning
+		const claimToken = generateClaimToken();
+
 		// Create reservation
 		await db.insert(reservations).values({
 			id: crypto.randomUUID(),
 			offerId: params.id,
 			userAccountId: account.id,
-			status: 'active'
+			status: 'active',
+			pickupFrom,
+			pickupUntil,
+			claimToken
 		});
 
 		return { success: true };
@@ -168,14 +217,15 @@ export const actions: Actions = {
 			return fail(400, { error: 'No active reservation found' });
 		}
 
-		// Update reservation status
-		await db
-			.update(reservations)
-			.set({
-				status: 'cancelled',
-				cancelledAt: new Date()
-			})
-			.where(eq(reservations.id, reservationResult[0].id));
+		// Delete the reservation (or set to expired if you want to keep history)
+		// Option 1: Delete completely
+		await db.delete(reservations).where(eq(reservations.id, reservationResult[0].id));
+
+		// Option 2: Set to expired (uncomment if preferred)
+		// await db
+		// 	.update(reservations)
+		// 	.set({ status: 'expired' })
+		// 	.where(eq(reservations.id, reservationResult[0].id));
 
 		return { success: true };
 	}

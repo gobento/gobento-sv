@@ -1,4 +1,4 @@
-// src/routes/offers/new/+page.server.ts
+// src/routes/(dock)/offers/new/+page.server.ts
 import { db } from '$lib/server/db';
 import { businessLocations, businessOffers } from '$lib/server/schema';
 import { error, fail, redirect } from '@sveltejs/kit';
@@ -59,6 +59,8 @@ export const actions = {
 		const price = parseFloat(formData.get('price') as string);
 		const currency = formData.get('currency') as string;
 		const locationId = formData.get('locationId') as string;
+		const isRecurring = formData.get('isRecurring') === 'on';
+		const validUntilStr = formData.get('validUntil') as string;
 
 		// Validation
 		if (!name || name.trim().length === 0) {
@@ -75,6 +77,21 @@ export const actions = {
 
 		if (!currency || currency.trim().length === 0) {
 			return fail(400, { message: 'Currency is required', field: 'currency' });
+		}
+
+		// Parse validUntil if provided
+		let validUntil: Date | null = null;
+		if (validUntilStr && validUntilStr.trim() !== '') {
+			validUntil = new Date(validUntilStr);
+			if (isNaN(validUntil.getTime())) {
+				return fail(400, { message: 'Invalid expiration date', field: 'validUntil' });
+			}
+			if (validUntil < new Date()) {
+				return fail(400, {
+					message: 'Expiration date must be in the future',
+					field: 'validUntil'
+				});
+			}
 		}
 
 		// Validate locationId if provided (empty string means all locations)
@@ -100,7 +117,9 @@ export const actions = {
 				description: description.trim(),
 				price,
 				currency: currency.trim(),
-				isActive: true
+				isActive: true,
+				isRecurring,
+				validUntil
 			});
 		} catch (e) {
 			console.error('Failed to create offer:', e);
