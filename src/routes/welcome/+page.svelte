@@ -265,9 +265,9 @@
 					<!-- Continue Button -->
 					{#if $form.accountType}
 						<div class="flex justify-end">
-							<button type="button" class="btn btn-primary gap-2" onclick={handleContinue}>
+							<button type="button" class="btn gap-2 btn-primary" onclick={handleContinue}>
 								Continue
-								<IconArrowRight class="h-5 w-5" />
+								<IconArrowRight class="size-5" />
 							</button>
 						</div>
 					{/if}
@@ -312,7 +312,7 @@
 							<!-- Global Error Message -->
 							{#if $message}
 								<div class="alert alert-error">
-									<IconErrorCircle class="h-5 w-5" />
+									<IconErrorCircle class="size-5" />
 									<span>{$message}</span>
 								</div>
 							{/if}
@@ -334,14 +334,14 @@
 											placeholder={$form.accountType === 'business'
 												? 'e.g., Fresh Bakery & Café'
 												: 'e.g., Community Food Bank'}
-											class="input input-bordered w-full"
+											class="input-bordered input w-full"
 											class:input-error={$errors.name}
 											bind:value={$form.name}
 											disabled={$submitting}
 										/>
 										{#if $errors.name}
 											<label class="label">
-												<span class="label-text-alt text-error flex items-center gap-1">
+												<span class="label-text-alt flex items-center gap-1 text-error">
 													<IconWarning class="h-3 w-3" />
 													{$errors.name}
 												</span>
@@ -361,7 +361,7 @@
 											placeholder={$form.accountType === 'business'
 												? 'Describe what surplus food you offer (e.g., fresh baked goods, prepared meals, groceries)...'
 												: 'Describe your mission and how you help the community...'}
-											class="textarea textarea-bordered w-full"
+											class="textarea-bordered textarea w-full"
 											class:textarea-error={$errors.description}
 											rows="4"
 											bind:value={$form.description}
@@ -369,7 +369,7 @@
 										></textarea>
 										{#if $errors.description}
 											<label class="label">
-												<span class="label-text-alt text-error flex items-center gap-1">
+												<span class="label-text-alt flex items-center gap-1 text-error">
 													<IconWarning class="h-3 w-3" />
 													{$errors.description}
 												</span>
@@ -392,7 +392,7 @@
 										<select
 											id="country"
 											name="country"
-											class="select select-bordered w-full"
+											class="select-bordered select w-full"
 											class:select-error={$errors.country}
 											bind:value={$form.country}
 											disabled={$submitting}
@@ -406,7 +406,7 @@
 										</select>
 										{#if $errors.country}
 											<label class="label">
-												<span class="label-text-alt text-error flex items-center gap-1">
+												<span class="label-text-alt flex items-center gap-1 text-error">
 													<IconWarning class="h-3 w-3" />
 													{$errors.country}
 												</span>
@@ -496,7 +496,7 @@
 
 										{#if fileError}
 											<label class="label">
-												<span class="label-text-alt text-error flex items-center gap-1">
+												<span class="label-text-alt flex items-center gap-1 text-error">
 													<IconWarning class="h-3 w-3" />
 													{fileError}
 												</span>
@@ -524,24 +524,24 @@
 							<div class="flex items-center justify-between gap-4">
 								<button
 									type="button"
-									class="btn btn-ghost gap-2"
+									class="btn gap-2 btn-ghost"
 									onclick={handleBack}
 									disabled={$submitting}
 								>
-									<IconArrowLeft class="h-5 w-5" />
+									<IconArrowLeft class="size-5" />
 									Back
 								</button>
 
 								<button
 									type="submit"
-									class="btn btn-primary gap-2"
+									class="btn gap-2 btn-primary"
 									disabled={!canSubmit() || $submitting}
 								>
 									{#if $submitting}
-										<span class="loading loading-spinner loading-sm"></span>
+										<span class="loading loading-sm loading-spinner"></span>
 										Setting up...
 									{:else}
-										<IconCloudArrowUp class="h-5 w-5" />
+										<IconCloudArrowUp class="size-5" />
 										{needsProfileData() ? 'Complete Setup' : 'Start Saving Food'}
 									{/if}
 								</button>

@@ -9,6 +9,8 @@
 	import CompassFilledIcon from '~icons/fluent/compass-northwest-24-filled';
 	import SearchIcon from '~icons/fluent/search-24-regular';
 	import SearchFilledIcon from '~icons/fluent/search-24-filled';
+	import FluentShoppingBag24Regular from '~icons/fluent/shopping-bag-24-regular';
+	import FluentShoppingBag24Filled from '~icons/fluent/shopping-bag-24-filled';
 	import HeartIcon from '~icons/fluent/heart-24-regular';
 	import HeartFilledIcon from '~icons/fluent/heart-24-filled';
 	import PersonIcon from '~icons/fluent/person-24-regular';
@@ -52,8 +54,8 @@
 		{
 			path: '/reservations',
 			label: 'Reservations',
-			icon: HeartIcon,
-			filledIcon: HeartFilledIcon
+			icon: FluentShoppingBag24Regular,
+			filledIcon: FluentShoppingBag24Filled
 		},
 		{
 			path: '/favorites',
