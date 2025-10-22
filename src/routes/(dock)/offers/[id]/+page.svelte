@@ -90,7 +90,7 @@
 </script>
 
 <!-- Business Header -->
-<div class="rounded-3xl bg-base-100 p-8">
+<div class="rounded-3xl p-8">
 	<div class="flex items-center gap-6">
 		<div class="h-24 w-24 overflow-hidden rounded-2xl border-2 border-primary/30 bg-base-200">
 			<img
@@ -115,8 +115,58 @@
 
 <!-- Info Grid -->
 <div class="grid gap-6 lg:grid-cols-2">
+	<!-- Location Card -->
+	{#if data.location}
+		<div class="rounded-3xl p-8">
+			<div class="mb-6 flex items-center gap-3">
+				<div class="rounded-xl bg-primary/10 p-3">
+					<IconMapPin class="size-7 text-primary" />
+				</div>
+				<h3 class="text-2xl font-black text-base-content">Pickup Location</h3>
+			</div>
+
+			<a
+				href={getGoogleMapsUrl(data.location.latitude, data.location.longitude)}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="group block rounded-2xl bg-base-200 p-6 transition-all hover:border-primary"
+			>
+				<div class="flex items-start justify-between gap-4">
+					<div class="flex-1 space-y-1">
+						<p class="text-lg font-bold text-base-content">{data.location.address}</p>
+						<p class="text-base font-medium text-base-content/70">
+							{data.location.zipCode}
+							{data.location.city}
+							{#if data.location.state}, {data.location.state}{/if}
+						</p>
+						<p class="text-sm font-medium text-base-content/50">{data.location.country}</p>
+					</div>
+					<div
+						class="rounded-full bg-primary/10 p-2 transition-all group-hover:bg-primary group-hover:text-primary-content"
+					>
+						<IconArrowRight class="size-6" />
+					</div>
+				</div>
+			</a>
+		</div>
+	{:else}
+		<div class="rounded-3xl p-8">
+			<div class="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/5 p-6">
+				<div class="rounded-xl bg-primary/20 p-3">
+					<IconStore class="size-8 text-primary" />
+				</div>
+				<div>
+					<h3 class="text-lg font-bold">Available at All Locations</h3>
+					<p class="text-sm font-medium text-base-content/70">
+						This offer can be claimed at any of this business's locations
+					</p>
+				</div>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Pickup Information -->
-	<div class="rounded-3xl bg-base-100 p-8">
+	<div class="rounded-3xl p-8">
 		<div class="mb-6 flex items-center gap-3">
 			<div class="rounded-xl bg-primary/10 p-3">
 				<IconClock class="size-7 text-primary" />
@@ -156,60 +206,10 @@
 			{/if}
 		</div>
 	</div>
-
-	<!-- Location Card -->
-	{#if data.location}
-		<div class="rounded-3xl bg-base-100 p-8">
-			<div class="mb-6 flex items-center gap-3">
-				<div class="rounded-xl bg-primary/10 p-3">
-					<IconMapPin class="size-7 text-primary" />
-				</div>
-				<h3 class="text-2xl font-black text-base-content">Pickup Location</h3>
-			</div>
-
-			<a
-				href={getGoogleMapsUrl(data.location.latitude, data.location.longitude)}
-				target="_blank"
-				rel="noopener noreferrer"
-				class="group block rounded-2xl bg-base-200 p-6 transition-all hover:border-primary"
-			>
-				<div class="flex items-start justify-between gap-4">
-					<div class="flex-1 space-y-1">
-						<p class="text-lg font-bold text-base-content">{data.location.address}</p>
-						<p class="text-base font-medium text-base-content/70">
-							{data.location.zipCode}
-							{data.location.city}
-							{#if data.location.state}, {data.location.state}{/if}
-						</p>
-						<p class="text-sm font-medium text-base-content/50">{data.location.country}</p>
-					</div>
-					<div
-						class="rounded-full bg-primary/10 p-2 transition-all group-hover:bg-primary group-hover:text-primary-content"
-					>
-						<IconArrowRight class="size-6" />
-					</div>
-				</div>
-			</a>
-		</div>
-	{:else}
-		<div class="rounded-3xl bg-base-100 p-8">
-			<div class="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/5 p-6">
-				<div class="rounded-xl bg-primary/20 p-3">
-					<IconStore class="size-8 text-primary" />
-				</div>
-				<div>
-					<h3 class="text-lg font-bold">Available at All Locations</h3>
-					<p class="text-sm font-medium text-base-content/70">
-						This offer can be claimed at any of this business's locations
-					</p>
-				</div>
-			</div>
-		</div>
-	{/if}
 </div>
 
 <!-- Hero Section -->
-<div class="rounded-3xl bg-base-100 p-10">
+<div class="rounded-3xl p-10">
 	<div class="flex flex-wrap items-start justify-between gap-6">
 		<div class="flex-1 space-y-5">
 			<div class="flex flex-wrap items-center gap-3">
@@ -250,78 +250,26 @@
 	</div>
 {/if}
 
-{#if form?.success}
-	<div class="rounded-2xl border-2 border-success bg-success/10 p-5">
-		<div class="flex items-center gap-3">
-			<IconCheckmark class="size-6 text-success" />
-			<span class="font-bold text-success">Action completed successfully!</span>
-		</div>
-	</div>
-{/if}
-
 <!-- Reservation Status / Actions -->
 {#if data.userReservation}
 	<!-- User's Active Reservation -->
-	<div class="rounded-3xl border-4 border-success bg-base-100 p-10">
-		<div class="mb-8 flex items-start gap-5">
-			<div class="rounded-2xl bg-success p-4">
-				<IconCheckmark class="size-12 text-success-content" />
-			</div>
-			<div class="flex-1">
-				<h3 class="text-4xl font-black text-base-content">You've Reserved This Offer!</h3>
-				<p class="mt-2 text-base font-medium text-base-content/70">
-					Reserved on {formatDateTime(data.userReservation.reservedAt)}
-				</p>
-			</div>
-		</div>
-
-		<!-- Pickup Window -->
-		<div class="mb-6 overflow-hidden rounded-2xl">
-			<div class="border-b-2 border-base-300 bg-primary/10 p-5">
-				<div class="flex items-center gap-3 text-xl font-black">
-					<IconClock class="size-7 text-primary" />
-					<span>Your Pickup Window</span>
-				</div>
-			</div>
-			<div class="grid gap-6 bg-base-100 p-8 sm:grid-cols-2">
-				<div>
-					<p class="mb-2 text-xs font-bold tracking-wider text-base-content/50 uppercase">From</p>
-					<p class="text-2xl font-black text-base-content">
-						{formatDateTime(data.userReservation.pickupFrom)}
-					</p>
+	<a
+		href="/reservations/{data.userReservation.id}"
+		class="block rounded-2xl border-2 border-success bg-success/5 p-6 transition-all hover:border-success/70"
+	>
+		<div class="flex items-center justify-between gap-4">
+			<div class="flex items-center gap-4">
+				<div class="rounded-xl bg-success p-3">
+					<IconCheckmark class="size-8 text-success-content" />
 				</div>
 				<div>
-					<p class="mb-2 text-xs font-bold tracking-wider text-base-content/50 uppercase">Until</p>
-					<p class="text-2xl font-black text-base-content">
-						{formatDateTime(data.userReservation.pickupUntil)}
-					</p>
+					<h3 class="text-xl font-black text-base-content">You've Reserved This Offer!</h3>
+					<p class="text-sm font-medium text-base-content/70">View your reservation details</p>
 				</div>
 			</div>
+			<IconArrowRight class="size-6 text-base-content/40" />
 		</div>
-
-		<!-- Claim Code -->
-		<div class="overflow-hidden rounded-2xl">
-			<div class="border-b-2 border-base-300 bg-primary/10 p-5">
-				<div class="flex items-center gap-3 text-xl font-black">
-					<IconQr class="size-7 text-primary" />
-					<span>Your Claim Code</span>
-				</div>
-			</div>
-			<div class="bg-base-100 p-8">
-				<div class="mb-6 rounded-2xl border-4 border-primary bg-primary/5 p-10 text-center">
-					<code class="font-mono text-6xl font-black tracking-widest text-primary sm:text-7xl">
-						{data.userReservation.claimToken}
-					</code>
-				</div>
-				<div class="flex items-start gap-3 rounded-xl border-2 border-info bg-info/5 p-5">
-					<IconInfo class="size-5 shrink-0 text-info" />
-					<p class="text-sm font-bold text-base-content/80">
-						Show this code to staff when picking up your order
-					</p>
-				</div>
-			</div>
-		</div>
-	</div>
+	</a>
 {:else if data.isUser && data.offer.isActive}
 	{#if data.isReserved}
 		<!-- Reserved by Another User -->
@@ -340,14 +288,17 @@
 		</div>
 	{:else}
 		<!-- Available to Reserve -->
-		<button onclick={() => (showReservationDialog = true)} class="btn w-full btn-primary">
-			<IconCheckmark class="size-5" />
+		<button
+			onclick={() => (showReservationDialog = true)}
+			class="btn w-full rounded-2xl text-xl font-black transition-all btn-lg btn-primary hover:scale-[1.02]"
+		>
+			<IconCheckmark class="size-7" />
 			Reserve This Offer Now
 		</button>
 	{/if}
 {:else if data.isOwner}
 	<!-- Owner Controls -->
-	<div class="rounded-3xl bg-base-100 p-8">
+	<div class="rounded-3xl p-8">
 		<h3 class="mb-6 text-2xl font-black">Manage Offer</h3>
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
