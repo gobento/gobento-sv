@@ -220,43 +220,5 @@ export const actions: Actions = {
 		});
 
 		return { success: true };
-	},
-
-	cancel: async ({ params, locals }) => {
-		const session = locals.session;
-		const account = locals.account;
-
-		if (!session || !account) {
-			throw error(401, 'Unauthorized');
-		}
-
-		// Find user's active reservation
-		const reservationResult = await db
-			.select()
-			.from(reservations)
-			.where(
-				and(
-					eq(reservations.offerId, params.id),
-					eq(reservations.userAccountId, account.id),
-					eq(reservations.status, 'active')
-				)
-			)
-			.limit(1);
-
-		if (!reservationResult.length) {
-			return fail(400, { error: 'No active reservation found' });
-		}
-
-		// Delete the reservation (or set to expired if you want to keep history)
-		// Option 1: Delete completely
-		await db.delete(reservations).where(eq(reservations.id, reservationResult[0].id));
-
-		// Option 2: Set to expired (uncomment if preferred)
-		// await db
-		// 	.update(reservations)
-		// 	.set({ status: 'expired' })
-		// 	.where(eq(reservations.id, reservationResult[0].id));
-
-		return { success: true };
 	}
 };
