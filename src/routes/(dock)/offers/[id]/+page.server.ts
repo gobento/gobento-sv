@@ -109,6 +109,17 @@ function generateClaimToken(): string {
 	return token;
 }
 
+/**
+ * Parse time string (HH:MM:SS or HH:MM) to hours and minutes
+ */
+function parseTimeString(timeStr: string): { hours: number; minutes: number } {
+	const parts = timeStr.split(':');
+	return {
+		hours: parseInt(parts[0], 10),
+		minutes: parseInt(parts[1], 10)
+	};
+}
+
 export const actions: Actions = {
 	reserve: async ({ params, locals, request }) => {
 		const session = locals.session;
@@ -120,31 +131,6 @@ export const actions: Actions = {
 
 		if (account.accountType !== 'user') {
 			throw error(403, 'Only user accounts can reserve offers');
-		}
-
-		// Get form data for pickup times
-		const formData = await request.formData();
-		const pickupFromStr = formData.get('pickupFrom');
-		const pickupUntilStr = formData.get('pickupUntil');
-
-		if (!pickupFromStr || !pickupUntilStr) {
-			return fail(400, { error: 'Pickup time range is required' });
-		}
-
-		const pickupFrom = new Date(pickupFromStr as string);
-		const pickupUntil = new Date(pickupUntilStr as string);
-
-		// Validate pickup times
-		if (isNaN(pickupFrom.getTime()) || isNaN(pickupUntil.getTime())) {
-			return fail(400, { error: 'Invalid pickup times' });
-		}
-
-		if (pickupFrom >= pickupUntil) {
-			return fail(400, { error: 'Pickup start time must be before end time' });
-		}
-
-		if (pickupFrom < new Date()) {
-			return fail(400, { error: 'Pickup time cannot be in the past' });
 		}
 
 		// Check if offer exists and is active
@@ -174,6 +160,50 @@ export const actions: Actions = {
 		if (existingReservation.length > 0) {
 			return fail(400, { error: 'This offer is already reserved by another user' });
 		}
+
+		// Get form data
+		const formData = await request.formData();
+		const pickupDateStr = formData.get('pickupDate');
+
+		if (!pickupDateStr) {
+			return fail(400, { error: 'Pickup date is required' });
+		}
+
+		const pickupDate = new Date(pickupDateStr as string);
+
+		if (isNaN(pickupDate.getTime())) {
+			return fail(400, { error: 'Invalid pickup date' });
+		}
+
+		// Validate that pickup date is not in the past
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		pickupDate.setHours(0, 0, 0, 0);
+
+		if (pickupDate < today) {
+			return fail(400, { error: 'Pickup date cannot be in the past' });
+		}
+
+		// Validate that pickup date is not after validUntil (if set)
+		if (offer.validUntil) {
+			const validUntilDate = new Date(offer.validUntil);
+			validUntilDate.setHours(23, 59, 59, 999); // End of day
+
+			if (pickupDate > validUntilDate) {
+				return fail(400, { error: 'Pickup date cannot be after the offer expiration date' });
+			}
+		}
+
+		// Parse the offer's pickup time range
+		const timeFrom = parseTimeString(offer.pickupTimeFrom);
+		const timeUntil = parseTimeString(offer.pickupTimeUntil);
+
+		// Create pickup window using the selected date and offer's time range
+		const pickupFrom = new Date(pickupDate);
+		pickupFrom.setHours(timeFrom.hours, timeFrom.minutes, 0, 0);
+
+		const pickupUntil = new Date(pickupDate);
+		pickupUntil.setHours(timeUntil.hours, timeUntil.minutes, 0, 0);
 
 		// Generate unique claim token for staff scanning
 		const claimToken = generateClaimToken();
