@@ -145,6 +145,7 @@ export const reservationInvites = pgTable('reservation_invites', {
 	invitedAccountId: text('invited_account_id').references(() => accounts.id, {
 		onDelete: 'cascade'
 	}), // null if not yet accepted
+	userId: text('user_id').references(() => accounts.id, { onDelete: 'set null' }), // NEW: User who claimed via this invite
 	inviteToken: text('invite_token').notNull().unique(), // Token for invite link
 	status: text('status', { enum: ['pending', 'accepted', 'declined', 'expired'] })
 		.notNull()

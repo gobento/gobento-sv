@@ -132,12 +132,7 @@
 {/if}
 
 <!-- Header Section -->
-<div class="mb-4 border-b border-base-300 bg-base-100 p-4">
-	<div class="mb-2 flex items-center justify-between">
-		<span class="badge {getStatusBadge(data.reservation.status)} badge-lg">
-			{getStatusText(data.reservation.status)}
-		</span>
-	</div>
+<div class="mb-4 bg-base-100 p-4">
 	<h1 class="mb-1 text-2xl font-bold">{data.offer.name}</h1>
 	<p class="mb-3 text-sm text-base-content/70">{data.offer.description}</p>
 	<div class="flex items-center justify-between">
@@ -152,191 +147,161 @@
 	</div>
 </div>
 
-<!-- Main Content -->
-<div class="space-y-4 px-4">
-	<!-- Pickup Information -->
-	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-		<h2 class="mb-3 flex items-center gap-2 text-lg font-bold">
-			<IconLocation class="size-5" />
-			Pickup Information
-		</h2>
+<!-- Pickup Information -->
+<div class="rounded-lg border border-base-300 bg-base-100 p-4">
+	<h2 class="mb-3 flex items-center gap-2 text-lg font-bold">
+		<IconLocation class="h-5 w-5" />
+		Pickup Information
+	</h2>
 
-		{#if data.location}
-			<div class="space-y-3">
-				<div class="grid grid-cols-2 gap-2">
-					<div class="rounded-lg bg-base-200 p-3">
-						<div class="mb-1 flex items-center gap-1 text-xs text-base-content/60">
-							<IconCalendar class="h-3 w-3" />
-							Date
-						</div>
-						<p class="text-sm font-semibold">{formatDate(data.reservation.pickupFrom)}</p>
+	{#if data.location}
+		<div class="space-y-3">
+			<div class="grid grid-cols-2 gap-2">
+				<div class="rounded-lg bg-base-200 p-3">
+					<div class="mb-1 flex items-center gap-1 text-xs text-base-content/60">
+						<IconCalendar class="h-3 w-3" />
+						Date
 					</div>
-					<div class="rounded-lg bg-base-200 p-3">
-						<div class="mb-1 flex items-center gap-1 text-xs text-base-content/60">
-							<IconClock class="h-3 w-3" />
-							Time
-						</div>
-						<p class="text-sm font-semibold">
-							{formatTime(data.reservation.pickupFrom)} - {formatTime(data.reservation.pickupUntil)}
-						</p>
-					</div>
+					<p class="text-sm font-semibold">{formatDate(data.reservation.pickupFrom)}</p>
 				</div>
-
-				<div class="bg-base-50 rounded-lg border border-base-300 p-3">
-					<p class="mb-1 text-sm font-semibold">{data.location.name}</p>
-					<p class="text-xs text-base-content/70">
-						{data.location.address}<br />
-						{data.location.city}, {data.location.zipCode}<br />
-						{data.location.country}
+				<div class="rounded-lg bg-base-200 p-3">
+					<div class="mb-1 flex items-center gap-1 text-xs text-base-content/60">
+						<IconClock class="h-3 w-3" />
+						Time
+					</div>
+					<p class="text-sm font-semibold">
+						{formatTime(data.reservation.pickupFrom)} - {formatTime(data.reservation.pickupUntil)}
 					</p>
 				</div>
 			</div>
-		{:else}
-			<div class="alert">
-				<IconLocation class="size-5" />
-				<span>Location details not specified</span>
-			</div>
-		{/if}
 
-		{#if data.reservation.notes}
-			<div class="mt-3 rounded-lg bg-base-200 p-3">
-				<p class="mb-1 text-xs font-semibold text-base-content/60">Your Notes</p>
-				<p class="text-sm">{data.reservation.notes}</p>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Business Info -->
-	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-		<h2 class="mb-3 flex items-center gap-2 text-lg font-bold">
-			<IconBuilding class="size-5" />
-			Business
-		</h2>
-		<div class="flex items-center gap-3">
-			<div class="avatar">
-				<div class="w-12 rounded-full ring-2 ring-primary ring-offset-2 ring-offset-base-100">
-					<img src={`/api/files/${data.business.profilePictureId}`} alt={data.business.name} />
-				</div>
-			</div>
-			<div>
-				<p class="font-semibold">{data.business.name}</p>
-				<p class="text-xs text-base-content/60">{data.business.country}</p>
+			<div class="bg-base-50 rounded-lg border border-base-300 p-3">
+				<p class="mb-1 text-sm font-semibold">{data.location.name}</p>
+				<p class="text-xs text-base-content/70">
+					{data.location.address}<br />
+					{data.location.city}, {data.location.zipCode}<br />
+					{data.location.country}
+				</p>
 			</div>
 		</div>
-		<p class="mt-3 text-sm text-base-content/70">{data.business.description}</p>
-	</div>
-
-	<!-- Friends Section -->
-	{#if data.isOwner || data.invites.length > 0}
-		<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-			<div class="mb-3 flex items-center justify-between">
-				<h2 class="flex items-center gap-2 text-lg font-bold">
-					<IconPeople class="size-5" />
-					Friends
-				</h2>
-				{#if data.isOwner && data.reservation.status === 'active'}
-					<button onclick={() => (showInviteModal = true)} class="btn gap-2 btn-sm btn-primary">
-						<IconPersonAdd class="h-4 w-4" />
-						Invite
-					</button>
-				{/if}
-			</div>
-
-			{#if data.invites.length > 0}
-				<div class="space-y-2">
-					{#each data.invites as invite}
-						<div class="flex items-center justify-between rounded-lg bg-base-200 p-3">
-							<div class="flex items-center gap-2">
-								<div class="placeholder avatar">
-									<div class="w-8 rounded-full bg-primary/20 text-primary">
-										<span class="text-sm">👤</span>
-									</div>
-								</div>
-								<span class="text-sm font-medium">Friend</span>
-							</div>
-							<span
-								class="badge badge-sm {invite.status === 'accepted'
-									? 'badge-success'
-									: invite.status === 'pending'
-										? 'badge-warning'
-										: invite.status === 'declined'
-											? 'badge-error'
-											: 'badge-ghost'}"
-							>
-								{invite.status}
-							</span>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<div class="py-4 text-center text-base-content/60">
-					<IconPeople class="mx-auto mb-2 h-6 w-6 opacity-50" />
-					<p class="text-xs">No friends invited yet</p>
-				</div>
-			{/if}
+	{:else}
+		<div class="alert">
+			<IconLocation class="size-5" />
+			<span>Location details not specified</span>
 		</div>
 	{/if}
 
-	<!-- Pending Invite -->
-	{#if !data.isOwner && data.userInvite && data.userInvite.status === 'pending'}
-		<div class="rounded-lg border-2 border-warning bg-base-100 p-4">
-			<h2 class="mb-2 flex items-center gap-2 text-lg font-bold text-warning">
-				<IconPersonAdd class="size-5" />
-				You've Been Invited!
-			</h2>
-			<p class="mb-3 text-sm text-base-content/70">
-				Accept this invitation to join the reservation and pick up food together.
-			</p>
-			<div class="flex gap-2">
-				<form method="POST" action="?/declineInvite" use:enhance class="flex-1">
-					<button type="submit" class="btn btn-block gap-2 btn-ghost btn-sm">
-						<IconDismiss class="h-4 w-4" />
-						Decline
-					</button>
-				</form>
-				<form method="POST" action="?/acceptInvite" use:enhance class="flex-1">
-					<button type="submit" class="btn btn-block gap-2 btn-sm btn-success">
-						<IconCheckmark class="h-4 w-4" />
-						Accept
-					</button>
-				</form>
-			</div>
+	{#if data.reservation.notes}
+		<div class="mt-3 rounded-lg bg-base-200 p-3">
+			<p class="mb-1 text-xs font-semibold text-base-content/60">Your Notes</p>
+			<p class="text-sm">{data.reservation.notes}</p>
 		</div>
 	{/if}
-
-	<!-- Reservation Details -->
-	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-		<h2 class="mb-3 flex items-center gap-2 text-lg font-bold">
-			<IconTicket class="size-5" />
-			Details
-		</h2>
-		<div class="space-y-2">
-			<div class="flex justify-between rounded-lg bg-base-200 p-3">
-				<span class="text-sm text-base-content/60">Reserved</span>
-				<span class="text-sm font-medium">{formatDate(data.reservation.reservedAt)}</span>
-			</div>
-			<div class="flex justify-between rounded-lg bg-base-200 p-3">
-				<span class="text-sm text-base-content/60">ID</span>
-				<span class="font-mono text-xs">{data.reservation.id.slice(0, 12)}...</span>
-			</div>
-			{#if data.reservation.status === 'claimed' && data.reservation.claimedAt}
-				<div class="flex justify-between rounded-lg bg-base-200 p-3">
-					<span class="text-sm text-base-content/60">Claimed</span>
-					<span class="text-sm font-medium">{formatDate(data.reservation.claimedAt)}</span>
-				</div>
-			{/if}
-		</div>
-	</div>
 </div>
 
-<!-- Fixed Bottom Claim Button -->
-{#if data.reservation.status === 'active'}
-	<div class="fixed inset-x-0 bottom-0 border-t border-base-300 bg-base-100 p-4">
-		<button onclick={() => (showClaimModal = true)} class="btn btn-block gap-2 btn-primary">
-			<IconCheckmark class="size-5" />
-			Claim Food
-		</button>
+<!-- Business Info -->
+<div class="rounded-lg border border-base-300 bg-base-100 p-4">
+	<h2 class="mb-3 flex items-center gap-2 text-lg font-bold">
+		<IconBuilding class="h-5 w-5" />
+		Business
+	</h2>
+	<div class="flex items-center gap-3">
+		<div class="avatar">
+			<div class="w-12 rounded-full ring-2 ring-primary ring-offset-2 ring-offset-base-100">
+				<img src={`/api/files/${data.business.profilePictureId}`} alt={data.business.name} />
+			</div>
+		</div>
+		<div>
+			<p class="font-semibold">{data.business.name}</p>
+			<p class="text-xs text-base-content/60">{data.business.country}</p>
+		</div>
 	</div>
+	<p class="mt-3 text-sm text-base-content/70">{data.business.description}</p>
+</div>
+
+<!-- Friends Section -->
+{#if data.isOwner || data.invites.length > 0}
+	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
+		<div class="mb-3 flex items-center justify-between">
+			<h2 class="flex items-center gap-2 text-lg font-bold">
+				<IconPeople class="h-5 w-5" />
+				Friends
+			</h2>
+			{#if data.isOwner && data.reservation.status === 'active'}
+				<button onclick={() => (showInviteModal = true)} class="btn gap-2 btn-sm btn-primary">
+					<IconPersonAdd class="h-4 w-4" />
+					Invite
+				</button>
+			{/if}
+		</div>
+
+		{#if data.invites.length > 0}
+			<div class="space-y-2">
+				{#each data.invites as invite}
+					<div class="flex items-center justify-between rounded-lg bg-base-200 p-3">
+						<div class="flex items-center gap-2">
+							<div class="placeholder avatar">
+								<div class="w-8 rounded-full bg-primary/20 text-primary">
+									<span class="text-sm">👤</span>
+								</div>
+							</div>
+							<span class="text-sm font-medium">Friend</span>
+						</div>
+						<span
+							class="badge badge-sm {invite.status === 'accepted'
+								? 'badge-success'
+								: invite.status === 'pending'
+									? 'badge-warning'
+									: invite.status === 'declined'
+										? 'badge-error'
+										: 'badge-ghost'}"
+						>
+							{invite.status}
+						</span>
+					</div>
+				{/each}
+			</div>
+		{:else if data.reservation.status !== 'claimed'}
+			<div class="py-4 text-center text-base-content/60">
+				<IconPeople class="mx-auto mb-2 h-6 w-6 opacity-50" />
+				<p class="text-xs">No friends invited yet</p>
+			</div>
+		{/if}
+	</div>
+{/if}
+
+<!-- Pending Invite -->
+{#if !data.isOwner && data.userInvite && data.userInvite.status === 'pending'}
+	<div class="rounded-lg border-2 border-warning bg-base-100 p-4">
+		<h2 class="mb-2 flex items-center gap-2 text-lg font-bold text-warning">
+			<IconPersonAdd class="h-5 w-5" />
+			You've Been Invited!
+		</h2>
+		<p class="mb-3 text-sm text-base-content/70">
+			Accept this invitation to join the reservation and pick up food together.
+		</p>
+		<div class="flex gap-2">
+			<form method="POST" action="?/declineInvite" use:enhance class="flex-1">
+				<button type="submit" class="btn btn-block gap-2 btn-ghost btn-sm">
+					<IconDismiss class="h-4 w-4" />
+					Decline
+				</button>
+			</form>
+			<form method="POST" action="?/acceptInvite" use:enhance class="flex-1">
+				<button type="submit" class="btn btn-block gap-2 btn-sm btn-success">
+					<IconCheckmark class="h-4 w-4" />
+					Accept
+				</button>
+			</form>
+		</div>
+	</div>
+{/if}
+
+{#if data.reservation.status === 'active' && (data.isOwner || data.userInvite?.status === 'accepted')}
+	<button onclick={() => (showClaimModal = true)} class="btn btn-block gap-2 btn-lg btn-success">
+		<IconCheckmark class="h-5 w-5" />
+		Claim Food
+	</button>
 {/if}
 
 <!-- Invite Friend Modal -->
