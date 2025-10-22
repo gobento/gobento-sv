@@ -120,13 +120,15 @@ export const reservations = pgTable('reservations', {
 	userAccountId: text('user_account_id')
 		.notNull()
 		.references(() => accounts.id, { onDelete: 'cascade' }),
-	status: text('status', { enum: ['active', 'completed', 'expired'] })
+	status: text('status', { enum: ['active', 'completed', 'expired', 'claimed'] })
 		.notNull()
 		.default('active'),
 	pickupFrom: timestamp('pickup_from', { withTimezone: true }).notNull(),
 	pickupUntil: timestamp('pickup_until', { withTimezone: true }).notNull(),
 	reservedAt: timestamp('reserved_at', { withTimezone: true }).notNull().defaultNow(),
 	completedAt: timestamp('completed_at', { withTimezone: true }),
+	claimedAt: timestamp('claimed_at', { withTimezone: true }),
+	claimedBy: text('claimed_by').references(() => accounts.id, { onDelete: 'set null' }),
 	claimToken: text('claim_token').notNull().unique(), // Token for staff to scan/swipe
 	notes: text('notes')
 });
@@ -152,7 +154,7 @@ export const reservationInvites = pgTable('reservation_invites', {
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull()
 });
 
-// Reservation claims by staff
+// Reservation claims by staff (keeping for backwards compatibility)
 export const reservationClaims = pgTable('reservation_claims', {
 	id: text('id').primaryKey(), // UUID
 	reservationId: text('reservation_id')

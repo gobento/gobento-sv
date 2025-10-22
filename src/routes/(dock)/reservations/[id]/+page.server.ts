@@ -10,15 +10,13 @@ import {
 	accounts
 } from '$lib/server/schema';
 import { eq, and } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { randomBytes } from 'crypto';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const session = locals.session;
-	if (!session) {
-		redirect(302, '/login');
-	}
 
 	const reservationId = params.id;
 
@@ -30,7 +28,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			location: businessLocations,
 			business: businessProfiles,
 			businessAccount: accounts,
-			claim: reservationClaims
+			claim: reservationClaims,
+			claimedByAccount: accounts
 		})
 		.from(reservations)
 		.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
@@ -38,6 +37,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.innerJoin(accounts, eq(businessOffers.businessAccountId, accounts.id))
 		.innerJoin(businessProfiles, eq(accounts.id, businessProfiles.accountId))
 		.leftJoin(reservationClaims, eq(reservations.id, reservationClaims.reservationId))
+		//	.leftJoin(accounts.as('claimedByAccount'), eq(reservations.claimedBy, accounts.id))
 		.where(eq(reservations.id, reservationId));
 
 	if (!reservation) {
@@ -45,7 +45,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	// Check if user has access (either owner or invited friend)
-	const isOwner = reservation.reservation.userAccountId === session.accountId;
+	const isOwner = reservation.reservation.userAccountId === session!.accountId;
 
 	const invites = await db
 		.select()
@@ -81,6 +81,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		business: reservation.business,
 		businessAccount: reservation.businessAccount,
 		claim: reservation.claim,
+		claimedByAccount: reservation.claimedByAccount,
 		invites,
 		isOwner,
 		userInvite
@@ -88,6 +89,57 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 };
 
 export const actions: Actions = {
+	claimReservation: async ({ params, locals }) => {
+		const session = locals.session;
+		if (!session) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const reservationId = params.id;
+
+		// Fetch reservation
+		const [reservation] = await db
+			.select()
+			.from(reservations)
+			.where(eq(reservations.id, reservationId));
+
+		if (!reservation) {
+			return fail(404, { error: 'Reservation not found' });
+		}
+
+		// Check if user owns this reservation
+		if (reservation.userAccountId !== session.accountId) {
+			return fail(403, { error: 'You do not own this reservation' });
+		}
+
+		// Check if already claimed
+		if (reservation.status === 'claimed') {
+			return fail(400, { error: 'Reservation already claimed' });
+		}
+
+		// Check if expired
+		if (reservation.status === 'expired') {
+			return fail(400, { error: 'Reservation has expired' });
+		}
+
+		// Check if not active
+		if (reservation.status !== 'active') {
+			return fail(400, { error: 'Reservation is not active' });
+		}
+
+		// Update reservation to claimed
+		await db
+			.update(reservations)
+			.set({
+				status: 'claimed',
+				claimedAt: new Date(),
+				claimedBy: session.accountId
+			})
+			.where(eq(reservations.id, reservationId));
+
+		return { success: true, message: 'Reservation claimed successfully' };
+	},
+
 	inviteFriend: async ({ request, params, locals }) => {
 		const session = locals.session;
 		if (!session) {
