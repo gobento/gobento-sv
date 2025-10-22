@@ -7,7 +7,8 @@ import {
 	text,
 	doublePrecision,
 	timestamp,
-	serial
+	serial,
+	primaryKey
 } from 'drizzle-orm/pg-core';
 
 // Base accounts table - shared fields for all account types
@@ -45,7 +46,7 @@ export const businessProfiles = pgTable('business_profiles', {
 		.references(() => accounts.id, { onDelete: 'cascade' }),
 	name: text('name').notNull(),
 	description: text('description').notNull(),
-	country: text('country').notNull(), // Added country field
+	country: text('country').notNull(),
 	profilePictureId: text('profile_picture_id')
 		.notNull()
 		.references(() => files.id, { onDelete: 'restrict' })
@@ -61,12 +62,30 @@ export const businessLocations = pgTable('business_locations', {
 	address: text('address').notNull(),
 	city: text('city').notNull(),
 	state: text('state'),
-	zipCode: text('zip_code').notNull(), // Now required
+	zipCode: text('zip_code').notNull(),
 	country: text('country').notNull(),
 	latitude: doublePrecision('latitude').notNull(),
 	longitude: doublePrecision('longitude').notNull(),
+	imageId: text('image_id').references(() => files.id, { onDelete: 'set null' }), // Location background image
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
+
+// User favorite locations
+export const favoriteLocations = pgTable(
+	'favorite_locations',
+	{
+		accountId: text('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		locationId: text('location_id')
+			.notNull()
+			.references(() => businessLocations.id, { onDelete: 'cascade' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => ({
+		pk: primaryKey({ columns: [table.accountId, table.locationId] })
+	})
+);
 
 // Business offers
 export const businessOffers = pgTable('business_offers', {
@@ -80,7 +99,29 @@ export const businessOffers = pgTable('business_offers', {
 	price: doublePrecision('price').notNull(),
 	currency: text('currency').notNull().default('EUR'),
 	isActive: boolean('is_active').notNull().default(true),
+	isRecurring: boolean('is_recurring').notNull().default(false),
+	validUntil: timestamp('valid_until', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+// Offer reservations
+export const reservations = pgTable('reservations', {
+	id: text('id').primaryKey(), // UUID
+	offerId: text('offer_id')
+		.notNull()
+		.references(() => businessOffers.id, { onDelete: 'cascade' }),
+	userAccountId: text('user_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	status: text('status', { enum: ['active', 'completed', 'cancelled'] })
+		.notNull()
+		.default('active'),
+	pickupFrom: timestamp('pickup_from', { withTimezone: true }).notNull(),
+	pickupUntil: timestamp('pickup_until', { withTimezone: true }).notNull(),
+	reservedAt: timestamp('reserved_at', { withTimezone: true }).notNull().defaultNow(),
+	completedAt: timestamp('completed_at', { withTimezone: true }),
+	cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+	notes: text('notes')
 });
 
 // Charity-specific data
@@ -117,7 +158,9 @@ export type File = typeof files.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type BusinessProfile = typeof businessProfiles.$inferSelect;
 export type BusinessLocation = typeof businessLocations.$inferSelect;
+export type FavoriteLocation = typeof favoriteLocations.$inferSelect;
 export type BusinessOffer = typeof businessOffers.$inferSelect;
+export type Reservation = typeof reservations.$inferSelect;
 export type CharityProfile = typeof charityProfiles.$inferSelect;
 export type AdminProfile = typeof adminProfiles.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
