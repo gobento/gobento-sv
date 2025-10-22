@@ -61,6 +61,8 @@ export const actions = {
 		const locationId = formData.get('locationId') as string;
 		const isRecurring = formData.get('isRecurring') === 'on';
 		const validUntilStr = formData.get('validUntil') as string;
+		const pickupTimeFrom = formData.get('pickupTimeFrom') as string;
+		const pickupTimeUntil = formData.get('pickupTimeUntil') as string;
 
 		// Validation
 		if (!name || name.trim().length === 0) {
@@ -77,6 +79,38 @@ export const actions = {
 
 		if (!currency || currency.trim().length === 0) {
 			return fail(400, { message: 'Currency is required', field: 'currency' });
+		}
+
+		// Validate pickup times
+		if (!pickupTimeFrom || pickupTimeFrom.trim().length === 0) {
+			return fail(400, { message: 'Pickup start time is required', field: 'pickupTimeFrom' });
+		}
+
+		if (!pickupTimeUntil || pickupTimeUntil.trim().length === 0) {
+			return fail(400, { message: 'Pickup end time is required', field: 'pickupTimeUntil' });
+		}
+
+		// Validate time format (HH:MM)
+		const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+		if (!timeRegex.test(pickupTimeFrom)) {
+			return fail(400, { message: 'Invalid pickup start time format', field: 'pickupTimeFrom' });
+		}
+
+		if (!timeRegex.test(pickupTimeUntil)) {
+			return fail(400, { message: 'Invalid pickup end time format', field: 'pickupTimeUntil' });
+		}
+
+		// Ensure pickup end time is after start time
+		const [fromHours, fromMinutes] = pickupTimeFrom.split(':').map(Number);
+		const [untilHours, untilMinutes] = pickupTimeUntil.split(':').map(Number);
+		const fromTotalMinutes = fromHours * 60 + fromMinutes;
+		const untilTotalMinutes = untilHours * 60 + untilMinutes;
+
+		if (untilTotalMinutes <= fromTotalMinutes) {
+			return fail(400, {
+				message: 'Pickup end time must be after start time',
+				field: 'pickupTimeUntil'
+			});
 		}
 
 		// Parse validUntil if provided
@@ -108,6 +142,10 @@ export const actions = {
 		}
 
 		try {
+			// Convert time strings to proper format (HH:MM:SS)
+			const pickupTimeFromFormatted = `${pickupTimeFrom}:00`;
+			const pickupTimeUntilFormatted = `${pickupTimeUntil}:00`;
+
 			// Insert offer
 			await db.insert(businessOffers).values({
 				id: randomUUID(),
@@ -119,7 +157,9 @@ export const actions = {
 				currency: currency.trim(),
 				isActive: true,
 				isRecurring,
-				validUntil
+				validUntil,
+				pickupTimeFrom: pickupTimeFromFormatted,
+				pickupTimeUntil: pickupTimeUntilFormatted
 			});
 		} catch (e) {
 			console.error('Failed to create offer:', e);

@@ -1,0 +1,117 @@
+// src/routes/(dock)/favorites/+page.server.ts
+import { db } from '$lib/server/db';
+import {
+	favoriteLocations,
+	businessLocations,
+	businessProfiles,
+	businessOffers,
+	files,
+	accounts
+} from '$lib/server/schema';
+import { eq, and, count } from 'drizzle-orm';
+import { error, fail } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
+
+export const load: PageServerLoad = async ({ locals }) => {
+	const session = locals.session!;
+
+	// Verify account is a user
+	const account = await db
+		.select()
+		.from(accounts)
+		.where(eq(accounts.id, session.accountId))
+		.limit(1);
+
+	if (account.length === 0 || account[0].accountType !== 'user') {
+		throw error(403, 'Only users can view favorites');
+	}
+
+	// Fetch all favorite locations with business info
+	const favorites = await db
+		.select({
+			locationId: favoriteLocations.locationId,
+			favoritedAt: favoriteLocations.createdAt,
+			location: businessLocations,
+			businessName: businessProfiles.name,
+			businessLogo: files
+		})
+		.from(favoriteLocations)
+		.where(eq(favoriteLocations.accountId, session.accountId))
+		.innerJoin(businessLocations, eq(favoriteLocations.locationId, businessLocations.id))
+		.innerJoin(
+			businessProfiles,
+			eq(businessLocations.businessAccountId, businessProfiles.accountId)
+		)
+		.leftJoin(files, eq(businessProfiles.profilePictureId, files.id))
+		.orderBy(favoriteLocations.createdAt);
+
+	// Fetch location images for all favorites
+	const locationImages = await db
+		.select({
+			locationId: businessLocations.id,
+			image: files
+		})
+		.from(businessLocations)
+		.innerJoin(files, eq(businessLocations.imageId, files.id))
+		.where(eq(businessLocations.id, favorites.length > 0 ? favorites[0].locationId : ''));
+
+	// Create a map of location images
+	const imageMap = new Map(locationImages.map((img) => [img.locationId, img.image]));
+
+	// Fetch offer counts for each location
+	const offerCounts = await Promise.all(
+		favorites.map(async (fav) => {
+			const result = await db
+				.select({ count: count() })
+				.from(businessOffers)
+				.where(eq(businessOffers.locationId, fav.locationId));
+
+			return {
+				locationId: fav.locationId,
+				count: result[0].count
+			};
+		})
+	);
+
+	const offerCountMap = new Map(offerCounts.map((oc) => [oc.locationId, oc.count]));
+
+	return {
+		favorites: favorites.map((fav) => ({
+			...fav,
+			locationImage: imageMap.get(fav.locationId) || null,
+			offerCount: offerCountMap.get(fav.locationId) || 0
+		}))
+	};
+};
+
+export const actions: Actions = {
+	removeFavorite: async ({ request, locals }) => {
+		const session = locals.session;
+		if (!session) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		const formData = await request.formData();
+		const locationId = formData.get('locationId') as string;
+
+		if (!locationId) {
+			return fail(400, { error: 'Location ID required' });
+		}
+
+		try {
+			await db
+				.delete(favoriteLocations)
+				.where(
+					and(
+						eq(favoriteLocations.accountId, session.accountId),
+						eq(favoriteLocations.locationId, locationId)
+					)
+				);
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error removing favorite:', err);
+			return fail(500, { error: 'Failed to remove favorite' });
+		}
+	}
+};

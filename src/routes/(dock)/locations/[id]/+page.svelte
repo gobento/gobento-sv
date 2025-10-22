@@ -27,14 +27,6 @@
 	};
 </script>
 
-<!-- Back Button -->
-<div class="mb-8">
-	<a href="/locations" class="btn gap-2.5 btn-ghost">
-		<IconArrowLeft class="size-5" />
-		Back to Locations
-	</a>
-</div>
-
 <!-- Location Header with Background Image -->
 <div class="card mb-8 overflow-hidden border-2 border-base-300 bg-base-100">
 	<!-- Background Image Section -->
@@ -140,19 +132,13 @@
 					<div class="flex items-center gap-2 text-base-content/60">
 						<IconCalendar class="size-5" />
 						<span class="text-sm font-medium">
-							Added {new Date(data.location.createdAt).toLocaleDateString('en-US', {
+							Saving food since {new Date(data.location.createdAt).toLocaleDateString('en-US', {
 								month: 'long',
 								day: 'numeric',
 								year: 'numeric'
 							})}
 						</span>
 					</div>
-					{#if isFavorite}
-						<div class="flex items-center gap-2 text-error">
-							<IconHeartFilled class="size-5" />
-							<span class="text-sm font-medium">Favorite</span>
-						</div>
-					{/if}
 				</div>
 			</div>
 
