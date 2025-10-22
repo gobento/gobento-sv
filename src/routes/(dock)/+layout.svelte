@@ -50,6 +50,12 @@
 			filledIcon: SearchFilledIcon
 		},
 		{
+			path: '/reservations',
+			label: 'Reservations',
+			icon: HeartIcon,
+			filledIcon: HeartFilledIcon
+		},
+		{
 			path: '/favorites',
 			label: 'Favorites',
 			icon: HeartIcon,
