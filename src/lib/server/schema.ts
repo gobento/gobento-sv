@@ -113,15 +113,50 @@ export const reservations = pgTable('reservations', {
 	userAccountId: text('user_account_id')
 		.notNull()
 		.references(() => accounts.id, { onDelete: 'cascade' }),
-	status: text('status', { enum: ['active', 'completed', 'cancelled'] })
+	status: text('status', { enum: ['active', 'completed', 'expired'] })
 		.notNull()
 		.default('active'),
 	pickupFrom: timestamp('pickup_from', { withTimezone: true }).notNull(),
 	pickupUntil: timestamp('pickup_until', { withTimezone: true }).notNull(),
 	reservedAt: timestamp('reserved_at', { withTimezone: true }).notNull().defaultNow(),
 	completedAt: timestamp('completed_at', { withTimezone: true }),
-	cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+	claimToken: text('claim_token').notNull().unique(), // Token for staff to scan/swipe
 	notes: text('notes')
+});
+
+// Friend invites for reservations
+export const reservationInvites = pgTable('reservation_invites', {
+	id: text('id').primaryKey(), // UUID
+	reservationId: text('reservation_id')
+		.notNull()
+		.references(() => reservations.id, { onDelete: 'cascade' }),
+	invitedByAccountId: text('invited_by_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	invitedAccountId: text('invited_account_id').references(() => accounts.id, {
+		onDelete: 'cascade'
+	}), // null if not yet accepted
+	inviteToken: text('invite_token').notNull().unique(), // Token for invite link
+	status: text('status', { enum: ['pending', 'accepted', 'declined', 'expired'] })
+		.notNull()
+		.default('pending'),
+	invitedAt: timestamp('invited_at', { withTimezone: true }).notNull().defaultNow(),
+	acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull()
+});
+
+// Reservation claims by staff
+export const reservationClaims = pgTable('reservation_claims', {
+	id: text('id').primaryKey(), // UUID
+	reservationId: text('reservation_id')
+		.notNull()
+		.references(() => reservations.id, { onDelete: 'cascade' })
+		.unique(), // One claim per reservation
+	claimedByAccountId: text('claimed_by_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }), // Staff member who claimed it
+	claimedAt: timestamp('claimed_at', { withTimezone: true }).notNull().defaultNow(),
+	notes: text('notes') // Optional staff notes
 });
 
 // Charity-specific data
@@ -161,6 +196,8 @@ export type BusinessLocation = typeof businessLocations.$inferSelect;
 export type FavoriteLocation = typeof favoriteLocations.$inferSelect;
 export type BusinessOffer = typeof businessOffers.$inferSelect;
 export type Reservation = typeof reservations.$inferSelect;
+export type ReservationInvite = typeof reservationInvites.$inferSelect;
+export type ReservationClaim = typeof reservationClaims.$inferSelect;
 export type CharityProfile = typeof charityProfiles.$inferSelect;
 export type AdminProfile = typeof adminProfiles.$inferSelect;
 export type Session = typeof sessions.$inferSelect;

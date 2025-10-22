@@ -9,6 +9,8 @@
 	import IconLocation from '~icons/fluent/location-20-regular';
 	import IconGlobe from '~icons/fluent/globe-20-regular';
 	import IconMoney from '~icons/fluent/money-20-regular';
+	import IconCalendar from '~icons/fluent/calendar-20-regular';
+	import IconRepeat from '~icons/fluent/arrow-repeat-all-20-regular';
 
 	let { data } = $props();
 	let form = $page.form;
@@ -20,20 +22,31 @@
 	let offerDescription = $state('');
 	let offerPrice = $state('0');
 	let offerCurrency = $state('EUR');
+	let isRecurring = $state(false);
+	let validUntil = $state('');
+
+	const formatDate = (dateStr: string) => {
+		if (!dateStr) return '';
+		return new Intl.DateTimeFormat('de-DE', {
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric'
+		}).format(new Date(dateStr));
+	};
 </script>
 
 <div class="min-h-screen bg-base-200/50">
-	<div class="container mx-auto px-4 py-6 max-w-6xl">
+	<div class="container mx-auto max-w-6xl px-4 py-6">
 		<!-- Header -->
 		<div class="mb-6">
-			<a href="/offers" class="btn btn-ghost btn-sm gap-2 mb-4">
-				<IconArrowLeft class="w-4 h-4" />
+			<a href="/offers" class="btn mb-4 gap-2 btn-ghost btn-sm">
+				<IconArrowLeft class="h-4 w-4" />
 				Back to Offers
 			</a>
 
 			<div class="flex items-center gap-4">
-				<div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-					<IconTag class="w-7 h-7 text-primary" />
+				<div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+					<IconTag class="h-7 w-7 text-primary" />
 				</div>
 				<div>
 					<h1 class="text-2xl font-bold">Create New Offer</h1>
@@ -43,10 +56,10 @@
 		</div>
 
 		{#if form?.message}
-			<div class="alert alert-error mb-6 shadow-lg">
+			<div class="mb-6 alert alert-error shadow-lg">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
-					class="stroke-current shrink-0 h-6 w-6"
+					class="h-6 w-6 shrink-0 stroke-current"
 					fill="none"
 					viewBox="0 0 24 24"
 				>
@@ -61,7 +74,7 @@
 			</div>
 		{/if}
 
-		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+		<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 			<!-- Form Section -->
 			<form
 				method="POST"
@@ -72,13 +85,13 @@
 						isSubmitting = false;
 					};
 				}}
-				class="lg:col-span-2 space-y-6"
+				class="space-y-6 lg:col-span-2"
 			>
 				<!-- Location Card -->
 				<div class="card bg-base-100 shadow-sm">
 					<div class="card-body">
 						<h2 class="card-title text-lg">
-							<IconLocation class="w-5 h-5" />
+							<IconLocation class="h-5 w-5" />
 							Location
 						</h2>
 
@@ -90,7 +103,7 @@
 								id="locationId"
 								name="locationId"
 								bind:value={selectedLocationId}
-								class="select select-bordered w-full"
+								class="select-bordered select w-full"
 								class:select-error={form?.field === 'locationId'}
 							>
 								<option value="">🌍 All Locations</option>
@@ -110,10 +123,10 @@
 						</div>
 
 						{#if data.locations.length === 0}
-							<div class="alert alert-warning mt-2">
+							<div class="mt-2 alert alert-warning">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
-									class="stroke-current shrink-0 h-5 w-5"
+									class="h-5 w-5 shrink-0 stroke-current"
 									fill="none"
 									viewBox="0 0 24 24"
 								>
@@ -140,7 +153,7 @@
 				<div class="card bg-base-100 shadow-sm">
 					<div class="card-body">
 						<h2 class="card-title text-lg">
-							<IconTag class="w-5 h-5" />
+							<IconTag class="h-5 w-5" />
 							Offer Details
 						</h2>
 
@@ -159,7 +172,7 @@
 									bind:value={offerName}
 									required
 									placeholder="e.g., 20% Off All Services"
-									class="input input-bordered w-full"
+									class="input-bordered input w-full"
 									class:input-error={form?.field === 'name'}
 								/>
 								<label class="label">
@@ -182,8 +195,8 @@
 									bind:value={offerDescription}
 									required
 									rows="4"
-									placeholder="Describe your offer in detail. Include terms, conditions, and expiration dates..."
-									class="textarea textarea-bordered w-full"
+									placeholder="Describe your offer in detail. Include terms, conditions, and what's included..."
+									class="textarea-bordered textarea w-full"
 									class:textarea-error={form?.field === 'description'}
 								></textarea>
 								<label class="label">
@@ -200,11 +213,11 @@
 				<div class="card bg-base-100 shadow-sm">
 					<div class="card-body">
 						<h2 class="card-title text-lg">
-							<IconMoney class="w-5 h-5" />
+							<IconMoney class="h-5 w-5" />
 							Pricing
 						</h2>
 
-						<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+						<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 							<div class="form-control md:col-span-2">
 								<label class="label">
 									<span class="label-text font-medium">
@@ -220,7 +233,7 @@
 									step="0.01"
 									min="0"
 									placeholder="0.00"
-									class="input input-bordered w-full"
+									class="input-bordered input w-full"
 									class:input-error={form?.field === 'price'}
 								/>
 							</div>
@@ -235,7 +248,7 @@
 									id="currency"
 									name="currency"
 									bind:value={offerCurrency}
-									class="select select-bordered w-full"
+									class="select-bordered select w-full"
 									class:select-error={form?.field === 'currency'}
 								>
 									<option value="EUR">EUR (€)</option>
@@ -249,15 +262,69 @@
 					</div>
 				</div>
 
+				<!-- Availability Card -->
+				<div class="card bg-base-100 shadow-sm">
+					<div class="card-body">
+						<h2 class="card-title text-lg">
+							<IconCalendar class="h-5 w-5" />
+							Availability
+						</h2>
+
+						<div class="space-y-4">
+							<!-- Recurring -->
+							<div class="form-control">
+								<label class="label cursor-pointer justify-start gap-3">
+									<input
+										type="checkbox"
+										id="isRecurring"
+										name="isRecurring"
+										bind:checked={isRecurring}
+										class="checkbox checkbox-primary"
+									/>
+									<div class="flex items-center gap-2">
+										<IconRepeat class="h-5 w-5 text-base-content/70" />
+										<span class="label-text font-medium">Recurring Offer</span>
+									</div>
+								</label>
+								<label class="label">
+									<span class="label-text-alt text-base-content/60">
+										Users can reserve this offer multiple times
+									</span>
+								</label>
+							</div>
+
+							<!-- Valid Until -->
+							<div class="form-control">
+								<label class="label">
+									<span class="label-text font-medium">Valid Until (Optional)</span>
+								</label>
+								<input
+									type="date"
+									id="validUntil"
+									name="validUntil"
+									bind:value={validUntil}
+									class="input-bordered input w-full"
+									class:input-error={form?.field === 'validUntil'}
+								/>
+								<label class="label">
+									<span class="label-text-alt text-base-content/60">
+										Leave empty if the offer has no expiration date
+									</span>
+								</label>
+							</div>
+						</div>
+					</div>
+				</div>
+
 				<!-- Actions -->
 				<div class="flex justify-end gap-3">
 					<a href="/offers" class="btn btn-ghost">Cancel</a>
-					<button type="submit" disabled={isSubmitting} class="btn btn-primary gap-2">
+					<button type="submit" disabled={isSubmitting} class="btn gap-2 btn-primary">
 						{#if isSubmitting}
-							<span class="loading loading-spinner loading-sm"></span>
+							<span class="loading loading-sm loading-spinner"></span>
 							Creating...
 						{:else}
-							<IconSave class="w-5 h-5" />
+							<IconSave class="h-5 w-5" />
 							Create Offer
 						{/if}
 					</button>
@@ -266,9 +333,9 @@
 
 			<!-- Preview Section -->
 			<div class="lg:col-span-1">
-				<div class="card bg-base-100 shadow-sm sticky top-6">
+				<div class="card sticky top-6 bg-base-100 shadow-sm">
 					<div class="card-body">
-						<div class="flex items-center gap-2 mb-4">
+						<div class="mb-4 flex items-center gap-2">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								class="h-5 w-5 text-base-content/70"
@@ -289,45 +356,61 @@
 									d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
 								/>
 							</svg>
-							<h3 class="font-semibold text-base">Live Preview</h3>
+							<h3 class="text-base font-semibold">Live Preview</h3>
 						</div>
 
 						<!-- Preview Card -->
 						<div
-							class="card bg-gradient-to-br from-primary/5 to-secondary/5 border border-base-300"
+							class="card border border-base-300 bg-gradient-to-br from-primary/5 to-secondary/5"
 						>
 							<div class="card-body p-5">
-								<h4 class="font-bold text-lg">
+								<h4 class="text-lg font-bold">
 									{offerName || 'Your Offer Name'}
 								</h4>
 
-								<p class="text-sm text-base-content/70 line-clamp-3 min-h-[3.6rem]">
+								<p class="line-clamp-3 min-h-[3.6rem] text-sm text-base-content/70">
 									{offerDescription ||
 										'Your offer description will appear here. Add details to see the preview.'}
 								</p>
 
-								<div class="flex items-center justify-between mt-3 pt-3 border-t border-base-300">
+								<div class="mt-3 flex items-center justify-between border-t border-base-300 pt-3">
 									<div class="text-2xl font-bold text-success">
 										{parseFloat(offerPrice || '0').toFixed(2)}
 										{offerCurrency}
 									</div>
 
-									{#if selectedLocationId === ''}
-										<div class="badge badge-primary gap-1">
-											<IconGlobe class="w-3 h-3" />
-											All Locations
-										</div>
-									{:else}
-										<div class="badge badge-info gap-1">
-											<IconLocation class="w-3 h-3" />
-											Specific
-										</div>
-									{/if}
+									<div class="flex gap-2">
+										{#if isRecurring}
+											<div class="badge gap-1 badge-primary">
+												<IconRepeat class="h-3 w-3" />
+												Recurring
+											</div>
+										{/if}
+
+										{#if selectedLocationId === ''}
+											<div class="badge gap-1 badge-info">
+												<IconGlobe class="h-3 w-3" />
+												All
+											</div>
+										{:else}
+											<div class="badge gap-1 badge-info">
+												<IconLocation class="h-3 w-3" />
+												Location
+											</div>
+										{/if}
+									</div>
 								</div>
 
+								{#if validUntil}
+									<div class="mt-2 flex items-center gap-1 text-xs text-base-content/60">
+										<IconCalendar class="h-3 w-3" />
+										<span>Valid until {formatDate(validUntil)}</span>
+									</div>
+								{/if}
+
 								{#if selectedLocationId !== ''}
-									<div class="text-xs text-base-content/60 mt-2 flex items-center gap-1">
-										<IconLocation class="w-3 h-3" />
+									<div class="mt-2 flex items-center gap-1 text-xs text-base-content/60">
+										<IconLocation class="h-3 w-3" />
 										<span>
 											{data.locations.find((l) => l.id === selectedLocationId)?.name || 'Location'}
 										</span>
@@ -336,12 +419,12 @@
 							</div>
 						</div>
 
-						<div class="alert alert-info mt-4">
+						<div class="mt-4 alert alert-info">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
 								viewBox="0 0 24 24"
-								class="stroke-current shrink-0 w-5 h-5"
+								class="h-5 w-5 shrink-0 stroke-current"
 							>
 								<path
 									stroke-linecap="round"

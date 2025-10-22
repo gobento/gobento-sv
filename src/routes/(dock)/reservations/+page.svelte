@@ -16,7 +16,7 @@
 		});
 	}
 
-	function formatTime(date: string) {
+	function formatTime(date: Date) {
 		return new Date(date).toLocaleTimeString('de-DE', {
 			hour: '2-digit',
 			minute: '2-digit'
