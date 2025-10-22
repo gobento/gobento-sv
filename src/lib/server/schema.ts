@@ -45,6 +45,7 @@ export const businessProfiles = pgTable('business_profiles', {
 		.references(() => accounts.id, { onDelete: 'cascade' }),
 	name: text('name').notNull(),
 	description: text('description').notNull(),
+	country: text('country').notNull(), // Added country field
 	profilePictureId: text('profile_picture_id')
 		.notNull()
 		.references(() => files.id, { onDelete: 'restrict' })
@@ -60,7 +61,7 @@ export const businessLocations = pgTable('business_locations', {
 	address: text('address').notNull(),
 	city: text('city').notNull(),
 	state: text('state'),
-	zipCode: text('zip_code'),
+	zipCode: text('zip_code').notNull(), // Now required
 	country: text('country').notNull(),
 	latitude: doublePrecision('latitude').notNull(),
 	longitude: doublePrecision('longitude').notNull(),
@@ -89,6 +90,7 @@ export const charityProfiles = pgTable('charity_profiles', {
 		.references(() => accounts.id, { onDelete: 'cascade' }),
 	name: text('name').notNull(),
 	description: text('description').notNull(),
+	country: text('country').notNull(),
 	profilePictureId: text('profile_picture_id')
 		.notNull()
 		.references(() => files.id, { onDelete: 'restrict' })

@@ -1,8 +1,9 @@
-// src/routes/locations/new/+page.server.ts
+// src/routes/(dock)/locations/new/+page.server.ts
 import { db } from '$lib/server/db';
-import { businessLocations } from '$lib/server/schema';
+import { businessLocations, businessProfiles } from '$lib/server/schema';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
+import { eq } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -17,7 +18,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw error(403, 'Only business accounts can create locations');
 	}
 
-	return {};
+	// Fetch business profile to get country
+	const [businessProfile] = await db
+		.select()
+		.from(businessProfiles)
+		.where(eq(businessProfiles.accountId, account.id))
+		.limit(1);
+
+	if (!businessProfile) {
+		throw error(404, 'Business profile not found');
+	}
+
+	return {
+		businessCountry: businessProfile.country
+	};
 };
 
 export const actions = {
@@ -52,6 +66,10 @@ export const actions = {
 			return fail(400, { message: 'Address is required', field: 'address' });
 		}
 
+		if (!zipCode || zipCode.trim().length === 0) {
+			return fail(400, { message: 'ZIP/Postal code is required', field: 'zipCode' });
+		}
+
 		if (!city || city.trim().length === 0) {
 			return fail(400, { message: 'City is required', field: 'city' });
 		}
@@ -80,7 +98,7 @@ export const actions = {
 				address: address.trim(),
 				city: city.trim(),
 				state: state?.trim() || null,
-				zipCode: zipCode?.trim() || null,
+				zipCode: zipCode.trim(),
 				country: country.trim(),
 				latitude,
 				longitude
