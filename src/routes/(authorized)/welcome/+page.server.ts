@@ -3,7 +3,6 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
-import * as v from 'valibot';
 import { db } from '$lib/server/db';
 import {
 	accounts,
@@ -15,64 +14,15 @@ import {
 import { uploadToBackblaze } from '$lib/server/backblaze';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
-
-// Validation schemas
-const userSetupSchema = v.object({
-	accountType: v.literal('user')
-});
-
-const businessSetupSchema = v.object({
-	accountType: v.literal('business'),
-	name: v.pipe(
-		v.string(),
-		v.minLength(1, 'Name is required'),
-		v.maxLength(100, 'Name must be less than 100 characters')
-	),
-	description: v.pipe(
-		v.string(),
-		v.minLength(1, 'Description is required'),
-		v.maxLength(500, 'Description must be less than 500 characters')
-	),
-	country: v.pipe(
-		v.string(),
-		v.minLength(1, 'Country is required'),
-		v.maxLength(100, 'Country must be less than 100 characters')
-	)
-});
-
-const charitySetupSchema = v.object({
-	accountType: v.literal('charity'),
-	name: v.pipe(
-		v.string(),
-		v.minLength(1, 'Name is required'),
-		v.maxLength(100, 'Name must be less than 100 characters')
-	),
-	description: v.pipe(
-		v.string(),
-		v.minLength(1, 'Description is required'),
-		v.maxLength(500, 'Description must be less than 500 characters')
-	),
-	country: v.pipe(
-		v.string(),
-		v.minLength(1, 'Country is required'),
-		v.maxLength(100, 'Country must be less than 100 characters')
-	)
-});
-
-// Union schema for all account types
-const setupSchema = v.variant('accountType', [
-	userSetupSchema,
-	businessSetupSchema,
-	charitySetupSchema
-]);
+import { welcomeSchema } from './schema';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.account) {
-		redirect(303, '/login');
+		redirect(303, '/auth/login');
 	}
 
 	// Initialize form with empty values
-	const form = await superValidate(valibot(setupSchema));
+	const form = await superValidate(valibot(welcomeSchema));
 
 	return {
 		form
@@ -86,7 +36,7 @@ export const actions = {
 		}
 
 		const formData = await request.formData();
-		const form = await superValidate(formData, valibot(setupSchema));
+		const form = await superValidate(formData, valibot(welcomeSchema));
 
 		if (!form.valid) {
 			return fail(400, { form });
@@ -102,9 +52,9 @@ export const actions = {
 
 			// Handle user account (no additional data needed)
 			if (accountType === 'user') {
-				await db.insert(userProfiles).values({
+				/*	await db.insert(userProfiles).values({
 					accountId: locals.account.id
-				});
+				}); */
 			} else {
 				// Handle business/charity accounts - require profile picture
 				const pictureFile = formData.get('picture') as File;
@@ -151,11 +101,13 @@ export const actions = {
 
 				// Create profile based on type
 				if (accountType === 'business') {
+					//todo: check if this actually works
 					await db.insert(businessProfiles).values({
 						accountId: locals.account.id,
 						name: form.data.name,
 						description: form.data.description,
 						country: form.data.country,
+						businessType: form.data.businessType,
 						profilePictureId: fileId
 					});
 				} else if (accountType === 'charity') {

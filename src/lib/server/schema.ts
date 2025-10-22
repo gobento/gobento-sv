@@ -48,6 +48,9 @@ export const businessProfiles = pgTable('business_profiles', {
 	name: text('name').notNull(),
 	description: text('description').notNull(),
 	country: text('country').notNull(),
+	businessType: text('business_type', {
+		enum: ['bakery', 'restaurant', 'cafe', 'grocery', 'supermarket', 'hotel', 'catering', 'other']
+	}).notNull(),
 	profilePictureId: text('profile_picture_id')
 		.notNull()
 		.references(() => files.id, { onDelete: 'restrict' })
