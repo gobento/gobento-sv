@@ -24,6 +24,10 @@
 	import SettingsIcon from '~icons/fluent/settings-24-regular';
 	import SettingsFilledIcon from '~icons/fluent/settings-24-filled';
 
+	// Business navigation
+	import LocationIcon from '~icons/fluent/location-24-regular';
+	import LocationFilledIcon from '~icons/fluent/location-24-filled';
+
 	interface Props {
 		children: any;
 		data: LayoutData;
@@ -81,8 +85,8 @@
 		{
 			path: '/locations',
 			label: 'Locations',
-			icon: MoneyIcon,
-			filledIcon: MoneyFilledIcon
+			icon: LocationIcon,
+			filledIcon: LocationFilledIcon
 		},
 		{
 			path: '/settings',
