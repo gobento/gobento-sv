@@ -11,6 +11,7 @@
 	import IconMoney from '~icons/fluent/money-20-regular';
 	import IconCalendar from '~icons/fluent/calendar-20-regular';
 	import IconRepeat from '~icons/fluent/arrow-repeat-all-20-regular';
+	import IconClock from '~icons/fluent/clock-20-regular';
 
 	let { data } = $props();
 	let form = $page.form;
@@ -24,6 +25,8 @@
 	let offerCurrency = $state('EUR');
 	let isRecurring = $state(false);
 	let validUntil = $state('');
+	let pickupTimeFrom = $state('09:00');
+	let pickupTimeUntil = $state('17:00');
 
 	const formatDate = (dateStr: string) => {
 		if (!dateStr) return '';
@@ -32,6 +35,11 @@
 			month: 'long',
 			day: 'numeric'
 		}).format(new Date(dateStr));
+	};
+
+	const formatTime = (timeStr: string) => {
+		if (!timeStr) return '';
+		return timeStr;
 	};
 </script>
 
@@ -262,6 +270,58 @@
 					</div>
 				</div>
 
+				<!-- Pickup Times Card -->
+				<div class="card bg-base-100 shadow-sm">
+					<div class="card-body">
+						<h2 class="card-title text-lg">
+							<IconClock class="h-5 w-5" />
+							Pickup Time Window
+						</h2>
+
+						<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+							<div class="form-control">
+								<label class="label">
+									<span class="label-text font-medium">
+										From <span class="text-error">*</span>
+									</span>
+								</label>
+								<input
+									type="time"
+									id="pickupTimeFrom"
+									name="pickupTimeFrom"
+									bind:value={pickupTimeFrom}
+									required
+									class="input-bordered input w-full"
+									class:input-error={form?.field === 'pickupTimeFrom'}
+								/>
+							</div>
+
+							<div class="form-control">
+								<label class="label">
+									<span class="label-text font-medium">
+										Until <span class="text-error">*</span>
+									</span>
+								</label>
+								<input
+									type="time"
+									id="pickupTimeUntil"
+									name="pickupTimeUntil"
+									bind:value={pickupTimeUntil}
+									required
+									class="input-bordered input w-full"
+									class:input-error={form?.field === 'pickupTimeUntil'}
+								/>
+							</div>
+						</div>
+
+						<label class="label">
+							<span class="label-text-alt text-base-content/60">
+								Set the time window when customers can pick up this offer
+							</span>
+						</label>
+					</div>
+				</div>
+
 				<!-- Availability Card -->
 				<div class="card bg-base-100 shadow-sm">
 					<div class="card-body">
@@ -401,15 +461,22 @@
 									</div>
 								</div>
 
+								<div class="mt-2 flex items-center gap-1 text-xs text-base-content/60">
+									<IconClock class="h-3 w-3" />
+									<span>
+										Pickup: {formatTime(pickupTimeFrom)} - {formatTime(pickupTimeUntil)}
+									</span>
+								</div>
+
 								{#if validUntil}
-									<div class="mt-2 flex items-center gap-1 text-xs text-base-content/60">
+									<div class="mt-1 flex items-center gap-1 text-xs text-base-content/60">
 										<IconCalendar class="h-3 w-3" />
 										<span>Valid until {formatDate(validUntil)}</span>
 									</div>
 								{/if}
 
 								{#if selectedLocationId !== ''}
-									<div class="mt-2 flex items-center gap-1 text-xs text-base-content/60">
+									<div class="mt-1 flex items-center gap-1 text-xs text-base-content/60">
 										<IconLocation class="h-3 w-3" />
 										<span>
 											{data.locations.find((l) => l.id === selectedLocationId)?.name || 'Location'}
