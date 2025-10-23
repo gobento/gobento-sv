@@ -1,4 +1,4 @@
-// src/routes/reservations/+page.server.ts
+// src/routes/(dock)/reservations/+page.server.ts
 import { db } from '$lib/server/db';
 import {
 	reservations,
@@ -8,7 +8,7 @@ import {
 	files,
 	accounts
 } from '$lib/server/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -18,7 +18,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw error(401, 'Unauthorized');
 	}
 
-	// Fetch all active reservations for the current user with related data
+	// Fetch all reservations for the current user (active, claimed, completed)
+	// Excluding only expired ones for better UX
 	const userReservations = await db
 		.select({
 			id: reservations.id,
@@ -26,6 +27,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			pickupFrom: reservations.pickupFrom,
 			pickupUntil: reservations.pickupUntil,
 			reservedAt: reservations.reservedAt,
+			claimedAt: reservations.claimedAt,
+			completedAt: reservations.completedAt,
 			notes: reservations.notes,
 			offer: {
 				id: businessOffers.id,
@@ -59,7 +62,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.innerJoin(businessProfiles, eq(businessOffers.businessAccountId, businessProfiles.accountId))
 		.innerJoin(files, eq(businessProfiles.profilePictureId, files.id))
 		.where(
-			and(eq(reservations.userAccountId, locals.account.id), eq(reservations.status, 'active'))
+			and(
+				eq(reservations.userAccountId, locals.account.id),
+				inArray(reservations.status, ['active', 'claimed', 'completed'])
+			)
 		)
 		.orderBy(reservations.pickupFrom);
 

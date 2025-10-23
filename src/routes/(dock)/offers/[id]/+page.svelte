@@ -90,9 +90,9 @@
 </script>
 
 <!-- Business Header -->
-<div class="rounded-3xl p-8">
-	<div class="flex items-center gap-6">
-		<div class="h-24 w-24 overflow-hidden rounded-2xl border-2 border-primary/30 bg-base-200">
+<div class="rounded-2xl bg-base-100 p-6 shadow-sm">
+	<div class="flex items-center gap-4">
+		<div class="h-16 w-16 overflow-hidden rounded-xl border border-base-300 bg-base-200">
 			<img
 				src={getLogoUrl(data.logo.key)}
 				alt={data.business.name}
@@ -101,64 +101,104 @@
 		</div>
 		<div class="flex-1">
 			<div
-				class="mb-1 flex items-center gap-2 text-sm font-bold tracking-wider text-base-content/50 uppercase"
+				class="mb-1 flex items-center gap-2 text-xs font-semibold tracking-wide text-base-content/60 uppercase"
 			>
-				<IconStore class="size-4" />
+				<IconStore class="size-3.5" />
 				<span>{data.business.name}</span>
 			</div>
+			<h2 class="text-xl font-bold text-base-content">{data.location?.name || 'All Locations'}</h2>
 			{#if data.location}
-				<h2 class="text-2xl font-black text-base-content">{data.location.name}</h2>
+				<a
+					href={getGoogleMapsUrl(data.location.latitude, data.location.longitude)}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+				>
+					<IconMapPin class="size-4" />
+					<span>{data.location.address}, {data.location.city}</span>
+					<IconArrowRight class="size-3.5" />
+				</a>
 			{/if}
 		</div>
 	</div>
 </div>
 
+<!-- Hero Section -->
+<div class="rounded-2xl bg-base-100 p-6 shadow-sm">
+	<div class="flex flex-wrap items-start justify-between gap-4">
+		<div class="flex-1 space-y-3">
+			<div class="flex flex-wrap items-center gap-2">
+				{#if data.offer.isRecurring}
+					<div class="badge gap-1.5 px-3 py-3 font-semibold badge-primary">
+						<IconRepeat class="size-3.5" />
+						Recurring Daily
+					</div>
+				{/if}
+			</div>
+
+			<h1 class="text-3xl leading-tight font-bold text-base-content lg:text-4xl">
+				{data.offer.name}
+			</h1>
+
+			<p class="max-w-2xl text-base leading-relaxed text-base-content/70">
+				{data.offer.description}
+			</p>
+		</div>
+
+		<div class="flex flex-col items-end">
+			<span class="text-4xl font-bold text-primary lg:text-5xl">
+				{formatPrice(data.offer.price, data.offer.currency)}
+			</span>
+		</div>
+	</div>
+</div>
+
 <!-- Info Grid -->
-<div class="grid gap-6 lg:grid-cols-2">
+<div class="grid gap-4 lg:grid-cols-2">
 	<!-- Location Card -->
 	{#if data.location}
-		<div class="rounded-3xl p-8">
-			<div class="mb-6 flex items-center gap-3">
-				<div class="rounded-xl bg-primary/10 p-3">
-					<IconMapPin class="size-7 text-primary" />
+		<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
+			<div class="mb-4 flex items-center gap-2">
+				<div class="rounded-lg bg-primary/10 p-2">
+					<IconMapPin class="size-5 text-primary" />
 				</div>
-				<h3 class="text-2xl font-black text-base-content">Pickup Location</h3>
+				<h3 class="text-lg font-bold text-base-content">Pickup Location</h3>
 			</div>
 
 			<a
 				href={getGoogleMapsUrl(data.location.latitude, data.location.longitude)}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="group block rounded-2xl bg-base-200 p-6 transition-all hover:border-primary"
+				class="group block rounded-xl bg-base-200 p-4 transition-all hover:bg-base-300"
 			>
-				<div class="flex items-start justify-between gap-4">
-					<div class="flex-1 space-y-1">
-						<p class="text-lg font-bold text-base-content">{data.location.address}</p>
-						<p class="text-base font-medium text-base-content/70">
+				<div class="flex items-start justify-between gap-3">
+					<div class="flex-1 space-y-0.5">
+						<p class="font-semibold text-base-content">{data.location.address}</p>
+						<p class="text-sm font-medium text-base-content/70">
 							{data.location.zipCode}
 							{data.location.city}
 							{#if data.location.state}, {data.location.state}{/if}
 						</p>
-						<p class="text-sm font-medium text-base-content/50">{data.location.country}</p>
+						<p class="text-xs font-medium text-base-content/50">{data.location.country}</p>
 					</div>
 					<div
-						class="rounded-full bg-primary/10 p-2 transition-all group-hover:bg-primary group-hover:text-primary-content"
+						class="rounded-full bg-primary/10 p-1.5 transition-all group-hover:bg-primary group-hover:text-primary-content"
 					>
-						<IconArrowRight class="size-6" />
+						<IconArrowRight class="size-4" />
 					</div>
 				</div>
 			</a>
 		</div>
 	{:else}
-		<div class="rounded-3xl p-8">
-			<div class="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/5 p-6">
-				<div class="rounded-xl bg-primary/20 p-3">
-					<IconStore class="size-8 text-primary" />
+		<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
+			<div class="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+				<div class="rounded-lg bg-primary/20 p-2">
+					<IconStore class="size-5 text-primary" />
 				</div>
 				<div>
-					<h3 class="text-lg font-bold">Available at All Locations</h3>
-					<p class="text-sm font-medium text-base-content/70">
-						This offer can be claimed at any of this business's locations
+					<h3 class="font-semibold">Available at All Locations</h3>
+					<p class="text-xs font-medium text-base-content/70">
+						Can be claimed at any business location
 					</p>
 				</div>
 			</div>
@@ -166,23 +206,23 @@
 	{/if}
 
 	<!-- Pickup Information -->
-	<div class="rounded-3xl p-8">
-		<div class="mb-6 flex items-center gap-3">
-			<div class="rounded-xl bg-primary/10 p-3">
-				<IconClock class="size-7 text-primary" />
+	<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
+		<div class="mb-4 flex items-center gap-2">
+			<div class="rounded-lg bg-primary/10 p-2">
+				<IconClock class="size-5 text-primary" />
 			</div>
-			<h3 class="text-2xl font-black text-base-content">Pickup Information</h3>
+			<h3 class="text-lg font-bold text-base-content">Pickup Information</h3>
 		</div>
 
-		<div class="space-y-4">
-			<div class="rounded-2xl bg-base-200 p-6">
-				<div class="mb-2 text-xs font-bold tracking-wider text-base-content/50 uppercase">
+		<div class="space-y-3">
+			<div class="rounded-xl bg-base-200 p-4">
+				<div class="mb-1 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
 					Pickup Hours
 				</div>
-				<p class="text-4xl font-black text-base-content">
+				<p class="text-2xl font-bold text-base-content">
 					{formatTime(data.offer.pickupTimeFrom)} - {formatTime(data.offer.pickupTimeUntil)}
 				</p>
-				<p class="mt-2 text-sm font-medium text-base-content/60">
+				<p class="mt-1 text-xs font-medium text-base-content/60">
 					{#if data.offer.isRecurring}
 						Available daily during these hours
 					{:else}
@@ -192,14 +232,14 @@
 			</div>
 
 			{#if data.offer.validUntil}
-				<div class="rounded-2xl bg-base-200 p-6">
+				<div class="rounded-xl bg-base-200 p-4">
 					<div
-						class="mb-2 flex items-center gap-2 text-xs font-bold tracking-wider text-base-content/50 uppercase"
+						class="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-base-content/60 uppercase"
 					>
-						<IconCalendar class="size-4" />
+						<IconCalendar class="size-3.5" />
 						Valid Until
 					</div>
-					<p class="text-3xl font-black text-base-content">
+					<p class="text-xl font-bold text-base-content">
 						{formatDate(data.offer.validUntil)}
 					</p>
 				</div>
@@ -208,44 +248,12 @@
 	</div>
 </div>
 
-<!-- Hero Section -->
-<div class="rounded-3xl p-10">
-	<div class="flex flex-wrap items-start justify-between gap-6">
-		<div class="flex-1 space-y-5">
-			<div class="flex flex-wrap items-center gap-3">
-				{#if data.offer.isRecurring}
-					<div
-						class="inline-flex items-center gap-2 rounded-full border-2 border-primary bg-primary/10 px-4 py-2 text-sm font-bold"
-					>
-						<IconRepeat class="size-4" />
-						Recurring Daily
-					</div>
-				{/if}
-			</div>
-
-			<h1 class="text-5xl leading-tight font-black text-base-content lg:text-6xl">
-				{data.offer.name}
-			</h1>
-
-			<p class="max-w-3xl text-xl leading-relaxed text-base-content/70">
-				{data.offer.description}
-			</p>
-		</div>
-
-		<div class="flex flex-col items-end">
-			<span class="text-7xl font-black text-primary lg:text-8xl">
-				{formatPrice(data.offer.price, data.offer.currency)}
-			</span>
-		</div>
-	</div>
-</div>
-
 <!-- Action Messages -->
 {#if form?.error}
-	<div class="rounded-2xl border-2 border-error bg-error/10 p-5">
-		<div class="flex items-center gap-3">
-			<IconCancel class="size-6 text-error" />
-			<span class="font-bold text-error">{form.error}</span>
+	<div class="rounded-xl border border-error bg-error/10 p-4">
+		<div class="flex items-center gap-2">
+			<IconCancel class="size-5 text-error" />
+			<span class="font-semibold text-error">{form.error}</span>
 		</div>
 	</div>
 {/if}
@@ -255,31 +263,31 @@
 	<!-- User's Active Reservation -->
 	<a
 		href="/reservations/{data.userReservation.id}"
-		class="block rounded-2xl border-2 border-success bg-success/5 p-6 transition-all hover:border-success/70"
+		class="block rounded-xl border-2 border-success bg-success/5 p-5 transition-all hover:border-success/70"
 	>
 		<div class="flex items-center justify-between gap-4">
-			<div class="flex items-center gap-4">
-				<div class="rounded-xl bg-success p-3">
-					<IconCheckmark class="size-8 text-success-content" />
+			<div class="flex items-center gap-3">
+				<div class="rounded-lg bg-success p-2">
+					<IconCheckmark class="size-6 text-success-content" />
 				</div>
 				<div>
-					<h3 class="text-xl font-black text-base-content">You've Reserved This Offer!</h3>
+					<h3 class="text-lg font-bold text-base-content">You've Reserved This Offer!</h3>
 					<p class="text-sm font-medium text-base-content/70">View your reservation details</p>
 				</div>
 			</div>
-			<IconArrowRight class="size-6 text-base-content/40" />
+			<IconArrowRight class="size-5 text-base-content/40" />
 		</div>
 	</a>
 {:else if data.isUser && data.offer.isActive}
 	{#if data.isReserved}
 		<!-- Reserved by Another User -->
-		<div class="rounded-2xl border-2 border-warning bg-warning/5 p-6">
-			<div class="flex items-center gap-4">
-				<div class="rounded-xl bg-warning/20 p-3">
-					<IconClock class="size-8 text-warning" />
+		<div class="rounded-xl border border-warning bg-warning/5 p-5">
+			<div class="flex items-center gap-3">
+				<div class="rounded-lg bg-warning/20 p-2">
+					<IconClock class="size-6 text-warning" />
 				</div>
 				<div>
-					<h3 class="text-xl font-bold">Currently Reserved</h3>
+					<h3 class="text-lg font-semibold">Currently Reserved</h3>
 					<p class="text-sm font-medium text-base-content/70">
 						This offer is reserved by another user. Check back later!
 					</p>
@@ -290,45 +298,45 @@
 		<!-- Available to Reserve -->
 		<button
 			onclick={() => (showReservationDialog = true)}
-			class="btn w-full rounded-2xl text-xl font-black transition-all btn-lg btn-primary hover:scale-[1.02]"
+			class="btn w-full rounded-xl text-lg font-bold transition-all btn-lg btn-primary hover:scale-[1.02]"
 		>
-			<IconCheckmark class="size-7" />
+			<IconCheckmark class="size-6" />
 			Reserve This Offer Now
 		</button>
 	{/if}
 {:else if data.isOwner}
 	<!-- Owner Controls -->
-	<div class="rounded-3xl p-8">
-		<h3 class="mb-6 text-2xl font-black">Manage Offer</h3>
+	<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
+		<h3 class="mb-4 text-lg font-bold">Manage Offer</h3>
 
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-			<button onclick={handleEdit} class="btn rounded-2xl font-bold btn-outline btn-lg">
-				<IconEdit class="size-6" />
+		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+			<button onclick={handleEdit} class="btn rounded-xl font-semibold btn-outline">
+				<IconEdit class="size-5" />
 				Edit Offer
 			</button>
-			<button onclick={handleDelete} class="btn rounded-2xl font-bold btn-outline btn-lg btn-error">
-				<IconDelete class="size-6" />
+			<button onclick={handleDelete} class="btn rounded-xl font-semibold btn-outline btn-error">
+				<IconDelete class="size-5" />
 				Delete Offer
 			</button>
 		</div>
 
 		{#if data.isReserved}
-			<div class="mt-6 rounded-2xl border-2 border-info bg-info/5 p-5">
-				<div class="flex items-center gap-3">
-					<IconClock class="size-6 text-info" />
-					<span class="font-bold">This offer is currently reserved by a user</span>
+			<div class="mt-4 rounded-xl border border-info bg-info/5 p-4">
+				<div class="flex items-center gap-2">
+					<IconClock class="size-5 text-info" />
+					<span class="font-semibold">This offer is currently reserved by a user</span>
 				</div>
 			</div>
 		{/if}
 	</div>
 {:else if !data.offer.isActive}
 	<!-- Inactive Offer -->
-	<div class="rounded-2xl border-2 border-warning bg-warning/5 p-6">
-		<div class="flex items-center gap-4">
-			<div class="rounded-xl bg-warning/20 p-3">
-				<IconInfo class="size-8 text-warning" />
+	<div class="rounded-xl border border-warning bg-warning/5 p-5">
+		<div class="flex items-center gap-3">
+			<div class="rounded-lg bg-warning/20 p-2">
+				<IconInfo class="size-6 text-warning" />
 			</div>
-			<span class="text-lg font-bold">This offer is currently inactive and cannot be reserved</span>
+			<span class="font-semibold">This offer is currently inactive and cannot be reserved</span>
 		</div>
 	</div>
 {/if}
@@ -336,8 +344,8 @@
 <!-- Reservation Dialog -->
 {#if showReservationDialog}
 	<div class="modal-open modal">
-		<div class="modal-box max-w-md rounded-3xl">
-			<h3 class="mb-8 text-3xl font-black">Choose Pickup Date</h3>
+		<div class="modal-box max-w-md rounded-2xl">
+			<h3 class="mb-6 text-2xl font-bold">Choose Pickup Date</h3>
 
 			<form
 				method="POST"
@@ -351,11 +359,11 @@
 					};
 				}}
 			>
-				<div class="space-y-6">
+				<div class="space-y-4">
 					{#if data.offer.isRecurring}
 						<div class="form-control">
 							<label for="pickupDate" class="label">
-								<span class="label-text text-base font-bold">Select Pickup Date</span>
+								<span class="label-text font-semibold">Select Pickup Date</span>
 							</label>
 							<input
 								type="date"
@@ -365,13 +373,13 @@
 								min={minDate}
 								max={maxDate}
 								required
-								class="input-bordered input input-lg rounded-xl font-semibold"
+								class="input-bordered input rounded-lg font-medium"
 							/>
 							<label class="label">
 								<span
-									class="label-text-alt flex items-center gap-2 font-medium text-base-content/70"
+									class="label-text-alt flex items-center gap-1.5 font-medium text-base-content/70"
 								>
-									<IconClock class="size-4" />
+									<IconClock class="size-3.5" />
 									Pickup: {formatTime(data.offer.pickupTimeFrom)} - {formatTime(
 										data.offer.pickupTimeUntil
 									)}
@@ -379,11 +387,11 @@
 							</label>
 						</div>
 					{:else}
-						<div class="rounded-xl border-2 border-info bg-info/5 p-5">
-							<div class="flex items-start gap-3">
-								<IconClock class="size-5 shrink-0 text-info" />
+						<div class="rounded-lg border border-info bg-info/5 p-4">
+							<div class="flex items-start gap-2">
+								<IconClock class="size-4 shrink-0 text-info" />
 								<div class="text-sm">
-									<p class="font-bold">Today's Pickup Window</p>
+									<p class="font-semibold">Today's Pickup Window</p>
 									<p class="font-medium text-base-content/70">
 										{formatTime(data.offer.pickupTimeFrom)} - {formatTime(
 											data.offer.pickupTimeUntil
@@ -395,7 +403,7 @@
 
 						<div class="form-control">
 							<label for="pickupDate" class="label">
-								<span class="label-text text-base font-bold">Confirm Pickup Date</span>
+								<span class="label-text font-semibold">Confirm Pickup Date</span>
 							</label>
 							<input
 								type="date"
@@ -405,7 +413,7 @@
 								min={minDate}
 								max={maxDate}
 								required
-								class="input-bordered input input-lg rounded-xl font-semibold"
+								class="input-bordered input rounded-lg font-medium"
 							/>
 						</div>
 					{/if}
@@ -416,20 +424,20 @@
 						type="button"
 						onclick={() => (showReservationDialog = false)}
 						disabled={isSubmitting}
-						class="btn rounded-xl font-bold btn-ghost"
+						class="btn rounded-lg font-semibold btn-ghost"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
 						disabled={isSubmitting}
-						class="btn rounded-xl font-bold btn-lg btn-primary"
+						class="btn rounded-lg font-semibold btn-primary"
 					>
 						{#if isSubmitting}
-							<span class="loading loading-md loading-spinner"></span>
+							<span class="loading loading-sm loading-spinner"></span>
 							Processing...
 						{:else}
-							<IconCheckmark class="size-6" />
+							<IconCheckmark class="size-5" />
 							Confirm Reservation
 						{/if}
 					</button>

@@ -155,7 +155,7 @@
 	}
 </script>
 
-<div class="mb-16 flex w-full flex-col sm:w-3xl">
+<div class="mb-16 flex w-full flex-col p-4 sm:w-3xl">
 	{@render children()}
 </div>
 
