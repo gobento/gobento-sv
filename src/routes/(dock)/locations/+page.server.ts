@@ -1,4 +1,4 @@
-// src/routes/locations/+page.server.ts
+// src/routes/(dock)/locations/+page.server.ts
 import { db } from '$lib/server/db';
 import { businessLocations, businessOffers } from '$lib/server/schema';
 import { eq, sql } from 'drizzle-orm';
@@ -6,12 +6,7 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const session = locals.session;
-	const account = locals.account;
-
-	if (!session || !account) {
-		throw error(401, 'Unauthorized');
-	}
+	const account = locals.account!;
 
 	if (account.accountType !== 'business') {
 		throw error(403, 'Only business accounts can access locations');

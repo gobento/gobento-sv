@@ -4,122 +4,159 @@
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconTag from '~icons/fluent/tag-24-regular';
 	import IconMap from '~icons/fluent/map-24-regular';
+	import IconSearch from '~icons/fluent/search-24-regular';
+
 	let { data } = $props();
+
+	let searchQuery = $state('');
+
+	const filteredLocations = $derived(
+		data.locations.filter((location) => {
+			const query = searchQuery.toLowerCase().trim();
+			if (!query) return true;
+
+			return (
+				location.name.toLowerCase().includes(query) ||
+				location.address.toLowerCase().includes(query) ||
+				location.city.toLowerCase().includes(query) ||
+				location.state?.toLowerCase().includes(query) ||
+				location.country.toLowerCase().includes(query)
+			);
+		})
+	);
 </script>
 
 <!-- Header -->
-<div class="flex items-center justify-between mb-12">
-	<div class="flex items-center gap-5">
-		<div class="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center">
-			<IconMap class="w-7 h-7 text-primary-content" />
-		</div>
-		<div>
-			<h1 class="text-4xl font-bold tracking-tight">Business Locations</h1>
-			<p class="text-base text-base-content/60 mt-2">Manage your physical business locations</p>
-		</div>
+<div class="mb-6">
+	<div class="mb-1 flex items-center gap-2">
+		<IconMap class="size-5 text-primary" />
+		<h1 class="text-xl font-bold">Business Locations</h1>
 	</div>
-	{#if data.locations.length > 0}
-		<a href="/locations/new" class="btn btn-primary gap-2.5">
-			<IconAdd class="w-5 h-5" />
-			Add Location
-		</a>
-	{/if}
+	<p class="pl-7 text-sm text-base-content/60">Manage your physical business locations</p>
 </div>
+
+{#if data.locations.length > 0}
+	<div class="mb-4 flex flex-col gap-2">
+		<!-- Search -->
+		<div class="relative">
+			<IconSearch class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-base-content/40" />
+			<input
+				type="text"
+				bind:value={searchQuery}
+				placeholder="Search locations..."
+				class="input-bordered input input-sm w-full pl-9"
+			/>
+		</div>
+
+		<!-- Add Button -->
+		<a href="/locations/new" class="btn w-full gap-2 btn-sm btn-primary">
+			<IconAdd class="size-4" />
+			<span>Add Location</span>
+		</a>
+	</div>
+{/if}
 
 {#if data.locations.length === 0}
 	<!-- Empty State -->
-	<div class="card bg-base-100 border border-base-300">
-		<div class="card-body items-center text-center py-24">
-			<div class="w-24 h-24 rounded-3xl bg-base-200 flex items-center justify-center mb-8">
-				<IconLocation class="w-12 h-12 text-base-content/40" />
+	<div class="card border border-base-300 bg-base-100">
+		<div class="card-body items-center py-16 text-center">
+			<div class="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-base-200">
+				<IconLocation class="h-6 w-6 text-base-content/40" />
 			</div>
-			<h2 class="text-3xl font-bold mb-3">No locations yet</h2>
-			<p class="text-base-content/60 max-w-lg mb-10 text-lg">
-				Start by adding your first business location to begin creating and managing offers for your
-				customers
+			<h2 class="mb-2 text-lg font-bold">No locations yet</h2>
+			<p class="mb-6 max-w-sm text-sm text-base-content/60">
+				Start by adding your first business location to begin creating and managing offers
 			</p>
-			<a href="/locations/new" class="btn btn-primary btn-lg gap-3">
-				<IconAdd class="w-6 h-6" />
+			<a href="/locations/new" class="btn gap-2 btn-sm btn-primary">
+				<IconAdd class="size-4" />
 				Add Your First Location
 			</a>
 		</div>
 	</div>
+{:else if filteredLocations.length === 0}
+	<!-- No Results -->
+	<div class="card border border-base-300 bg-base-100">
+		<div class="card-body items-center py-12 text-center">
+			<IconSearch class="mb-3 h-10 w-10 text-base-content/20" />
+			<h3 class="mb-1 text-base font-semibold">No locations found</h3>
+			<p class="text-sm text-base-content/60">Try adjusting your search</p>
+		</div>
+	</div>
 {:else}
-	<!-- Locations Grid -->
-	<div class="grid gap-5">
-		{#each data.locations as location}
+	<!-- Locations List -->
+	<div class="space-y-3">
+		{#each filteredLocations as location}
 			<div
-				class="card bg-base-100 border-2 border-base-300 hover:border-primary transition-colors duration-200"
+				class="card border border-base-300 bg-base-100 transition-colors hover:border-primary/50"
 			>
-				<div class="card-body p-8">
-					<div class="flex items-start justify-between gap-8">
-						<div class="flex items-start gap-5 flex-1 min-w-0">
-							<div
-								class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shrink-0"
-							>
-								<IconLocation class="w-6 h-6 text-primary-content" />
-							</div>
-							<div class="flex-1 min-w-0">
-								<h3 class="text-2xl font-bold mb-3">{location.name}</h3>
-								<div class="text-base text-base-content/70 space-y-1.5 mb-6">
-									<p class="font-medium">{location.address}</p>
-									<p>
-										{location.city}{#if location.state}, {location.state}{/if}
-										{#if location.zipCode}
-											{location.zipCode}{/if}
-									</p>
-									<p>{location.country}</p>
-								</div>
-								<div class="flex items-center gap-6 text-sm">
-									<div class="flex items-center gap-2 px-3 py-2 bg-base-200 rounded-lg">
-										<IconTag class="w-4 h-4 text-base-content/70" />
-										<span class="font-semibold">
-											{location.offerCount}
-											{location.offerCount === 1 ? 'offer' : 'offers'}
-										</span>
-									</div>
-									<span class="text-base-content/50 font-medium">
-										Added {new Date(location.createdAt).toLocaleDateString('en-US', {
-											month: 'short',
-											day: 'numeric',
-											year: 'numeric'
-										})}
-									</span>
-								</div>
+				<div class="card-body p-4">
+					<!-- Header -->
+					<div class="mb-3 flex items-start gap-2">
+						<div
+							class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10"
+						>
+							<IconLocation class="size-4 text-primary" />
+						</div>
+						<div class="min-w-0 flex-1">
+							<h3 class="mb-2 text-base leading-tight font-bold">{location.name}</h3>
+							<div class="text-sm leading-relaxed text-base-content/60">
+								<p>{location.address}</p>
+								<p>
+									{location.city}{#if location.state}, {location.state}{/if}
+									{#if location.zipCode}
+										{location.zipCode}{/if}
+								</p>
+								<p>{location.country}</p>
 							</div>
 						</div>
-						<a href="/offers/new?locationId={location.id}" class="btn btn-success gap-2.5 shrink-0">
-							<IconAdd class="w-5 h-5" />
-							Create Offer
-						</a>
 					</div>
+
+					<!-- Stats -->
+					<div class="mb-3 flex items-center gap-3 pl-10.5 text-xs text-base-content/50">
+						<div class="flex items-center gap-1.5">
+							<IconTag class="size-4" />
+							<span>{location.offerCount} {location.offerCount === 1 ? 'offer' : 'offers'}</span>
+						</div>
+						<span>•</span>
+						<span>
+							Added {new Date(location.createdAt).toLocaleDateString('en-US', {
+								month: 'short',
+								day: 'numeric',
+								year: 'numeric'
+							})}
+						</span>
+					</div>
+
+					<!-- Action Button -->
+					<a
+						href="/offers/new?locationId={location.id}"
+						class="btn w-full gap-2 btn-sm btn-success"
+					>
+						<IconAdd class="size-4" />
+						Create Offer
+					</a>
 				</div>
 			</div>
 		{/each}
 	</div>
 
-	<!-- All Locations Summary -->
+	<!-- Universal Offers -->
 	{#if data.allLocationsOfferCount > 0}
-		<div class="card bg-info/10 border-2 border-info/30 mt-10">
-			<div class="card-body p-8">
-				<div class="flex items-center justify-between gap-6">
-					<div class="flex items-center gap-5">
-						<div class="w-12 h-12 rounded-xl bg-info flex items-center justify-center shrink-0">
-							<IconTag class="w-6 h-6 text-info-content" />
-						</div>
-						<div>
-							<h3 class="font-bold text-xl">Universal Offers</h3>
-							<p class="text-base text-base-content/70 mt-1">
-								{data.allLocationsOfferCount}
-								{data.allLocationsOfferCount === 1 ? 'offer' : 'offers'} available at all locations
-							</p>
-						</div>
+		<div class="card mt-6 border border-info bg-base-100">
+			<div class="card-body p-4">
+				<div class="mb-3 flex items-start gap-2">
+					<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-info/10">
+						<IconTag class="size-4 text-info" />
 					</div>
-					<a href="/offers" class="btn btn-ghost gap-3">
-						View All
-						<span class="text-xl">→</span>
-					</a>
+					<div class="min-w-0 flex-1">
+						<h3 class="text-sm leading-tight font-bold">Universal Offers</h3>
+						<p class="mt-1 text-xs text-base-content/60">
+							{data.allLocationsOfferCount}
+							{data.allLocationsOfferCount === 1 ? 'offer' : 'offers'} available at all locations
+						</p>
+					</div>
 				</div>
+				<a href="/offers" class="btn w-full gap-1.5 btn-ghost btn-sm"> View All → </a>
 			</div>
 		</div>
 	{/if}
