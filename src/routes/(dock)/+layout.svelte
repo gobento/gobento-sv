@@ -73,6 +73,13 @@
 			icon: HomeIcon,
 			filledIcon: HomeFilledIcon
 		},
+
+		{
+			path: '/offers',
+			label: 'Offers',
+			icon: MoneyIcon,
+			filledIcon: MoneyFilledIcon
+		},
 		{
 			path: '/analytics',
 			label: 'Analytics',
