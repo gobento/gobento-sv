@@ -56,13 +56,14 @@ export const actions = {
 		const formData = await request.formData();
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
+		const originalValue = parseFloat(formData.get('originalValue') as string);
 		const price = parseFloat(formData.get('price') as string);
 		const currency = formData.get('currency') as string;
 		const locationId = formData.get('locationId') as string;
 		const isRecurring = formData.get('isRecurring') === 'on';
-		const validUntilStr = formData.get('validUntil') as string;
 		const pickupTimeFrom = formData.get('pickupTimeFrom') as string;
 		const pickupTimeUntil = formData.get('pickupTimeUntil') as string;
+		const pickupDateStr = formData.get('pickupDate') as string;
 
 		// Validation
 		if (!name || name.trim().length === 0) {
@@ -73,8 +74,16 @@ export const actions = {
 			return fail(400, { message: 'Description is required', field: 'description' });
 		}
 
+		if (isNaN(originalValue) || originalValue < 0) {
+			return fail(400, { message: 'Valid original value is required', field: 'originalValue' });
+		}
+
 		if (isNaN(price) || price < 0) {
 			return fail(400, { message: 'Valid price is required', field: 'price' });
+		}
+
+		if (price >= originalValue) {
+			return fail(400, { message: 'Price must be less than original value', field: 'price' });
 		}
 
 		if (!currency || currency.trim().length === 0) {
@@ -113,17 +122,40 @@ export const actions = {
 			});
 		}
 
-		// Parse validUntil if provided
-		let validUntil: Date | null = null;
-		if (validUntilStr && validUntilStr.trim() !== '') {
-			validUntil = new Date(validUntilStr);
-			if (isNaN(validUntil.getTime())) {
-				return fail(400, { message: 'Invalid expiration date', field: 'validUntil' });
-			}
-			if (validUntil < new Date()) {
+		// Validate minimum 30-minute pickup window
+		const pickupWindowMinutes = untilTotalMinutes - fromTotalMinutes;
+		if (pickupWindowMinutes < 30) {
+			return fail(400, {
+				message: 'Pickup window must be at least 30 minutes',
+				field: 'pickupTimeUntil'
+			});
+		}
+
+		// For non-recurring offers, validate pickup date and time
+		if (!isRecurring) {
+			if (!pickupDateStr || pickupDateStr.trim() === '') {
 				return fail(400, {
-					message: 'Expiration date must be in the future',
-					field: 'validUntil'
+					message: 'Pickup date is required for non-recurring offers',
+					field: 'pickupDate'
+				});
+			}
+
+			const pickupDate = new Date(pickupDateStr);
+			if (isNaN(pickupDate.getTime())) {
+				return fail(400, { message: 'Invalid pickup date', field: 'pickupDate' });
+			}
+
+			// Create full pickup datetime
+			const pickupFromDateTime = new Date(pickupDate);
+			pickupFromDateTime.setHours(fromHours, fromMinutes, 0, 0);
+
+			const now = new Date();
+			const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+			if (pickupFromDateTime < oneHourFromNow) {
+				return fail(400, {
+					message: 'Pickup time must be at least 1 hour in the future for non-recurring offers',
+					field: 'pickupTimeFrom'
 				});
 			}
 		}
@@ -153,11 +185,11 @@ export const actions = {
 				locationId: locationId && locationId !== '' ? locationId : null,
 				name: name.trim(),
 				description: description.trim(),
+				originalValue,
 				price,
 				currency: currency.trim(),
 				isActive: true,
 				isRecurring,
-				validUntil,
 				pickupTimeFrom: pickupTimeFromFormatted,
 				pickupTimeUntil: pickupTimeUntilFormatted
 			});

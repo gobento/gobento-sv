@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		.where(and(...conditions));
 
 	// Calculate distances and prepare offers
-	let offers = offersData.map((row) => {
+	const offers = offersData.map((row) => {
 		let distance: number | null = null;
 
 		if (lat && lon && row.location) {
@@ -53,6 +53,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			name: row.offer.name,
 			description: row.offer.description,
 			price: row.offer.price,
+			originalValue: row.offer.originalValue,
 			currency: row.offer.currency,
 			isRecurring: row.offer.isRecurring,
 			validUntil: row.offer.validUntil,
