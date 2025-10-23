@@ -14,7 +14,7 @@
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
 	import IconQr from '~icons/fluent/qr-code-24-regular';
 	import IconInfo from '~icons/fluent/info-24-regular';
-	import IconTag from '~icons/fluent/tag-24-regular';
+	import IconGift from '~icons/fluent/gift-24-regular';
 	import { goto } from '$app/navigation';
 
 	let { data, form } = $props();
@@ -53,16 +53,6 @@
 			year: 'numeric',
 			month: 'long',
 			day: 'numeric'
-		}).format(new Date(date));
-	};
-
-	const formatDateTime = (date: Date | string) => {
-		return new Intl.DateTimeFormat('de-DE', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
 		}).format(new Date(date));
 	};
 
@@ -106,18 +96,15 @@
 				<IconStore class="size-3.5" />
 				<span>{data.business.name}</span>
 			</div>
-			<h2 class="text-xl font-bold text-base-content">{data.location?.name || 'All Locations'}</h2>
 			{#if data.location}
 				<a
-					href={getGoogleMapsUrl(data.location.latitude, data.location.longitude)}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+					href="/locations/{data.location.id}"
+					class="text-xl font-bold text-base-content hover:text-primary"
 				>
-					<IconMapPin class="size-4" />
-					<span>{data.location.address}, {data.location.city}</span>
-					<IconArrowRight class="size-3.5" />
+					{data.location.name}
 				</a>
+			{:else}
+				<h2 class="text-xl font-bold text-base-content">All Locations</h2>
 			{/if}
 		</div>
 	</div>
@@ -125,13 +112,17 @@
 
 <!-- Hero Section -->
 <div class="rounded-2xl bg-base-100 p-6 shadow-sm">
-	<div class="flex flex-wrap items-start justify-between gap-4">
+	<div class="flex flex-wrap items-start justify-between gap-6">
 		<div class="flex-1 space-y-3">
 			<div class="flex flex-wrap items-center gap-2">
+				<div class="badge gap-1.5 px-3 py-3 font-semibold badge-primary">
+					<IconGift class="size-3.5" />
+					Surprise Bag
+				</div>
 				{#if data.offer.isRecurring}
-					<div class="badge gap-1.5 px-3 py-3 font-semibold badge-primary">
+					<div class="badge gap-1.5 px-3 py-3 font-semibold badge-secondary">
 						<IconRepeat class="size-3.5" />
-						Recurring Daily
+						Daily
 					</div>
 				{/if}
 			</div>
@@ -145,17 +136,22 @@
 			</p>
 		</div>
 
-		<div class="flex flex-col items-end">
-			<span class="text-4xl font-bold text-primary lg:text-5xl">
-				{formatPrice(data.offer.price, data.offer.currency)}
-			</span>
+		<div class="flex flex-col items-end gap-2">
+			<div class="text-right">
+				<div class="text-lg font-semibold text-base-content/50 line-through">
+					{formatPrice(data.offer.originalValue, data.offer.currency)}
+				</div>
+				<div class="text-4xl font-bold text-primary lg:text-5xl">
+					{formatPrice(data.offer.price, data.offer.currency)}
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
 
-<!-- Info Grid -->
+<!-- Pickup Details -->
 <div class="grid gap-4 lg:grid-cols-2">
-	<!-- Location Card -->
+	<!-- Location -->
 	{#if data.location}
 		<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
 			<div class="mb-4 flex items-center gap-2">
@@ -177,9 +173,7 @@
 						<p class="text-sm font-medium text-base-content/70">
 							{data.location.zipCode}
 							{data.location.city}
-							{#if data.location.state}, {data.location.state}{/if}
 						</p>
-						<p class="text-xs font-medium text-base-content/50">{data.location.country}</p>
 					</div>
 					<div
 						class="rounded-full bg-primary/10 p-1.5 transition-all group-hover:bg-primary group-hover:text-primary-content"
@@ -196,39 +190,30 @@
 					<IconStore class="size-5 text-primary" />
 				</div>
 				<div>
-					<h3 class="font-semibold">Available at All Locations</h3>
-					<p class="text-xs font-medium text-base-content/70">
-						Can be claimed at any business location
-					</p>
+					<h3 class="font-semibold">All Locations</h3>
+					<p class="text-xs font-medium text-base-content/70">Can be picked up at any location</p>
 				</div>
 			</div>
 		</div>
 	{/if}
 
-	<!-- Pickup Information -->
+	<!-- Pickup Time -->
 	<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
 		<div class="mb-4 flex items-center gap-2">
 			<div class="rounded-lg bg-primary/10 p-2">
 				<IconClock class="size-5 text-primary" />
 			</div>
-			<h3 class="text-lg font-bold text-base-content">Pickup Information</h3>
+			<h3 class="text-lg font-bold text-base-content">Pickup Time</h3>
 		</div>
 
 		<div class="space-y-3">
 			<div class="rounded-xl bg-base-200 p-4">
-				<div class="mb-1 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
-					Pickup Hours
-				</div>
 				<p class="text-2xl font-bold text-base-content">
 					{formatTime(data.offer.pickupTimeFrom)} - {formatTime(data.offer.pickupTimeUntil)}
 				</p>
-				<p class="mt-1 text-xs font-medium text-base-content/60">
-					{#if data.offer.isRecurring}
-						Available daily during these hours
-					{:else}
-						Available today only
-					{/if}
-				</p>
+				{#if data.offer.isRecurring}
+					<p class="mt-1 text-xs font-medium text-base-content/60">Daily availability</p>
+				{/if}
 			</div>
 
 			{#if data.offer.validUntil}
@@ -271,7 +256,7 @@
 					<IconCheckmark class="size-6 text-success-content" />
 				</div>
 				<div>
-					<h3 class="text-lg font-bold text-base-content">You've Reserved This Offer!</h3>
+					<h3 class="text-lg font-bold text-base-content">You've Reserved This Surprise Bag!</h3>
 					<p class="text-sm font-medium text-base-content/70">View your reservation details</p>
 				</div>
 			</div>
@@ -289,7 +274,7 @@
 				<div>
 					<h3 class="text-lg font-semibold">Currently Reserved</h3>
 					<p class="text-sm font-medium text-base-content/70">
-						This offer is reserved by another user. Check back later!
+						This surprise bag is reserved. Check back later!
 					</p>
 				</div>
 			</div>
@@ -300,8 +285,8 @@
 			onclick={() => (showReservationDialog = true)}
 			class="btn w-full rounded-xl text-lg font-bold transition-all btn-lg btn-primary hover:scale-[1.02]"
 		>
-			<IconCheckmark class="size-6" />
-			Reserve This Offer Now
+			<IconGift class="size-6" />
+			Reserve Surprise Bag
 		</button>
 	{/if}
 {:else if data.isOwner}
@@ -324,7 +309,7 @@
 			<div class="mt-4 rounded-xl border border-info bg-info/5 p-4">
 				<div class="flex items-center gap-2">
 					<IconClock class="size-5 text-info" />
-					<span class="font-semibold">This offer is currently reserved by a user</span>
+					<span class="font-semibold">Currently reserved by a user</span>
 				</div>
 			</div>
 		{/if}
@@ -336,7 +321,7 @@
 			<div class="rounded-lg bg-warning/20 p-2">
 				<IconInfo class="size-6 text-warning" />
 			</div>
-			<span class="font-semibold">This offer is currently inactive and cannot be reserved</span>
+			<span class="font-semibold">This offer is currently inactive</span>
 		</div>
 	</div>
 {/if}
@@ -360,63 +345,43 @@
 				}}
 			>
 				<div class="space-y-4">
-					{#if data.offer.isRecurring}
-						<div class="form-control">
-							<label for="pickupDate" class="label">
-								<span class="label-text font-semibold">Select Pickup Date</span>
-							</label>
-							<input
-								type="date"
-								id="pickupDate"
-								name="pickupDate"
-								bind:value={pickupDate}
-								min={minDate}
-								max={maxDate}
-								required
-								class="input-bordered input rounded-lg font-medium"
-							/>
-							<label class="label">
-								<span
-									class="label-text-alt flex items-center gap-1.5 font-medium text-base-content/70"
-								>
-									<IconClock class="size-3.5" />
-									Pickup: {formatTime(data.offer.pickupTimeFrom)} - {formatTime(
-										data.offer.pickupTimeUntil
-									)}
-								</span>
-							</label>
-						</div>
-					{:else}
-						<div class="rounded-lg border border-info bg-info/5 p-4">
-							<div class="flex items-start gap-2">
-								<IconClock class="size-4 shrink-0 text-info" />
-								<div class="text-sm">
-									<p class="font-semibold">Today's Pickup Window</p>
-									<p class="font-medium text-base-content/70">
-										{formatTime(data.offer.pickupTimeFrom)} - {formatTime(
-											data.offer.pickupTimeUntil
-										)}
-									</p>
-								</div>
+					<div class="form-control">
+						<label for="pickupDate" class="label">
+							<span class="label-text font-semibold">Select Pickup Date</span>
+						</label>
+						<input
+							type="date"
+							id="pickupDate"
+							name="pickupDate"
+							bind:value={pickupDate}
+							min={minDate}
+							max={maxDate}
+							required
+							class="input-bordered input rounded-lg font-medium"
+						/>
+						<label class="label">
+							<span
+								class="label-text-alt flex items-center gap-1.5 font-medium text-base-content/70"
+							>
+								<IconClock class="size-3.5" />
+								Pickup: {formatTime(data.offer.pickupTimeFrom)} - {formatTime(
+									data.offer.pickupTimeUntil
+								)}
+							</span>
+						</label>
+					</div>
+
+					<div class="rounded-lg border border-info bg-info/5 p-4">
+						<div class="flex items-start gap-2">
+							<IconGift class="size-4 shrink-0 text-info" />
+							<div class="text-sm">
+								<p class="font-semibold">About Surprise Bags</p>
+								<p class="font-medium text-base-content/70">
+									Contents vary daily. Pick up during the selected time window.
+								</p>
 							</div>
 						</div>
-
-						<div class="form-control">
-							<label for="pickupDate" class="label">
-								<span class="label-text font-semibold">Confirm Pickup Date</span>
-							</label>
-							<input
-								type="date"
-								id="pickupDate"
-								name="pickupDate"
-								bind:value={pickupDate}
-								min={minDate}
-								max={maxDate}
-								required
-								class="input-bordered input rounded-lg font-medium"
-							/>
-						</div>
-					{/if}
+					</div>
 				</div>
 
 				<div class="modal-action">

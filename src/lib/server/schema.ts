@@ -100,7 +100,8 @@ export const businessOffers = pgTable('business_offers', {
 	locationId: text('location_id').references(() => businessLocations.id, { onDelete: 'cascade' }), // null = all locations
 	name: text('name').notNull(),
 	description: text('description').notNull(),
-	price: doublePrecision('price').notNull(),
+	originalValue: doublePrecision('original_value').notNull(), // Original retail value of the surprise bag
+	price: doublePrecision('price').notNull(), // Discounted price user pays
 	currency: text('currency').notNull().default('EUR'),
 	isActive: boolean('is_active').notNull().default(true),
 	isRecurring: boolean('is_recurring').notNull().default(false),
