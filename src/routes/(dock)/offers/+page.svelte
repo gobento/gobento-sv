@@ -1,12 +1,16 @@
 <!-- src/routes/(dock)/offers/+page.svelte -->
 <script lang="ts">
-	import IconTag from '~icons/fluent/tag-20-regular';
-	import IconAdd from '~icons/fluent/add-20-regular';
-	import IconLocation from '~icons/fluent/location-20-regular';
-	import IconGlobe from '~icons/fluent/globe-20-regular';
-	import IconMoney from '~icons/fluent/money-20-regular';
-	import IconEdit from '~icons/fluent/edit-20-regular';
-	import IconDelete from '~icons/fluent/delete-20-regular';
+	import IconTag from '~icons/fluent/tag-24-regular';
+	import IconAdd from '~icons/fluent/add-24-regular';
+	import IconLocation from '~icons/fluent/location-24-regular';
+	import IconGlobe from '~icons/fluent/globe-24-regular';
+	import IconMoney from '~icons/fluent/money-24-regular';
+	import IconEdit from '~icons/fluent/edit-24-regular';
+	import IconDelete from '~icons/fluent/delete-24-regular';
+	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
+	import IconClock from '~icons/fluent/clock-24-regular';
+	import IconCalendar from '~icons/fluent/calendar-24-regular';
+	import IconBox from '~icons/fluent/box-24-regular';
 
 	let { data } = $props();
 
@@ -15,176 +19,182 @@
 	const specificLocationOffers = $derived(data.offers.filter((o) => o.locationId !== null));
 	const activeOffers = $derived(data.offers.filter((o) => o.isActive));
 	const inactiveOffers = $derived(data.offers.filter((o) => !o.isActive));
+
+	function formatTime(timeString: string | null) {
+		if (!timeString) return '';
+		const [hours, minutes] = timeString.split(':');
+		return `${hours}:${minutes}`;
+	}
+
+	function formatDate(date: string | null) {
+		if (!date) return 'No expiry';
+		return new Date(date).toLocaleDateString('en-US', {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric'
+		});
+	}
 </script>
 
 <!-- Header -->
-<div class="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-	<div class="flex items-center gap-3">
-		<div class="placeholder avatar">
-			<div class="w-12 rounded-full bg-primary text-primary-content">
-				<IconTag class="h-7 w-7" />
-			</div>
-		</div>
-		<div>
-			<h1 class="text-3xl font-bold">Business Offers</h1>
-			<p class="mt-1 text-base-content/70">Manage your special offers and promotions</p>
-		</div>
+<div class="mb-8">
+	<div class="mb-2 flex items-center gap-3">
+		<IconTag class="size-6 text-primary" />
+		<h1 class="text-2xl font-semibold">Business Offers</h1>
 	</div>
-	<a href="/offers/new" class="btn gap-2 btn-primary">
-		<IconAdd class="size-5" />
-		Create Offer
-	</a>
+	<p class="text-base-content/60">Manage your special offers and promotions</p>
 </div>
 
 <!-- Stats -->
-<div class="stats mb-8 w-full stats-vertical shadow lg:stats-horizontal">
-	<div class="stat">
-		<div class="stat-figure text-primary">
-			<IconTag class="h-8 w-8" />
+<div class="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
+		<div class="mb-2 flex items-center gap-2">
+			<IconTag class="size-5 text-primary" />
+			<span class="text-sm text-base-content/60">Total Offers</span>
 		</div>
-		<div class="stat-title">Total Offers</div>
-		<div class="stat-value text-primary">{data.offers.length}</div>
-		<div class="stat-desc">All offers created</div>
+		<div class="text-2xl font-semibold">{data.offers.length}</div>
 	</div>
 
-	<div class="stat">
-		<div class="stat-figure text-success">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				fill="none"
-				viewBox="0 0 24 24"
-				class="inline-block h-8 w-8 stroke-current"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-				></path>
-			</svg>
+	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
+		<div class="mb-2 flex items-center gap-2">
+			<IconCheckmark class="size-5 text-success" />
+			<span class="text-sm text-base-content/60">Active</span>
 		</div>
-		<div class="stat-title">Active</div>
-		<div class="stat-value text-success">{activeOffers.length}</div>
-		<div class="stat-desc">Currently available</div>
+		<div class="text-2xl font-semibold text-success">{activeOffers.length}</div>
 	</div>
 
-	<div class="stat">
-		<div class="stat-figure text-secondary">
-			<IconGlobe class="h-8 w-8" />
+	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
+		<div class="mb-2 flex items-center gap-2">
+			<IconGlobe class="size-5 text-secondary" />
+			<span class="text-sm text-base-content/60">All Locations</span>
 		</div>
-		<div class="stat-title">All Locations</div>
-		<div class="stat-value text-secondary">{allLocationOffers.length}</div>
-		<div class="stat-desc">Available everywhere</div>
+		<div class="text-2xl font-semibold">{allLocationOffers.length}</div>
 	</div>
 
-	<div class="stat">
-		<div class="stat-figure text-info">
-			<IconLocation class="h-8 w-8" />
+	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
+		<div class="mb-2 flex items-center gap-2">
+			<IconLocation class="size-5 text-info" />
+			<span class="text-sm text-base-content/60">Location-Specific</span>
 		</div>
-		<div class="stat-title">Location-Specific</div>
-		<div class="stat-value text-info">{specificLocationOffers.length}</div>
-		<div class="stat-desc">Targeted offers</div>
+		<div class="text-2xl font-semibold">{specificLocationOffers.length}</div>
 	</div>
 </div>
 
 {#if data.offers.length === 0}
 	<!-- Empty State -->
-	<div class="hero rounded-box bg-base-200">
-		<div class="hero-content py-16 text-center">
-			<div class="max-w-md">
-				<div class="mb-4 flex justify-center">
-					<div class="placeholder avatar">
-						<div class="w-24 rounded-full bg-neutral text-neutral-content">
-							<IconTag class="h-12 w-12" />
-						</div>
-					</div>
-				</div>
-				<h2 class="mb-4 text-2xl font-bold">No offers yet</h2>
-				<p class="mb-6 text-base-content/70">
-					Create your first offer to attract customers and boost your business
-				</p>
-				<a href="/offers/new" class="btn gap-2 btn-primary">
-					<IconAdd class="size-5" />
-					Create First Offer
-				</a>
-			</div>
+	<div class="rounded-lg border-2 border-dashed border-base-300 bg-base-100 p-12 text-center">
+		<div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-base-200">
+			<IconTag class="h-8 w-8 text-base-content/40" />
 		</div>
+		<h2 class="mb-2 text-xl font-semibold">No offers yet</h2>
+		<p class="mb-6 text-base-content/60">
+			Create your first offer to attract customers and boost your business
+		</p>
+		<a href="/offers/new" class="btn gap-2 btn-primary">
+			<IconAdd class="size-5" />
+			Create First Offer
+		</a>
 	</div>
 {:else}
+	<div class="mb-6 flex items-center justify-between">
+		<div class="tabs-bordered tabs">
+			<a class="tab-active tab">All Offers</a>
+		</div>
+		<a href="/offers/new" class="btn gap-2 btn-primary">
+			<IconAdd class="size-5" />
+			Create Offer
+		</a>
+	</div>
+
 	<!-- All Locations Offers -->
 	{#if allLocationOffers.length > 0}
 		<div class="mb-8">
 			<div class="mb-4 flex items-center gap-2">
-				<IconGlobe class="h-6 w-6 text-secondary" />
-				<h2 class="text-2xl font-semibold">All Locations</h2>
-				<div class="badge badge-secondary">{allLocationOffers.length}</div>
+				<IconGlobe class="size-5 text-secondary" />
+				<h2 class="text-lg font-semibold">All Locations</h2>
+				<span class="badge badge-sm badge-secondary">{allLocationOffers.length}</span>
 			</div>
 			<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 				{#each allLocationOffers as offer}
 					<div
-						class="card border-2 border-secondary/30 bg-gradient-to-br from-secondary/10 to-accent/10 shadow-lg transition-shadow hover:shadow-xl"
+						class="rounded-lg border-2 border-secondary/30 bg-base-100 p-5 transition-colors hover:border-secondary"
 					>
-						<div class="card-body">
-							<div class="mb-2 flex items-start justify-between gap-2">
-								<h3 class="card-title text-lg">{offer.name}</h3>
-								{#if offer.isActive}
-									<div class="badge gap-1 badge-success">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											class="h-3 w-3"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke="currentColor"
-										>
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M5 13l4 4L19 7"
-											/>
-										</svg>
-										Active
-									</div>
-								{:else}
-									<div class="badge badge-ghost">Inactive</div>
-								{/if}
-							</div>
+						<!-- Header -->
+						<div class="mb-3 flex items-start justify-between gap-2">
+							<h3 class="leading-tight font-semibold">{offer.name}</h3>
+							{#if offer.isActive}
+								<span class="badge gap-1 badge-sm badge-success">
+									<IconCheckmark class="size-3" />
+									Active
+								</span>
+							{:else}
+								<span class="badge badge-ghost badge-sm">Inactive</span>
+							{/if}
+						</div>
 
-							<p class="mb-3 line-clamp-2 text-sm text-base-content/70">
-								{offer.description}
-							</p>
+						<!-- Description -->
+						<p class="mb-4 line-clamp-2 text-sm text-base-content/60">
+							{offer.description}
+						</p>
 
-							<div class="mb-3 flex items-center gap-2">
-								<div class="badge gap-1 badge-lg font-bold badge-success">
-									<IconMoney class="h-4 w-4" />
-									{offer.price.toFixed(2)}
+						<!-- Price -->
+						<div class="mb-4 flex items-baseline gap-2">
+							<span class="text-2xl font-bold text-success">
+								{offer.price.toFixed(2)}
+								{offer.currency}
+							</span>
+							{#if offer.originalValue}
+								<span class="text-sm text-base-content/40 line-through">
+									{offer.originalValue.toFixed(2)}
 									{offer.currency}
+								</span>
+							{/if}
+						</div>
+
+						<!-- Location Badge -->
+						<div class="mb-4 flex items-center gap-2 rounded-md bg-secondary/10 px-3 py-2">
+							<IconGlobe class="size-4 text-secondary" />
+							<span class="text-xs font-medium text-secondary">Available at all locations</span>
+						</div>
+
+						<!-- Details -->
+						<div class="mb-4 space-y-2 border-t border-base-300 pt-4 text-xs text-base-content/50">
+							{#if offer.pickupTimeFrom && offer.pickupTimeUntil}
+								<div class="flex items-center gap-2">
+									<IconClock class="size-4" />
+									<span
+										>Pickup: {formatTime(offer.pickupTimeFrom)} - {formatTime(
+											offer.pickupTimeUntil
+										)}</span
+									>
 								</div>
-							</div>
+							{/if}
+							{#if offer.validUntil}
+								<div class="flex items-center gap-2">
+									<IconCalendar class="size-4" />
+									<span>Valid until {formatDate(offer.validUntil)}</span>
+								</div>
+							{/if}
+							{#if offer.quantity}
+								<div class="flex items-center gap-2">
+									<IconBox class="size-4" />
+									<span>{offer.quantity} available</span>
+								</div>
+							{/if}
+							{#if offer.isRecurring}
+								<div class="badge badge-outline badge-xs">Recurring</div>
+							{/if}
+						</div>
 
-							<div class="mb-3 badge gap-1 badge-outline badge-secondary">
-								<IconGlobe class="h-4 w-4" />
-								Available everywhere
-							</div>
-
-							<div class="mb-3 text-xs text-base-content/50">
-								Created {new Date(offer.createdAt).toLocaleDateString('en-US', {
-									year: 'numeric',
-									month: 'short',
-									day: 'numeric'
-								})}
-							</div>
-
-							<div class="card-actions justify-end">
-								<button class="btn gap-1 btn-ghost btn-sm">
-									<IconEdit class="h-4 w-4" />
-									Edit
-								</button>
-								<button class="btn gap-1 btn-outline btn-sm btn-error">
-									<IconDelete class="h-4 w-4" />
-									Delete
-								</button>
-							</div>
+						<!-- Actions -->
+						<div class="flex gap-2">
+							<button class="btn flex-1 gap-1 btn-ghost btn-sm">
+								<IconEdit class="size-4" />
+								Edit
+							</button>
+							<button class="btn gap-1 btn-outline btn-sm btn-error">
+								<IconDelete class="size-4" />
+							</button>
 						</div>
 					</div>
 				{/each}
@@ -196,81 +206,101 @@
 	{#if specificLocationOffers.length > 0}
 		<div>
 			<div class="mb-4 flex items-center gap-2">
-				<IconLocation class="h-6 w-6 text-info" />
-				<h2 class="text-2xl font-semibold">Location-Specific Offers</h2>
-				<div class="badge badge-info">{specificLocationOffers.length}</div>
+				<IconLocation class="size-5 text-info" />
+				<h2 class="text-lg font-semibold">Location-Specific Offers</h2>
+				<span class="badge badge-sm badge-info">{specificLocationOffers.length}</span>
 			</div>
 			<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 				{#each specificLocationOffers as offer}
 					<div
-						class="card border border-base-300 bg-base-100 shadow-lg transition-shadow hover:shadow-xl"
+						class="rounded-lg border border-base-300 bg-base-100 p-5 transition-colors hover:border-info"
 					>
-						<div class="card-body">
-							<div class="mb-2 flex items-start justify-between gap-2">
-								<h3 class="card-title text-lg">{offer.name}</h3>
-								{#if offer.isActive}
-									<div class="badge gap-1 badge-success">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											class="h-3 w-3"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke="currentColor"
-										>
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M5 13l4 4L19 7"
-											/>
-										</svg>
-										Active
-									</div>
-								{:else}
-									<div class="badge badge-ghost">Inactive</div>
-								{/if}
-							</div>
+						<!-- Header -->
+						<div class="mb-3 flex items-start justify-between gap-2">
+							<h3 class="leading-tight font-semibold">{offer.name}</h3>
+							{#if offer.isActive}
+								<span class="badge gap-1 badge-sm badge-success">
+									<IconCheckmark class="size-3" />
+									Active
+								</span>
+							{:else}
+								<span class="badge badge-ghost badge-sm">Inactive</span>
+							{/if}
+						</div>
 
-							<p class="mb-3 line-clamp-2 text-sm text-base-content/70">
-								{offer.description}
-							</p>
+						<!-- Description -->
+						<p class="mb-4 line-clamp-2 text-sm text-base-content/60">
+							{offer.description}
+						</p>
 
-							<div class="mb-3 flex items-center gap-2">
-								<div class="badge gap-1 badge-lg font-bold badge-success">
-									<IconMoney class="h-4 w-4" />
-									{offer.price.toFixed(2)}
+						<!-- Price -->
+						<div class="mb-4 flex items-baseline gap-2">
+							<span class="text-2xl font-bold text-success">
+								{offer.price.toFixed(2)}
+								{offer.currency}
+							</span>
+							{#if offer.originalValue}
+								<span class="text-sm text-base-content/40 line-through">
+									{offer.originalValue.toFixed(2)}
 									{offer.currency}
-								</div>
-							</div>
+								</span>
+								<span class="badge badge-sm badge-success">
+									{Math.round((1 - offer.price / offer.originalValue) * 100)}% off
+								</span>
+							{/if}
+						</div>
 
-							<div class="alert px-3 py-2 alert-info">
-								<IconLocation class="h-4 w-4" />
-								<div class="text-xs">
-									<div class="font-semibold">{offer.locationName}</div>
+						<!-- Location Info -->
+						<div class="mb-4 rounded-md border border-info/30 bg-info/10 px-3 py-2">
+							<div class="flex items-start gap-2">
+								<IconLocation class="mt-0.5 size-4 shrink-0 text-info" />
+								<div class="min-w-0 text-xs">
+									<div class="font-semibold text-info">{offer.locationName}</div>
 									<div class="text-base-content/60">
 										{offer.locationCity}{#if offer.locationState}, {offer.locationState}{/if}
 									</div>
 								</div>
 							</div>
+						</div>
 
-							<div class="mt-2 mb-3 text-xs text-base-content/50">
-								Created {new Date(offer.createdAt).toLocaleDateString('en-US', {
-									year: 'numeric',
-									month: 'short',
-									day: 'numeric'
-								})}
-							</div>
+						<!-- Details -->
+						<div class="mb-4 space-y-2 border-t border-base-300 pt-4 text-xs text-base-content/50">
+							{#if offer.pickupTimeFrom && offer.pickupTimeUntil}
+								<div class="flex items-center gap-2">
+									<IconClock class="size-4" />
+									<span
+										>Pickup: {formatTime(offer.pickupTimeFrom)} - {formatTime(
+											offer.pickupTimeUntil
+										)}</span
+									>
+								</div>
+							{/if}
+							{#if offer.validUntil}
+								<div class="flex items-center gap-2">
+									<IconCalendar class="size-4" />
+									<span>Valid until {formatDate(offer.validUntil)}</span>
+								</div>
+							{/if}
+							{#if offer.quantity}
+								<div class="flex items-center gap-2">
+									<IconBox class="size-4" />
+									<span>{offer.quantity} available</span>
+								</div>
+							{/if}
+							{#if offer.isRecurring}
+								<div class="badge badge-outline badge-xs">Recurring</div>
+							{/if}
+						</div>
 
-							<div class="card-actions justify-end">
-								<button class="btn gap-1 btn-ghost btn-sm">
-									<IconEdit class="h-4 w-4" />
-									Edit
-								</button>
-								<button class="btn gap-1 btn-outline btn-sm btn-error">
-									<IconDelete class="h-4 w-4" />
-									Delete
-								</button>
-							</div>
+						<!-- Actions -->
+						<div class="flex gap-2">
+							<button class="btn flex-1 gap-1 btn-ghost btn-sm">
+								<IconEdit class="size-4" />
+								Edit
+							</button>
+							<button class="btn gap-1 btn-outline btn-sm btn-error">
+								<IconDelete class="size-4" />
+							</button>
 						</div>
 					</div>
 				{/each}
@@ -283,10 +313,6 @@
 		<a href="/locations" class="btn gap-2 btn-outline">
 			<IconLocation class="size-5" />
 			Manage Locations
-		</a>
-		<a href="/offers/new" class="btn gap-2 btn-primary">
-			<IconAdd class="size-5" />
-			Create Another Offer
 		</a>
 	</div>
 {/if}
