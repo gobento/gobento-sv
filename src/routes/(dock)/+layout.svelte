@@ -40,17 +40,12 @@
 	// Navigation configurations for different account types
 	const userNav = [
 		{
-			path: '/',
+			path: '/discover',
 			label: 'Discover',
 			icon: CompassIcon,
 			filledIcon: CompassFilledIcon
 		},
-		{
-			path: '/search',
-			label: 'Search',
-			icon: SearchIcon,
-			filledIcon: SearchFilledIcon
-		},
+
 		{
 			path: '/reservations',
 			label: 'Reservations',
