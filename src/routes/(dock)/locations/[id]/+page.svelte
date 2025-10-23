@@ -46,7 +46,7 @@
 		<!-- Business Logo Overlay -->
 		<div class="absolute bottom-0 left-8 translate-y-1/2">
 			<div class="avatar">
-				<div class="h-32 w-32 rounded-2xl border-4 border-base-100 bg-base-100 shadow-xl">
+				<div class="h-32 w-32 rounded-xl border-4 border-base-100 bg-base-100 shadow-xl">
 					{#if data.business?.logo}
 						<img src={getLogoUrl(data.business.logo.key)} alt={data.business.name} />
 					{:else}
@@ -133,13 +133,6 @@
 
 				<!-- Stats -->
 				<div class="flex flex-wrap items-center gap-6">
-					<div class="flex items-center gap-2 rounded-lg bg-base-200 px-4 py-2.5">
-						<IconTag class="size-5 text-base-content/70" />
-						<span class="text-base font-semibold">
-							{data.offers.length}
-							{data.offers.length === 1 ? 'offer' : 'offers'}
-						</span>
-					</div>
 					<div class="flex items-center gap-2 text-base-content/60">
 						<IconCalendar class="size-5" />
 						<span class="text-sm font-medium">
@@ -169,17 +162,20 @@
 <!-- Offers Section -->
 <div class="mb-8">
 	<div class="mb-6 flex items-center justify-between">
-		<h2 class="text-3xl font-bold">Offers at this Location</h2>
+		<h2 class="text-xl font-bold">
+			{data.offers.length}
+			{data.offers.length === 1 ? 'Offer' : 'Offers'} at this Location
+		</h2>
 	</div>
 
 	{#if data.offers.length === 0}
 		<!-- Empty State -->
 		<div class="card border border-base-300 bg-base-100">
 			<div class="card-body items-center py-16 text-center">
-				<div class="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-base-200">
+				<div class="mb-6 flex h-20 w-20 items-center justify-center rounded-xl bg-base-200">
 					<IconTag class="h-10 w-10 text-base-content/40" />
 				</div>
-				<h3 class="mb-2 text-2xl font-bold">No offers yet</h3>
+				<h3 class="mb-2 text-xl font-bold">No offers yet</h3>
 				<p class="mb-8 max-w-md text-base-content/60">
 					{#if data.isOwner}
 						Create your first offer for this location to start attracting customers
@@ -206,7 +202,7 @@
 						<div class="flex items-start justify-between gap-6">
 							<div class="min-w-0 flex-1">
 								<div class="mb-3 flex items-center gap-3">
-									<h3 class="text-2xl font-bold">{offer.name}</h3>
+									<h3 class="text-xl font-bold">{offer.name}</h3>
 									{#if offer.isActive}
 										<span class="badge badge-sm badge-success">Active</span>
 									{:else}
@@ -215,7 +211,7 @@
 								</div>
 								<p class="mb-4 leading-relaxed text-base-content/70">{offer.description}</p>
 								<div class="flex items-center gap-6">
-									<div class="text-2xl font-bold text-primary">
+									<div class="text-xl font-bold text-primary">
 										{new Intl.NumberFormat('en-US', {
 											style: 'currency',
 											currency: offer.currency

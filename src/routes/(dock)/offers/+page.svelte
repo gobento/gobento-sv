@@ -26,7 +26,7 @@
 		return `${hours}:${minutes}`;
 	}
 
-	function formatDate(date: string | null) {
+	function formatDate(date: Date | null) {
 		if (!date) return 'No expiry';
 		return new Date(date).toLocaleDateString('en-US', {
 			month: 'short',
@@ -157,41 +157,38 @@
 							<span class="text-xs font-medium text-secondary">Available at all locations</span>
 						</div>
 
-						<!-- Details -->
-						<div class="mb-4 space-y-2 border-t border-base-300 pt-4 text-xs text-base-content/50">
-							{#if offer.pickupTimeFrom && offer.pickupTimeUntil}
-								<div class="flex items-center gap-2">
-									<IconClock class="size-4" />
-									<span
-										>Pickup: {formatTime(offer.pickupTimeFrom)} - {formatTime(
-											offer.pickupTimeUntil
-										)}</span
-									>
-								</div>
-							{/if}
-							{#if offer.validUntil}
-								<div class="flex items-center gap-2">
-									<IconCalendar class="size-4" />
-									<span>Valid until {formatDate(offer.validUntil)}</span>
-								</div>
-							{/if}
-							{#if offer.quantity}
-								<div class="flex items-center gap-2">
-									<IconBox class="size-4" />
-									<span>{offer.quantity} available</span>
-								</div>
-							{/if}
-							{#if offer.isRecurring}
-								<div class="badge badge-outline badge-xs">Recurring</div>
-							{/if}
-						</div>
+						<div class="flex justify-between gap-2">
+							<!-- Details -->
+							<div
+								class="mb-4 space-y-2 border-t border-base-300 pt-4 text-xs text-base-content/50"
+							>
+								{#if offer.pickupTimeFrom && offer.pickupTimeUntil}
+									<div class="flex items-center gap-2">
+										<IconClock class="size-4" />
+										<span
+											>Pickup: {formatTime(offer.pickupTimeFrom)} - {formatTime(
+												offer.pickupTimeUntil
+											)}</span
+										>
+									</div>
+								{/if}
+								{#if offer.validUntil}
+									<div class="flex items-center gap-2">
+										<IconCalendar class="size-4" />
+										<span>Valid until {formatDate(offer.validUntil)}</span>
+									</div>
+								{/if}
+								{#if offer.quantity}
+									<div class="flex items-center gap-2">
+										<IconBox class="size-4" />
+										<span>{offer.quantity} available</span>
+									</div>
+								{/if}
+								{#if offer.isRecurring}
+									<div class="badge badge-outline badge-xs">Recurring</div>
+								{/if}
+							</div>
 
-						<!-- Actions -->
-						<div class="flex gap-2">
-							<button class="btn flex-1 gap-1 btn-ghost btn-sm">
-								<IconEdit class="size-4" />
-								Edit
-							</button>
 							<button class="btn gap-1 btn-outline btn-sm btn-error">
 								<IconDelete class="size-4" />
 							</button>
@@ -307,12 +304,4 @@
 			</div>
 		</div>
 	{/if}
-
-	<!-- Quick Actions -->
-	<div class="mt-8 flex flex-wrap gap-4">
-		<a href="/locations" class="btn gap-2 btn-outline">
-			<IconLocation class="size-5" />
-			Manage Locations
-		</a>
-	</div>
 {/if}
