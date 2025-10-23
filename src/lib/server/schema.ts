@@ -106,6 +106,7 @@ export const businessOffers = pgTable('business_offers', {
 	isActive: boolean('is_active').notNull().default(true),
 	isRecurring: boolean('is_recurring').notNull().default(false),
 	validUntil: timestamp('valid_until', { withTimezone: true }),
+	quantity: integer('quantity').notNull().default(1),
 
 	pickupTimeFrom: time('pickup_time_from').notNull(), // e.g., "09:00:00"
 	pickupTimeUntil: time('pickup_time_until').notNull(), // e.g., "17:00:00"
