@@ -58,40 +58,51 @@
 			</div>
 		</div>
 
-		<!-- Favorite Button -->
-		{#if data.isUser}
-			<form
-				method="POST"
-				action="?/{isFavorite ? 'removeFavorite' : 'addFavorite'}"
-				use:enhance={() => {
-					isTogglingFavorite = true;
-					return async ({ update, result }) => {
-						await update();
-						if (result.type === 'success') {
-							isFavorite = !isFavorite;
-						}
-						isTogglingFavorite = false;
-					};
-				}}
-				class="absolute top-4 right-4"
-			>
-				<button
-					type="submit"
-					disabled={isTogglingFavorite}
+		<!-- Action Buttons (Top Right) -->
+		<div class="absolute top-4 right-4 flex items-center gap-3">
+			{#if data.isOwner}
+				<a
+					href="/locations/{data.location.id}/edit"
 					class="btn btn-circle border-0 bg-base-100/90 shadow-lg hover:bg-base-100"
-					class:loading={isTogglingFavorite}
-					aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
 				>
-					{#if !isTogglingFavorite}
-						{#if isFavorite}
-							<IconHeartFilled class="h-6 w-6 text-error" />
-						{:else}
-							<IconHeart class="h-6 w-6" />
+					<IconEdit class="h-6 w-6" />
+				</a>
+			{/if}
+
+			<!-- Favorite Button -->
+			{#if data.isUser}
+				<form
+					method="POST"
+					action="?/{isFavorite ? 'removeFavorite' : 'addFavorite'}"
+					use:enhance={() => {
+						isTogglingFavorite = true;
+						return async ({ update, result }) => {
+							await update();
+							if (result.type === 'success') {
+								isFavorite = !isFavorite;
+							}
+							isTogglingFavorite = false;
+						};
+					}}
+				>
+					<button
+						type="submit"
+						disabled={isTogglingFavorite}
+						class="btn btn-circle border-0 bg-base-100/90 shadow-lg hover:bg-base-100"
+						class:loading={isTogglingFavorite}
+						aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+					>
+						{#if !isTogglingFavorite}
+							{#if isFavorite}
+								<IconHeartFilled class="h-6 w-6 text-error" />
+							{:else}
+								<IconHeart class="h-6 w-6" />
+							{/if}
 						{/if}
-					{/if}
-				</button>
-			</form>
-		{/if}
+					</button>
+				</form>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Content Section -->
@@ -145,10 +156,6 @@
 			<!-- Action Buttons -->
 			{#if data.isOwner}
 				<div class="flex shrink-0 items-center gap-3">
-					<a href="/locations/{data.location.id}/edit" class="btn gap-2.5 btn-outline">
-						<IconEdit class="size-5" />
-						Edit Location
-					</a>
 					<a href="/offers/new?locationId={data.location.id}" class="btn gap-2.5 btn-primary">
 						<IconAdd class="size-5" />
 						Create Offer
@@ -233,21 +240,4 @@
 			{/each}
 		</div>
 	{/if}
-</div>
-
-<!-- Coordinates Info (for reference) -->
-<div class="card border border-base-300 bg-base-200/50">
-	<div class="card-body p-6">
-		<h3 class="mb-3 text-lg font-bold">Location Coordinates</h3>
-		<div class="grid grid-cols-2 gap-4 text-sm">
-			<div>
-				<span class="text-base-content/60">Latitude:</span>
-				<span class="ml-2 font-mono">{data.location.latitude}</span>
-			</div>
-			<div>
-				<span class="text-base-content/60">Longitude:</span>
-				<span class="ml-2 font-mono">{data.location.longitude}</span>
-			</div>
-		</div>
-	</div>
 </div>

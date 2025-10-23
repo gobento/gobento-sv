@@ -6,26 +6,27 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const session = locals.session;
-	const account = locals.account;
-
-	if (!session || !account) {
-		throw error(401, 'Unauthorized');
-	}
+	const account = locals.account!;
 
 	if (account.accountType !== 'business') {
 		throw error(403, 'Only business accounts can access offers');
 	}
 
-	// Fetch all offers for this business with location info
+	// Fetch all offers for this business with complete information
 	const offers = await db
 		.select({
 			id: businessOffers.id,
 			name: businessOffers.name,
 			description: businessOffers.description,
 			price: businessOffers.price,
+			originalValue: businessOffers.originalValue,
 			currency: businessOffers.currency,
 			isActive: businessOffers.isActive,
+			isRecurring: businessOffers.isRecurring,
+			validUntil: businessOffers.validUntil,
+			quantity: businessOffers.quantity,
+			pickupTimeFrom: businessOffers.pickupTimeFrom,
+			pickupTimeUntil: businessOffers.pickupTimeUntil,
 			createdAt: businessOffers.createdAt,
 			locationId: businessOffers.locationId,
 			locationName: businessLocations.name,
