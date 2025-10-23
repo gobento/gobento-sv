@@ -6,7 +6,9 @@
 	import IconFluentTimer24Regular from '~icons/fluent/timer-24-regular';
 	import IconFluentLocation24Regular from '~icons/fluent/location-24-regular';
 	import IconFluentSearch24Regular from '~icons/fluent/search-24-regular';
-	import IconFluentNavigation24Regular from '~icons/fluent/navigation-24-regular';
+	import IconFluentClock24Regular from '~icons/fluent/clock-24-regular';
+	import IconFluentArrowRight24Regular from '~icons/fluent/arrow-right-24-regular';
+
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -238,100 +240,101 @@
 	function getLogoUrl(key: string) {
 		return `/api/files/${key}`;
 	}
+
+	function getPickupTimeRemaining(pickupTimeUntil: string, currentTime: Date) {
+		const now = currentTime;
+		const todayDateStr = now.toISOString().split('T')[0];
+		const pickupEndTime = new Date(`${todayDateStr}T${pickupTimeUntil}`);
+		const diff = pickupEndTime.getTime() - now.getTime();
+		const totalMinutes = Math.floor(diff / (1000 * 60));
+
+		return { diff, totalMinutes };
+	}
 </script>
 
-<div class="container mx-auto px-4 py-8">
-	<div class="mb-8">
-		<h1 class="mb-2 text-4xl font-bold">Discover Offers</h1>
-		<p class="text-base-content/70">Find great deals from businesses near you</p>
+<div class="container mx-auto max-w-7xl px-4 py-8">
+	<div class="mb-10">
+		<h1 class="mb-2 text-4xl font-bold tracking-tight">Discover Offers</h1>
+		<p class="text-base-content/60">Find great deals from businesses near you</p>
 	</div>
 
 	<!-- Location Search -->
-	<div class="card mb-6 bg-base-100 shadow-lg">
-		<div class="card-body">
-			<div class="flex flex-col gap-4">
-				<div class="flex flex-col gap-4 md:flex-row">
-					<div class="relative flex-1">
-						<label class="label">
-							<span class="label-text font-semibold">Location</span>
-						</label>
-						<div class="flex gap-2">
-							<div class="relative flex-1">
-								<input
-									type="text"
-									placeholder="Search for a location..."
-									class="input-bordered input w-full pr-10"
-									bind:value={searchQuery}
-									oninput={searchLocation}
-									onfocus={() => {
-										if (searchResults.length > 0) showResults = true;
-									}}
-								/>
-								<IconFluentSearch24Regular
-									class="absolute top-1/2 right-3 size-5 -translate-y-1/2 text-base-content/50"
-								/>
+	<div class="mb-8 rounded-xl border border-base-300 bg-base-100 p-6">
+		<div class="flex flex-col gap-6">
+			<div class="flex flex-col gap-4 md:flex-row">
+				<div class="relative flex-1">
+					<div class="flex gap-3">
+						<div class="relative flex-1">
+							<input
+								type="text"
+								placeholder="Search for a location..."
+								class="input-bordered input w-full"
+								bind:value={searchQuery}
+								oninput={searchLocation}
+								onfocus={() => {
+									if (searchResults.length > 0) showResults = true;
+								}}
+							/>
+							<IconFluentSearch24Regular
+								class="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-base-content/40"
+							/>
 
-								{#if showResults && searchResults.length > 0}
-									<div
-										class="absolute z-10 mt-2 max-h-60 w-full overflow-y-auto rounded-lg border border-base-300 bg-base-100 shadow-xl"
-									>
-										{#each searchResults as result}
-											<button
-												type="button"
-												class="w-full border-b border-base-300 px-4 py-3 text-left last:border-b-0 hover:bg-base-200"
-												onclick={() => selectLocation(result)}
-											>
-												<div class="flex items-start gap-2">
-													<IconFluentLocation24Regular
-														class="mt-0.5 size-5 shrink-0 text-primary"
-													/>
-													<span class="text-sm">{result.display_name}</span>
-												</div>
-											</button>
-										{/each}
-									</div>
-								{/if}
-							</div>
-
-							<button
-								type="button"
-								class="btn btn-square btn-primary"
-								onclick={useCurrentLocation}
-								title="Use current location"
-							>
-								<IconFluentNavigation24Regular class="size-5" />
-							</button>
+							{#if showResults && searchResults.length > 0}
+								<div
+									class="absolute z-10 mt-2 w-full overflow-hidden rounded-lg border border-base-300 bg-base-100"
+								>
+									{#each searchResults as result}
+										<button
+											type="button"
+											class="w-full border-b border-base-300 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-base-200"
+											onclick={() => selectLocation(result)}
+										>
+											<div class="flex items-start gap-2">
+												<IconFluentLocation24Regular class="mt-0.5 size-5 shrink-0 text-primary" />
+												<span class="text-sm">{result.display_name}</span>
+											</div>
+										</button>
+									{/each}
+								</div>
+							{/if}
 						</div>
 
-						{#if selectedLocation}
-							<div class="mt-2 flex items-center gap-2">
-								<IconFluentLocation24Regular class="h-4 w-4 text-success" />
-								<span class="text-sm text-base-content/70">{selectedLocation.name}</span>
-								<button type="button" class="btn btn-ghost btn-xs" onclick={clearLocation}>
-									Clear
-								</button>
-							</div>
-						{/if}
+						<button
+							type="button"
+							class="btn btn-square btn-primary"
+							onclick={useCurrentLocation}
+							title="Use current location"
+						>
+							<IconFluentLocation24Regular class="size-5" />
+						</button>
 					</div>
-				</div>
 
-				<div class="flex-1">
-					<label class="label">
-						<span class="label-text font-semibold">Business Type</span>
-					</label>
-					<div class="flex flex-wrap gap-2">
-						{#each businessTypes as type}
-							<button
-								type="button"
-								class="btn btn-sm {selectedTypes.includes(type.value)
-									? 'btn-primary'
-									: 'btn-outline'}"
-								onclick={() => handleTypeToggle(type.value)}
-							>
-								{type.label}
+					{#if selectedLocation}
+						<div class="mt-3 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2">
+							<IconFluentLocation24Regular class="h-4 w-4 text-success" />
+							<span class="flex-1 text-sm text-base-content/80">{selectedLocation.name}</span>
+							<button type="button" class="btn btn-ghost btn-xs" onclick={clearLocation}>
+								Clear
 							</button>
-						{/each}
-					</div>
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<div class="flex-1">
+				<label class="mb-2 block text-sm font-medium">Business Type</label>
+				<div class="flex flex-wrap gap-2">
+					{#each businessTypes as type}
+						<button
+							type="button"
+							class="btn btn-sm {selectedTypes.includes(type.value)
+								? 'btn-primary'
+								: 'border border-base-300 btn-ghost'}"
+							onclick={() => handleTypeToggle(type.value)}
+						>
+							{type.label}
+						</button>
+					{/each}
 				</div>
 			</div>
 		</div>
@@ -339,87 +342,87 @@
 
 	<!-- Offers Grid -->
 	{#if data.offers.length === 0}
-		<div class="alert alert-info">
-			<IconFluentTag24Regular class="h-6 w-6" />
-			<span>No offers available at the moment. Check back soon!</span>
+		<div class="rounded-xl bg-info/5 p-6">
+			<div class="flex items-center gap-3">
+				<IconFluentTag24Regular class="h-6 w-6 text-info" />
+				<span class="text-base-content/80">No offers available at the moment. Check back soon!</span
+				>
+			</div>
 		</div>
 	{:else}
-		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+		<div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 			{#each data.offers as offer (offer.id)}
+				{@const timeRemaining = getPickupTimeRemaining(offer.pickupTimeUntil, currentTime)}
 				<a
 					href="/offers/{offer.id}"
-					class="card bg-base-100 shadow-xl transition-shadow hover:shadow-2xl"
+					class="group block bg-base-100 p-5 transition-all hover:bg-base-200"
 				>
-					<figure class="px-6 pt-6">
-						<div class="avatar">
-							<div
-								class="h-24 w-24 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100"
-							>
-								<img
-									src={getLogoUrl(offer.business.logo.key)}
-									alt={offer.business.name}
-									class="object-cover"
-								/>
-							</div>
+					<div class="mb-4 flex justify-center">
+						<div class="h-20 w-20 overflow-hidden rounded-full">
+							<img
+								src={getLogoUrl(offer.business.logo.key)}
+								alt={offer.business.name}
+								class="h-full w-full object-cover"
+							/>
 						</div>
-					</figure>
+					</div>
 
-					<div class="card-body">
-						<h2 class="card-title text-lg">{offer.name}</h2>
+					<div>
+						<h2 class="mb-2 text-lg leading-tight font-semibold">{offer.name}</h2>
 
-						<div class="mb-2 flex items-center gap-2 text-sm text-base-content/70">
+						<div class="mb-2 flex items-center gap-2 text-sm text-base-content/60">
 							<IconFluentTag24Regular class="h-4 w-4" />
 							<span class="truncate">{offer.business.name}</span>
 						</div>
 
 						{#if offer.location}
-							<div class="mb-2 flex items-center gap-2 text-sm text-base-content/70">
+							<div class="mb-3 flex items-center gap-2 text-sm text-base-content/60">
 								<IconFluentLocation24Regular class="h-4 w-4" />
 								<span class="truncate">{offer.location.city}</span>
 								{#if offer.distance !== null}
-									<span class="badge badge-outline badge-sm">
+									<span class="bg-base-200 px-2 py-0.5 text-xs font-medium">
 										{formatDistance(offer.distance)}
 									</span>
 								{/if}
 							</div>
 						{/if}
 
-						<p class="mb-3 line-clamp-2 text-sm text-base-content/70">
-							{offer.description}
-						</p>
+						<div class="mb-4 flex flex-wrap gap-2">
+							<div class="flex items-center gap-2 text-sm text-base-content/60">
+								<IconFluentClock24Regular class="h-4 w-4" />
+								<span>{offer.pickupTimeFrom.slice(0, 5)} - {offer.pickupTimeUntil.slice(0, 5)}</span
+								>
+							</div>
 
-						<div class="mb-3 flex flex-wrap gap-2">
 							{#if offer.isRecurring}
-								<div class="badge badge-sm badge-secondary">
-									<IconFluentCalendar24Regular class="mr-1 h-3 w-3" />
+								<div class="bg-secondary/10 px-2.5 py-1 text-xs font-medium text-secondary">
+									<IconFluentCalendar24Regular class="mr-1 inline h-3 w-3" />
 									Recurring
 								</div>
 							{/if}
 
-							{#if offer.validUntil}
-								{@const timeRemaining = getTimeRemaining(offer.validUntil)}
-								{#if timeRemaining?.expired}
-									<div class="badge badge-sm badge-error">Expired</div>
-								{:else if timeRemaining}
-									<div class="badge badge-sm badge-warning">
-										<IconFluentTimer24Regular class="mr-1 h-3 w-3" />
-										{formatCountdown(timeRemaining)}
-									</div>
-								{/if}
+							{#if timeRemaining.diff > 0 && timeRemaining.totalMinutes <= 30}
+								<div class="bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
+									<IconFluentTimer24Regular class="mr-1 inline h-3 w-3" />
+									{timeRemaining.totalMinutes}min left
+								</div>
+							{:else if timeRemaining.diff <= 0}
+								<div class="bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
+									Pickup ended
+								</div>
 							{/if}
 						</div>
 
-						<div
-							class="mt-auto card-actions items-center justify-between border-t border-base-300 pt-4"
-						>
-							<div class="flex items-center gap-1">
-								<IconFluentTag24Regular class="size-5 text-primary" />
-								<span class="text-2xl font-bold text-primary">
+						<div class="flex items-center justify-between pt-4">
+							<div class="flex items-baseline gap-2">
+								<span class="text-xl font-bold text-primary">
 									{formatPrice(offer.price, offer.currency)}
 								</span>
 							</div>
 
-							<button class="btn btn-sm btn-primary"> View Details </button>
+							<IconFluentArrowRight24Regular
+								class="size-5 text-primary transition-transform group-hover:translate-x-1"
+							/>
 						</div>
 					</div>
 				</a>
