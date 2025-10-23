@@ -31,7 +31,7 @@
 		</div>
 	</div>
 	<a href="/offers/new" class="btn gap-2 btn-primary">
-		<IconAdd class="h-5 w-5" />
+		<IconAdd class="size-5" />
 		Create Offer
 	</a>
 </div>
@@ -104,7 +104,7 @@
 					Create your first offer to attract customers and boost your business
 				</p>
 				<a href="/offers/new" class="btn gap-2 btn-primary">
-					<IconAdd class="h-5 w-5" />
+					<IconAdd class="size-5" />
 					Create First Offer
 				</a>
 			</div>
@@ -281,11 +281,11 @@
 	<!-- Quick Actions -->
 	<div class="mt-8 flex flex-wrap gap-4">
 		<a href="/locations" class="btn gap-2 btn-outline">
-			<IconLocation class="h-5 w-5" />
+			<IconLocation class="size-5" />
 			Manage Locations
 		</a>
 		<a href="/offers/new" class="btn gap-2 btn-primary">
-			<IconAdd class="h-5 w-5" />
+			<IconAdd class="size-5" />
 			Create Another Offer
 		</a>
 	</div>

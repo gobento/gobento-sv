@@ -12,6 +12,7 @@
 	import IconCalendar from '~icons/fluent/calendar-20-regular';
 	import IconRepeat from '~icons/fluent/arrow-repeat-all-20-regular';
 	import IconClock from '~icons/fluent/clock-20-regular';
+	import IconBox from '~icons/fluent/box-20-regular';
 
 	let { data } = $props();
 	let form = $page.form;
@@ -21,8 +22,10 @@
 	// Form values for preview
 	let offerName = $state('');
 	let offerDescription = $state('');
+	let originalValue = $state('0');
 	let offerPrice = $state('0');
 	let offerCurrency = $state('EUR');
+	let quantity = $state('1');
 	let isRecurring = $state(false);
 	let validUntil = $state('');
 	let pickupTimeFrom = $state('09:00');
@@ -56,25 +59,6 @@
 	</div>
 </div>
 
-{#if form?.message}
-	<div class="mb-6 alert alert-error shadow-lg">
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-6 w-6 shrink-0 stroke-current"
-			fill="none"
-			viewBox="0 0 24 24"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="2"
-				d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<span>{form.message}</span>
-	</div>
-{/if}
-
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 	<!-- Form Section -->
 	<form
@@ -92,7 +76,7 @@
 		<div class="card bg-base-100 shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title text-lg">
-					<IconLocation class="h-5 w-5" />
+					<IconLocation class="size-5" />
 					Location
 				</h2>
 
@@ -114,20 +98,13 @@
 							</option>
 						{/each}
 					</select>
-					{#if selectedLocationId === ''}
-						<label class="label">
-							<span class="label-text-alt text-base-content/60">
-								This offer will be available at all your locations
-							</span>
-						</label>
-					{/if}
 				</div>
 
 				{#if data.locations.length === 0}
 					<div class="mt-2 alert alert-warning">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
-							class="h-5 w-5 shrink-0 stroke-current"
+							class="size-5 shrink-0 stroke-current"
 							fill="none"
 							viewBox="0 0 24 24"
 						>
@@ -154,7 +131,7 @@
 		<div class="card bg-base-100 shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title text-lg">
-					<IconTag class="h-5 w-5" />
+					<IconTag class="size-5" />
 					Offer Details
 				</h2>
 
@@ -176,11 +153,6 @@
 							class="input-bordered input w-full"
 							class:input-error={form?.field === 'name'}
 						/>
-						<label class="label">
-							<span class="label-text-alt text-base-content/60">
-								A catchy name that grabs attention
-							</span>
-						</label>
 					</div>
 
 					<!-- Description -->
@@ -214,29 +186,57 @@
 		<div class="card bg-base-100 shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title text-lg">
-					<IconMoney class="h-5 w-5" />
+					<IconMoney class="size-5" />
 					Pricing
 				</h2>
 
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-					<div class="form-control md:col-span-2">
-						<label class="label">
-							<span class="label-text font-medium">
-								Price <span class="text-error">*</span>
-							</span>
-						</label>
-						<input
-							type="number"
-							id="price"
-							name="price"
-							bind:value={offerPrice}
-							required
-							step="0.01"
-							min="0"
-							placeholder="0.00"
-							class="input-bordered input w-full"
-							class:input-error={form?.field === 'price'}
-						/>
+				<div class="space-y-4">
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+						<div class="form-control">
+							<label class="label">
+								<span class="label-text font-medium">
+									Original Value <span class="text-error">*</span>
+								</span>
+							</label>
+							<input
+								type="number"
+								id="originalValue"
+								name="originalValue"
+								bind:value={originalValue}
+								required
+								step="0.01"
+								min="0"
+								placeholder="0.00"
+								class="input-bordered input w-full"
+								class:input-error={form?.field === 'originalValue'}
+							/>
+							<label class="label">
+								<span class="label-text-alt text-base-content/60"> Retail value of the goods </span>
+							</label>
+						</div>
+
+						<div class="form-control">
+							<label class="label">
+								<span class="label-text font-medium">
+									Discounted Price <span class="text-error">*</span>
+								</span>
+							</label>
+							<input
+								type="number"
+								id="price"
+								name="price"
+								bind:value={offerPrice}
+								required
+								step="0.01"
+								min="0"
+								placeholder="0.00"
+								class="input-bordered input w-full"
+								class:input-error={form?.field === 'price'}
+							/>
+							<label class="label">
+								<span class="label-text-alt text-base-content/60"> What customers pay </span>
+							</label>
+						</div>
 					</div>
 
 					<div class="form-control">
@@ -263,11 +263,46 @@
 			</div>
 		</div>
 
+		<!-- Quantity Card -->
+		<div class="card bg-base-100 shadow-sm">
+			<div class="card-body">
+				<h2 class="card-title text-lg">
+					<IconBox class="size-5" />
+					Quantity
+				</h2>
+
+				<div class="form-control">
+					<label class="label">
+						<span class="label-text font-medium">
+							Available Quantity <span class="text-error">*</span>
+						</span>
+					</label>
+					<input
+						type="number"
+						id="quantity"
+						name="quantity"
+						bind:value={quantity}
+						required
+						min="1"
+						step="1"
+						placeholder="1"
+						class="input-bordered input w-full"
+						class:input-error={form?.field === 'quantity'}
+					/>
+					<label class="label">
+						<span class="label-text-alt text-base-content/60">
+							How many times can this offer be claimed?
+						</span>
+					</label>
+				</div>
+			</div>
+		</div>
+
 		<!-- Pickup Times Card -->
 		<div class="card bg-base-100 shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title text-lg">
-					<IconClock class="h-5 w-5" />
+					<IconClock class="size-5" />
 					Pickup Time Window
 				</h2>
 
@@ -319,7 +354,7 @@
 		<div class="card bg-base-100 shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title text-lg">
-					<IconCalendar class="h-5 w-5" />
+					<IconCalendar class="size-5" />
 					Availability
 				</h2>
 
@@ -335,39 +370,61 @@
 								class="checkbox checkbox-primary"
 							/>
 							<div class="flex items-center gap-2">
-								<IconRepeat class="h-5 w-5 text-base-content/70" />
+								<IconRepeat class="size-5 text-base-content/70" />
 								<span class="label-text font-medium">Recurring Offer</span>
 							</div>
 						</label>
 						<label class="label">
 							<span class="label-text-alt text-base-content/60">
-								Users can reserve this offer multiple times
+								This offer will be available daily
 							</span>
 						</label>
 					</div>
 
-					<!-- Valid Until -->
-					<div class="form-control">
-						<label class="label">
-							<span class="label-text font-medium">Valid Until (Optional)</span>
-						</label>
-						<input
-							type="date"
-							id="validUntil"
-							name="validUntil"
-							bind:value={validUntil}
-							class="input-bordered input w-full"
-							class:input-error={form?.field === 'validUntil'}
-						/>
-						<label class="label">
-							<span class="label-text-alt text-base-content/60">
-								Leave empty if the offer has no expiration date
-							</span>
-						</label>
-					</div>
+					<!-- Valid Until (only show if  recurring) -->
+					{#if isRecurring}
+						<div class="form-control">
+							<label class="label">
+								<span class="label-text font-medium">Valid Until (Optional)</span>
+							</label>
+							<input
+								type="date"
+								id="validUntil"
+								name="validUntil"
+								bind:value={validUntil}
+								class="input-bordered input w-full"
+								class:input-error={form?.field === 'validUntil'}
+							/>
+							<label class="label">
+								<span class="label-text-alt text-base-content/60">
+									Leave empty to default to tomorrow
+								</span>
+							</label>
+						</div>
+					{/if}
 				</div>
 			</div>
 		</div>
+
+		<!-- Error Message (closer to submit button) -->
+		{#if form?.message}
+			<div class="alert alert-error shadow-lg">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-6 w-6 shrink-0 stroke-current"
+					fill="none"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+					/>
+				</svg>
+				<span>{form.message}</span>
+			</div>
+		{/if}
 
 		<!-- Actions -->
 		<div class="flex justify-end gap-3">
@@ -377,7 +434,7 @@
 					<span class="loading loading-sm loading-spinner"></span>
 					Creating...
 				{:else}
-					<IconSave class="h-5 w-5" />
+					<IconSave class="size-5" />
 					Create Offer
 				{/if}
 			</button>
