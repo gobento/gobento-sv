@@ -21,6 +21,8 @@
 	import HomeFilledIcon from '~icons/fluent/home-24-filled';
 	import ChartIcon from '~icons/fluent/data-bar-vertical-24-regular';
 	import ChartFilledIcon from '~icons/fluent/data-bar-vertical-24-filled';
+	import TagIcon from '~icons/fluent/tag-24-regular';
+	import TagFilledIcon from '~icons/fluent/tag-24-filled';
 	import MoneyIcon from '~icons/fluent/money-24-regular';
 	import MoneyFilledIcon from '~icons/fluent/money-24-filled';
 	import SettingsIcon from '~icons/fluent/settings-24-regular';
@@ -45,7 +47,6 @@
 			icon: CompassIcon,
 			filledIcon: CompassFilledIcon
 		},
-
 		{
 			path: '/reservations',
 			label: 'Reservations',
@@ -73,12 +74,11 @@
 			icon: HomeIcon,
 			filledIcon: HomeFilledIcon
 		},
-
 		{
 			path: '/offers',
 			label: 'Offers',
-			icon: MoneyIcon,
-			filledIcon: MoneyFilledIcon
+			icon: TagIcon,
+			filledIcon: TagFilledIcon
 		},
 		{
 			path: '/analytics',
@@ -99,8 +99,8 @@
 			filledIcon: LocationFilledIcon
 		},
 		{
-			path: '/settings',
-			label: 'Settings',
+			path: '/profile',
+			label: 'Profile',
 			icon: SettingsIcon,
 			filledIcon: SettingsFilledIcon
 		}
@@ -126,8 +126,8 @@
 			filledIcon: ChartFilledIcon
 		},
 		{
-			path: '/settings',
-			label: 'Settings',
+			path: '/profile',
+			label: 'Profile',
 			icon: SettingsIcon,
 			filledIcon: SettingsFilledIcon
 		}
@@ -157,13 +157,42 @@
 	}
 </script>
 
-<div class="mb-16 flex w-full flex-col p-4 sm:w-3xl">
-	{@render children()}
-</div>
-
-<div class="dock dock-md">
+<!-- Desktop Sidebar (fixed to left or right based on RTL) -->
+<nav
+	class="fixed inset-y-0 start-0 z-50 hidden w-56 flex-col gap-2 border-e border-base-300 bg-base-100 p-4 md:flex"
+>
 	{#each navigation() as item}
-		<button onclick={() => navigateTo(item.path)} class:dock-active={isActive(item.path)}>
+		<button
+			onclick={() => navigateTo(item.path)}
+			class="flex items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-base-200"
+			class:bg-primary={isActive(item.path)}
+			class:text-primary-content={isActive(item.path)}
+		>
+			{#if isActive(item.path)}
+				<item.filledIcon class="size-6" />
+			{:else}
+				<item.icon class="size-6" />
+			{/if}
+			<span class="font-medium">{item.label}</span>
+		</button>
+	{/each}
+</nav>
+
+<!-- Main Content (with padding for sidebar on desktop) -->
+<main class="min-h-screen p-4 md:ps-56">
+	<div class=" w-full sm:mb-16 md:mb-0">
+		{@render children()}
+	</div>
+</main>
+
+<!-- Mobile Bottom Dock -->
+<div class="dock dock-md md:hidden">
+	{#each navigation() as item}
+		<button
+			onclick={() => navigateTo(item.path)}
+			class:bg-primary={isActive(item.path)}
+			class:text-primary-content={isActive(item.path)}
+		>
 			{#if isActive(item.path)}
 				<item.filledIcon class="size-6" />
 			{:else}
