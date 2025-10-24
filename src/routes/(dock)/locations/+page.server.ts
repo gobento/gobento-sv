@@ -1,9 +1,10 @@
 // src/routes/(dock)/locations/+page.server.ts
 import { db } from '$lib/server/db';
-import { businessLocations, businessOffers } from '$lib/server/schema';
+import { businessLocations, businessOffers, files } from '$lib/server/schema';
 import { eq, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;
@@ -12,7 +13,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw error(403, 'Only business accounts can access locations');
 	}
 
-	// Fetch all locations for this business
+	// Fetch all locations for this business with their images
 	const locations = await db
 		.select({
 			id: businessLocations.id,
@@ -24,9 +25,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 			country: businessLocations.country,
 			latitude: businessLocations.latitude,
 			longitude: businessLocations.longitude,
-			createdAt: businessLocations.createdAt
+			imageId: businessLocations.imageId,
+			createdAt: businessLocations.createdAt,
+			image: files
 		})
 		.from(businessLocations)
+		.leftJoin(files, eq(businessLocations.imageId, files.id))
 		.where(eq(businessLocations.businessAccountId, account.id))
 		.orderBy(businessLocations.createdAt);
 
@@ -52,11 +56,31 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 	}
 
-	// Add offer counts to locations
-	const locationsWithOffers = locations.map((loc) => ({
-		...loc,
-		offerCount: (offerCountMap.get(loc.id) || 0) + allLocationsOfferCount
-	}));
+	// Add offer counts and signed image URLs to locations
+	const locationsWithOffers = await Promise.all(
+		locations.map(async (loc) => {
+			let imageUrl = null;
+			if (loc.image) {
+				imageUrl = await getSignedDownloadUrl(loc.image.key, 3600);
+			}
+
+			return {
+				id: loc.id,
+				name: loc.name,
+				address: loc.address,
+				city: loc.city,
+				province: loc.province,
+				zipCode: loc.zipCode,
+				country: loc.country,
+				latitude: loc.latitude,
+				longitude: loc.longitude,
+				imageId: loc.imageId,
+				createdAt: loc.createdAt,
+				imageUrl,
+				offerCount: (offerCountMap.get(loc.id) || 0) + allLocationsOfferCount
+			};
+		})
+	);
 
 	return {
 		locations: locationsWithOffers,
