@@ -1,12 +1,7 @@
 // src/lib/server/notifications.ts
 import { db } from '$lib/server/db';
-import {
-	favoriteLocations,
-	businessLocations,
-	businessProfiles,
-	pushSubscriptions
-} from './schema';
-import { eq, and } from 'drizzle-orm';
+import { businessLocations, businessProfiles, pushSubscriptions } from './schema';
+import { eq } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
@@ -27,40 +22,49 @@ export async function sendNotification(topic: string, payload: NotificationPaylo
 	const ntfyServer = env.NTFY_SERVER || 'http://localhost:8080';
 
 	try {
-		// Format actions according to ntfy spec: "action=<action>, label=<label>, url=<url>"
-		const formattedActions = payload.actions?.map((a) => {
-			const parts = [`action=${a.action}`, `label=${a.label}`];
-			if (a.url) {
-				parts.push(`url=${a.url}`);
-			}
-			return parts.join(', ');
-		});
-
-		const body = {
-			topic: topic,
-			title: payload.title,
-			message: payload.message,
-			priority: payload.priority || 'default',
-			tags: payload.tags || [],
-			...(payload.click && { click: payload.click }),
-			...(formattedActions && formattedActions.length > 0 && { actions: formattedActions })
+		// Use the simple message format with headers (more compatible)
+		const headers: Record<string, string> = {
+			Title: payload.title,
+			Priority: payload.priority || 'default',
+			Tags: payload.tags?.join(',') || ''
 		};
 
-		console.log('Sending to ntfy:', JSON.stringify(body, null, 2));
+		if (payload.click) {
+			headers['Click'] = payload.click;
+		}
 
-		const response = await fetch(ntfyServer, {
+		if (payload.actions && payload.actions.length > 0) {
+			// Format actions as per ntfy spec: "action=view, label=View, url=..."
+			payload.actions.forEach((action, index) => {
+				const actionParts = [`action=${action.action}`, `label=${action.label}`];
+				if (action.url) {
+					actionParts.push(`url=${action.url}`);
+				}
+				headers[`Actions`] = actionParts.join(', ');
+			});
+		}
+
+		const url = `${ntfyServer}/${topic}`;
+		console.log('Sending to ntfy:', url);
+		console.log('Headers:', headers);
+		console.log('Message:', payload.message);
+
+		const response = await fetch(url, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify(body)
+			headers: headers,
+			body: payload.message
 		});
 
-		const responseText = await response.text();
+		let responseText: string;
+		try {
+			responseText = await response.text();
+		} catch (e) {
+			responseText = 'Could not read response';
+		}
 
 		if (!response.ok) {
 			console.error('Failed to send notification:', responseText);
-			console.error('Request body was:', JSON.stringify(body, null, 2));
+			console.error('Response status:', response.status);
 			return false;
 		}
 
@@ -72,6 +76,39 @@ export async function sendNotification(topic: string, payload: NotificationPaylo
 	}
 }
 
+/**
+ * Send notification to all active subscribers
+ */
+async function notifyAllSubscribers(payload: NotificationPayload) {
+	// Get ALL users with active push subscriptions
+	const subscribers = await db
+		.select({
+			accountId: pushSubscriptions.accountId,
+			ntfyTopic: pushSubscriptions.ntfyTopic
+		})
+		.from(pushSubscriptions)
+		.where(eq(pushSubscriptions.isActive, true));
+
+	if (subscribers.length === 0) {
+		console.log(`No active subscribers found`);
+		return;
+	}
+
+	console.log(`Sending notifications to ${subscribers.length} active subscribers`);
+	console.dir(payload);
+
+	// Send notification to each subscriber
+	const promises = subscribers.map((sub) => sendNotification(sub.ntfyTopic, payload));
+
+	const results = await Promise.allSettled(promises);
+
+	const successCount = results.filter((r) => r.status === 'fulfilled' && r.value === true).length;
+	console.log(`Sent ${successCount}/${subscribers.length} notifications successfully`);
+}
+
+/**
+ * Notify all active subscribers about a new offer at a specific location
+ */
 export async function notifyNewOffer(
 	locationId: string,
 	offerName: string,
@@ -90,7 +127,10 @@ export async function notifyNewOffer(
 		.where(eq(businessLocations.id, locationId))
 		.limit(1);
 
-	if (location.length === 0) return;
+	if (location.length === 0) {
+		console.log(`Location ${locationId} not found`);
+		return;
+	}
 
 	const locationData = location[0];
 
@@ -102,25 +142,11 @@ export async function notifyNewOffer(
 		.limit(1);
 
 	if (businesses.length === 0) {
-		throw error(404, 'Business not found');
+		console.log(`Business not found for location ${locationId}`);
+		return;
 	}
 
 	const business = businesses[0];
-
-	// Get all users who have favorited this location AND have active push subscriptions
-	const subscribers = await db
-		.select({
-			accountId: favoriteLocations.accountId,
-			ntfyTopic: pushSubscriptions.ntfyTopic
-		})
-		.from(favoriteLocations)
-		.innerJoin(pushSubscriptions, eq(favoriteLocations.accountId, pushSubscriptions.accountId))
-		.where(and(eq(favoriteLocations.locationId, locationId), eq(pushSubscriptions.isActive, true)));
-
-	if (subscribers.length === 0) {
-		console.log(`No subscribers found for location ${locationId}`);
-		return;
-	}
 
 	const priceFormatted = new Intl.NumberFormat('en-US', {
 		style: 'currency',
@@ -142,16 +168,52 @@ export async function notifyNewOffer(
 		]
 	};
 
-	console.log(
-		`Sending notifications to ${subscribers.length} subscribers for location ${locationId}`
-	);
-	console.dir(notificationPayload);
+	await notifyAllSubscribers(notificationPayload);
+}
 
-	// Send notification to each subscriber
-	const promises = subscribers.map((sub) => sendNotification(sub.ntfyTopic, notificationPayload));
+/**
+ * Notify all active subscribers about a new offer that applies to all locations of a business
+ */
+export async function notifyNewOfferAllLocations(
+	businessAccountId: string,
+	offerName: string,
+	offerPrice: number,
+	currency: string,
+	offerId: string
+) {
+	// Get business name
+	const businesses = await db
+		.select({ name: businessProfiles.name })
+		.from(businessProfiles)
+		.where(eq(businessProfiles.accountId, businessAccountId))
+		.limit(1);
 
-	const results = await Promise.allSettled(promises);
+	if (businesses.length === 0) {
+		console.log(`Business ${businessAccountId} not found`);
+		return;
+	}
 
-	const successCount = results.filter((r) => r.status === 'fulfilled' && r.value === true).length;
-	console.log(`Sent ${successCount}/${subscribers.length} notifications successfully`);
+	const business = businesses[0];
+
+	const priceFormatted = new Intl.NumberFormat('en-US', {
+		style: 'currency',
+		currency
+	}).format(offerPrice);
+
+	const notificationPayload: NotificationPayload = {
+		title: `New Offer at ${business.name}`,
+		message: `${offerName} - ${priceFormatted} at all locations`,
+		tags: ['tada', 'shopping_bags'],
+		priority: 'default',
+		click: `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/offers/${offerId}`,
+		actions: [
+			{
+				action: 'view',
+				label: 'View Offer',
+				url: `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/offers/${offerId}`
+			}
+		]
+	};
+
+	await notifyAllSubscribers(notificationPayload);
 }
