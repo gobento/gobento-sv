@@ -7,8 +7,6 @@
 	// User navigation
 	import CompassIcon from '~icons/fluent/compass-northwest-24-regular';
 	import CompassFilledIcon from '~icons/fluent/compass-northwest-24-filled';
-	import SearchIcon from '~icons/fluent/search-24-regular';
-	import SearchFilledIcon from '~icons/fluent/search-24-filled';
 	import FluentShoppingBag24Regular from '~icons/fluent/shopping-bag-24-regular';
 	import FluentShoppingBag24Filled from '~icons/fluent/shopping-bag-24-filled';
 	import HeartIcon from '~icons/fluent/heart-24-regular';
@@ -180,7 +178,7 @@
 
 <!-- Main Content (with padding for sidebar on desktop) -->
 <main class="min-h-screen p-4 md:ps-56">
-	<div class=" w-full sm:mb-16 md:mb-0">
+	<div class=" mb-16 w-full md:mb-0">
 		{@render children()}
 	</div>
 </main>

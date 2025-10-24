@@ -199,7 +199,35 @@ export const sessions = pgTable('sessions', {
 	expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull()
 });
 
+// User push notification subscriptions
+export const pushSubscriptions = pgTable('push_subscriptions', {
+	id: text('id').primaryKey(), // UUID
+	accountId: text('account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	ntfyTopic: text('ntfy_topic').notNull().unique(), // Unique topic per user
+	isActive: boolean('is_active').notNull().default(true),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	lastNotifiedAt: timestamp('last_notified_at', { withTimezone: true })
+});
+
+// Notification log for tracking what was sent
+export const notificationLog = pgTable('notification_log', {
+	id: text('id').primaryKey(), // UUID
+	accountId: text('account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	offerId: text('offer_id')
+		.notNull()
+		.references(() => businessOffers.id, { onDelete: 'cascade' }),
+	ntfyTopic: text('ntfy_topic').notNull(),
+	sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+	status: text('status', { enum: ['sent', 'failed'] }).notNull()
+});
+
 // Type exports
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type NotificationLog = typeof notificationLog.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type File = typeof files.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;

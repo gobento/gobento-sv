@@ -52,10 +52,6 @@
 		return badges[status as keyof typeof badges] || 'badge-ghost';
 	}
 
-	function getStatusText(status: string) {
-		return status.charAt(0).toUpperCase() + status.slice(1);
-	}
-
 	function handleSwipeStart(e: MouseEvent | TouchEvent) {
 		isDragging = true;
 		startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -208,7 +204,7 @@
 	<div class="flex items-center gap-3">
 		<div class="avatar">
 			<div class="w-12 rounded-full ring-2 ring-primary ring-offset-2 ring-offset-base-100">
-				<img src={`/api/files/${data.business.profilePictureId}`} alt={data.business.name} />
+				<img src={data.business.logo.url} alt={data.business.name} />
 			</div>
 		</div>
 		<div>

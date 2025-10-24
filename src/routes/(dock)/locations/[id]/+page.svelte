@@ -46,14 +46,8 @@
 		<!-- Business Logo Overlay -->
 		<div class="absolute bottom-0 left-8 translate-y-1/2">
 			<div class="avatar">
-				<div class="h-32 w-32 rounded-xl border-4 border-base-100 bg-base-100 shadow-xl">
-					{#if data.business?.logo}
-						<img src={getLogoUrl(data.business.logo.key)} alt={data.business.name} />
-					{:else}
-						<div class="flex h-full w-full items-center justify-center bg-primary">
-							<IconLocation class="h-16 w-16 text-primary-content" />
-						</div>
-					{/if}
+				<div class="size-32 rounded-xl border-4 border-base-100 bg-base-100 shadow-xl">
+					<img src={data.business.logo.url} alt={data.business.name} />
 				</div>
 			</div>
 		</div>

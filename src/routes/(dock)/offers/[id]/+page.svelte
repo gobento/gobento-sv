@@ -83,17 +83,13 @@
 <div class="rounded-2xl bg-base-100 p-6 shadow-sm">
 	<div class="flex items-center gap-4">
 		<div class="h-16 w-16 overflow-hidden rounded-xl border border-base-300 bg-base-200">
-			<img
-				src={getLogoUrl(data.logo.key)}
-				alt={data.business.name}
-				class="h-full w-full object-cover"
-			/>
+			<img src={data.logo.url} alt={data.business.name} class="h-full w-full object-cover" />
 		</div>
 		<div class="flex-1">
 			<div
 				class="mb-1 flex items-center gap-2 text-xs font-semibold tracking-wide text-base-content/60 uppercase"
 			>
-				<IconStore class="size-3.5" />
+				<IconStore class="size-4" />
 				<span>{data.business.name}</span>
 			</div>
 			{#if data.location}
@@ -116,12 +112,12 @@
 		<div class="flex-1 space-y-3">
 			<div class="flex flex-wrap items-center gap-2">
 				<div class="badge gap-1.5 px-3 py-3 font-semibold badge-primary">
-					<IconGift class="size-3.5" />
+					<IconGift class="size-4" />
 					Surprise Bag
 				</div>
 				{#if data.offer.isRecurring}
 					<div class="badge gap-1.5 px-3 py-3 font-semibold badge-secondary">
-						<IconRepeat class="size-3.5" />
+						<IconRepeat class="size-4" />
 						Daily
 					</div>
 				{/if}
@@ -221,7 +217,7 @@
 					<div
 						class="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-base-content/60 uppercase"
 					>
-						<IconCalendar class="size-3.5" />
+						<IconCalendar class="size-4" />
 						Valid Until
 					</div>
 					<p class="text-xl font-bold text-base-content">
@@ -356,7 +352,7 @@
 							<span
 								class="label-text-alt flex items-center gap-1.5 font-medium text-base-content/70"
 							>
-								<IconClock class="size-3.5" />
+								<IconClock class="size-4" />
 								Pickup: {formatTime(data.offer.pickupTimeFrom)} - {formatTime(
 									data.offer.pickupTimeUntil
 								)}

@@ -11,6 +11,7 @@ import {
 	reservations
 } from '$lib/server/schema';
 import { eq, and } from 'drizzle-orm';
+import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const session = locals.session;
@@ -65,6 +66,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const isUser = account && account.accountType === 'user';
 	const isLoggedIn = !!session && !!account;
 
+	const logoUrl = await getSignedDownloadUrl(logo.key, 3600); // 1 hour expiry
+
 	return {
 		offer,
 		location,
@@ -74,7 +77,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		},
 		logo: {
 			id: logo.id,
-			key: logo.key,
+			url: logoUrl,
 			fileName: logo.fileName
 		},
 		isOwner,

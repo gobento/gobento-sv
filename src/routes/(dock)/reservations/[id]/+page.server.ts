@@ -7,13 +7,14 @@ import {
 	businessProfiles,
 	reservationInvites,
 	reservationClaims,
-	accounts
+	accounts,
+	files
 } from '$lib/server/schema';
 import { eq, and } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { randomBytes } from 'crypto';
+import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const session = locals.session;
@@ -29,7 +30,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			business: businessProfiles,
 			businessAccount: accounts,
 			claim: reservationClaims,
-			claimedByAccount: accounts
+			claimedByAccount: accounts,
+			logo: files
 		})
 		.from(reservations)
 		.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
@@ -38,6 +40,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.innerJoin(businessProfiles, eq(accounts.id, businessProfiles.accountId))
 		.leftJoin(reservationClaims, eq(reservations.id, reservationClaims.reservationId))
 		//	.leftJoin(accounts.as('claimedByAccount'), eq(reservations.claimedBy, accounts.id))
+		.innerJoin(files, eq(businessProfiles.profilePictureId, files.id))
 		.where(eq(reservations.id, reservationId));
 
 	if (!reservation) {
@@ -53,7 +56,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.where(eq(reservationInvites.reservationId, reservationId));
 
 	const userInvite = invites.find(
-		(inv) => inv.invitedAccountId === session.accountId && inv.status === 'accepted'
+		(inv) => inv.invitedAccountId === session!.accountId && inv.status === 'accepted'
 	);
 
 	if (!isOwner && !userInvite) {
@@ -74,11 +77,18 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		reservation.reservation.status = 'expired';
 	}
 
+	const logoUrl = await getSignedDownloadUrl(reservation.logo.key, 3600); // 1 hour expiry
+
 	return {
 		reservation: reservation.reservation,
 		offer: reservation.offer,
 		location: reservation.location,
-		business: reservation.business,
+		business: {
+			...reservation.business,
+			logo: {
+				url: logoUrl
+			}
+		},
 		businessAccount: reservation.businessAccount,
 		claim: reservation.claim,
 		claimedByAccount: reservation.claimedByAccount,
