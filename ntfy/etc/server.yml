@@ -1,0 +1,12 @@
+base-url: 'http://localhost:8080'
+listen-http: ':80'
+
+cache-file: '/var/cache/ntfy/cache.db'
+
+enable-login: false
+enable-signup: false
+
+cors-allowed-origins: ['*']
+
+visitor-request-limit-burst: 60
+visitor-request-limit-replenish: '5s'
