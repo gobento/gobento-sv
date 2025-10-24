@@ -1,7 +1,7 @@
 <!-- /src/routes/(dock)/analytics/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { Chart, Svg, Tooltip, Area, LinearGradient, Axis, Highlight } from 'layerchart';
+	import { Chart, Svg, Tooltip, Area, Axis, Highlight } from 'layerchart';
 	import { scaleTime, scaleLinear } from 'd3-scale';
 	import { timeFormat } from 'd3-time-format';
 	import FluentChartMultiple24Regular from '~icons/fluent/chart-multiple-24-regular';
@@ -23,358 +23,347 @@
 	);
 </script>
 
-<div class="min-h-screen bg-base-200 p-6">
-	<div class="mx-auto max-w-7xl space-y-6">
-		<!-- Header -->
-		<div class="flex items-center justify-between">
-			<div>
-				<h1 class="text-3xl font-bold">Business Analytics</h1>
-				<p class="mt-1 text-base-content/60">Track your performance and insights</p>
-			</div>
-			<select class="select-bordered select">
-				<option>Last 30 Days</option>
-				<option>Last 7 Days</option>
-				<option>Last 90 Days</option>
-				<option>This Year</option>
-			</select>
-		</div>
+<!-- Header -->
+<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+	<div>
+		<h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">Analytics</h1>
+		<p class="mt-1 text-sm text-base-content/60">Track performance and insights</p>
+	</div>
+	<select class="select-bordered select bg-base-200 select-sm font-medium">
+		<option>Last 30 Days</option>
+		<option>Last 7 Days</option>
+		<option>Last 90 Days</option>
+		<option>This Year</option>
+	</select>
+</div>
 
-		<!-- Stats Cards -->
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-			<div class="card bg-base-100 shadow-lg">
-				<div class="card-body">
-					<div class="flex items-center justify-between">
-						<div>
-							<p class="text-sm text-base-content/60">Total Reservations</p>
-							<p class="mt-1 text-3xl font-bold">{data.stats.totalReservations}</p>
-							<p class="mt-1 text-sm text-base-content/60">
-								Avg: {data.stats.avgPerDay} per day
-							</p>
-						</div>
-						<div class="rounded-lg bg-primary/10 p-3">
-							<IconBox class="h-8 w-8 text-primary" />
-						</div>
-					</div>
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+	<div class="rounded-lg border border-base-300 bg-base-200 p-5">
+		<div class="flex items-start justify-between">
+			<div class="flex-1">
+				<div class="flex items-center gap-2">
+					<IconBox class="h-4 w-4 text-primary" />
+					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
+						Reservations
+					</p>
 				</div>
-			</div>
-
-			<div class="card bg-base-100 shadow-lg">
-				<div class="card-body">
-					<div class="flex items-center justify-between">
-						<div>
-							<p class="text-sm text-base-content/60">Total Revenue</p>
-							<p class="mt-1 text-3xl font-bold">
-								€{data.stats.totalRevenue.toLocaleString('de-DE', {
-									minimumFractionDigits: 2,
-									maximumFractionDigits: 2
-								})}
-							</p>
-							<p class="mt-1 text-sm text-base-content/60">Last 30 days</p>
-						</div>
-						<div class="rounded-lg bg-success/10 p-3">
-							<IconMoney class="h-8 w-8 text-success" />
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div class="card bg-base-100 shadow-lg">
-				<div class="card-body">
-					<div class="flex items-center justify-between">
-						<div>
-							<p class="text-sm text-base-content/60">Completion Rate</p>
-							<p class="mt-1 text-3xl font-bold">{data.stats.completionRate}%</p>
-							<p class="mt-1 text-sm text-base-content/60">
-								{data.stats.activeOffers} active offers
-							</p>
-						</div>
-						<div class="rounded-lg bg-info/10 p-3">
-							<FluentChartMultiple24Regular class="h-8 w-8 text-info" />
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div class="card bg-base-100 shadow-lg">
-				<div class="card-body">
-					<div class="flex items-center justify-between">
-						<div>
-							<p class="text-sm text-base-content/60">Favorites</p>
-							<p class="mt-1 text-3xl font-bold">{data.stats.favoriteCount}</p>
-							<p class="mt-1 text-sm text-base-content/60">Total users</p>
-						</div>
-						<div class="rounded-lg bg-warning/10 p-3">
-							<IconStar class="h-8 w-8 text-warning" />
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Charts Row 1 -->
-		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-			<!-- Reservations Trend -->
-			<div class="card bg-base-100 shadow-lg">
-				<div class="card-body">
-					<h2 class="mb-4 card-title text-lg">Reservations Over Time</h2>
-					{#if reservationsData.length > 0}
-						<div class="h-64">
-							<Chart
-								data={reservationsData}
-								x="date"
-								xScale={scaleTime()}
-								y="count"
-								yScale={scaleLinear()}
-								yDomain={[0, null]}
-								padding={{ left: 16, bottom: 24, top: 8 }}
-							>
-								<Svg>
-									<LinearGradient class="from-primary/50 to-primary/0" vertical let:url>
-										<Area line={{ class: 'stroke-primary stroke-2' }} fill={url} />
-									</LinearGradient>
-									<AxisY
-										gridlines
-										rule={{ class: 'stroke-base-content/10' }}
-										labelProps={{ class: 'text-xs fill-base-content/60' }}
-									/>
-									<AxisX
-										formatTick={(d) => format(d, PeriodType.Day, { variant: 'short' })}
-										labelProps={{ class: 'text-xs fill-base-content/60' }}
-									/>
-									<Highlight area />
-								</Svg>
-								<Tooltip header={(data) => timeFormat('%B %d, %Y')(data.date)} let:data>
-									<div class="tooltip-row">
-										<span class="tooltip-label">Reservations:</span>
-										<span class="tooltip-value">{data.count}</span>
-									</div>
-									<div class="tooltip-row">
-										<span class="tooltip-label">Revenue:</span>
-										<span class="tooltip-value">€{data.revenue.toFixed(2)}</span>
-									</div>
-								</Tooltip>
-							</Chart>
-						</div>
-					{:else}
-						<div class="flex h-64 items-center justify-center text-base-content/60">
-							No reservation data available for the last 30 days
-						</div>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Revenue Trend -->
-			<div class="card bg-base-100 shadow-lg">
-				<div class="card-body">
-					<h2 class="mb-4 card-title text-lg">Revenue Over Time</h2>
-					{#if reservationsData.length > 0}
-						<div class="h-64">
-							<Chart
-								data={reservationsData}
-								x="date"
-								xScale={scaleTime()}
-								y="revenue"
-								yScale={scaleLinear()}
-								yDomain={[0, null]}
-								padding={{ left: 16, bottom: 24, top: 8 }}
-							>
-								<Svg>
-									<LinearGradient class="from-success/50 to-success/0" vertical let:url>
-										<Area line={{ class: 'stroke-success stroke-2' }} fill={url} />
-									</LinearGradient>
-									<AxisY
-										gridlines
-										rule={{ class: 'stroke-base-content/10' }}
-										labelProps={{ class: 'text-xs fill-base-content/60' }}
-										format={(d) => `€${d}`}
-									/>
-									<AxisX
-										formatTick={(d) => format(d, PeriodType.Day, { variant: 'short' })}
-										labelProps={{ class: 'text-xs fill-base-content/60' }}
-									/>
-									<Highlight area />
-								</Svg>
-								<Tooltip header={(data) => timeFormat('%B %d, %Y')(data.date)} let:data>
-									<div class="tooltip-row">
-										<span class="tooltip-label">Revenue:</span>
-										<span class="tooltip-value">€{data.revenue.toFixed(2)}</span>
-									</div>
-								</Tooltip>
-							</Chart>
-						</div>
-					{:else}
-						<div class="flex h-64 items-center justify-center text-base-content/60">
-							No revenue data available for the last 30 days
-						</div>
-					{/if}
-				</div>
-			</div>
-		</div>
-
-		<!-- Charts Row 2 -->
-		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-			<!-- Peak Hours -->
-			<div class="card bg-base-100 shadow-lg">
-				<div class="card-body">
-					<h2 class="mb-4 card-title flex items-center gap-2 text-lg">
-						<IconClock class="h-5 w-5" />
-						Peak Pickup Hours
-					</h2>
-					{#if data.peakHoursData.length > 0}
-						<div class="h-64">
-							<Chart
-								data={data.peakHoursData}
-								x="hour"
-								y="pickups"
-								yScale={scaleLinear()}
-								yDomain={[0, null]}
-								padding={{ left: 16, bottom: 24, top: 8, right: 8 }}
-							>
-								<Svg>
-									<LinearGradient class="from-info/50 to-info/0" vertical let:url>
-										<Area line={{ class: 'stroke-info stroke-2' }} fill={url} />
-									</LinearGradient>
-									<Axis
-										placement="left"
-										grid
-										rule
-										labelProps={{ class: 'text-xs fill-base-content/60' }}
-									/>
-									<Axis placement="bottom" labelProps={{ class: 'text-xs fill-base-content/60' }} />
-									<Highlight area />
-								</Svg>
-								<Tooltip let:data>
-									<div class="tooltip-row">
-										<span class="tooltip-label">Time:</span>
-										<span class="tooltip-value">{data.hour}</span>
-									</div>
-									<div class="tooltip-row">
-										<span class="tooltip-label">Pickups:</span>
-										<span class="tooltip-value">{data.pickups}</span>
-									</div>
-								</Tooltip>
-							</Chart>
-						</div>
-					{:else}
-						<div class="flex h-64 items-center justify-center text-base-content/60">
-							No pickup data available
-						</div>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Top Offers Performance -->
-			<div class="card bg-base-100 shadow-lg">
-				<div class="card-body">
-					<h2 class="mb-4 card-title text-lg">Top Performing Offers</h2>
-					{#if data.offerPerformanceData.length > 0}
-						<div class="max-h-64 space-y-3 overflow-y-auto">
-							{#each data.offerPerformanceData as offer, i}
-								<div
-									class="flex items-center gap-3 rounded-lg bg-base-200 p-3 transition-colors hover:bg-base-300"
-								>
-									<div class="badge badge-lg font-bold badge-primary">{i + 1}</div>
-									<div class="min-w-0 flex-1">
-										<p class="truncate font-semibold">{offer.name}</p>
-										<div class="mt-1 flex items-center gap-4 text-sm text-base-content/60">
-											<span class="flex items-center gap-1">
-												<IconBox class="h-4 w-4" />
-												{offer.reservations}
-											</span>
-											<span class="flex items-center gap-1">
-												<IconMoney class="h-4 w-4" />
-												€{offer.revenue.toFixed(0)}
-											</span>
-											<span class="flex items-center gap-1">
-												<IconStar class="h-4 w-4 text-warning" />
-												{offer.avgRating}
-											</span>
-										</div>
-									</div>
-									<div class="text-right">
-										<div class="text-sm font-medium">€{offer.revenue.toFixed(0)}</div>
-										<div class="text-xs text-base-content/60">revenue</div>
-									</div>
-								</div>
-							{/each}
-						</div>
-					{:else}
-						<div class="flex h-64 items-center justify-center text-base-content/60">
-							No active offers found
-						</div>
-					{/if}
-				</div>
-			</div>
-		</div>
-
-		<!-- Location Performance Table -->
-		<div class="card bg-base-100 shadow-lg">
-			<div class="card-body">
-				<h2 class="mb-4 card-title flex items-center gap-2 text-lg">
-					<IconPeople class="h-5 w-5" />
-					Location Performance
-				</h2>
-				{#if data.locationPerformanceData.length > 0}
-					<div class="overflow-x-auto">
-						<table class="table table-zebra">
-							<thead>
-								<tr>
-									<th>Location</th>
-									<th>Reservations</th>
-									<th>Revenue</th>
-									<th>Completion Rate</th>
-									<th>Favorites</th>
-									<th>Avg Rating</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each data.locationPerformanceData as location}
-									<tr>
-										<td>
-											<div class="font-semibold">{location.name}</div>
-											<div class="text-sm text-base-content/60">
-												{location.address}, {location.city}
-											</div>
-										</td>
-										<td>{location.totalReservations}</td>
-										<td class="font-semibold">
-											€{location.revenue.toLocaleString('de-DE', {
-												minimumFractionDigits: 2,
-												maximumFractionDigits: 2
-											})}
-										</td>
-										<td>
-											<div class="flex items-center gap-2">
-												<progress
-													class="progress w-20"
-													class:progress-success={location.completionRate >= 80}
-													class:progress-warning={location.completionRate >= 60 &&
-														location.completionRate < 80}
-													class:progress-error={location.completionRate < 60}
-													value={location.completionRate}
-													max="100"
-												></progress>
-												<span class="text-sm">{location.completionRate}%</span>
-											</div>
-										</td>
-										<td>{location.favoritesCount}</td>
-										<td>
-											<div class="flex items-center gap-1">
-												<IconStar class="h-4 w-4 text-warning" />
-												<span>{location.avgRating}</span>
-											</div>
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				{:else}
-					<div class="flex h-32 items-center justify-center text-base-content/60">
-						No location data available
-					</div>
-				{/if}
+				<p class="mt-3 text-3xl font-semibold tabular-nums">{data.stats.totalReservations}</p>
+				<p class="mt-1 text-sm text-base-content/50">
+					{data.stats.avgPerDay} per day
+				</p>
 			</div>
 		</div>
 	</div>
+
+	<div class="rounded-lg border border-base-300 bg-base-200 p-5">
+		<div class="flex items-start justify-between">
+			<div class="flex-1">
+				<div class="flex items-center gap-2">
+					<IconMoney class="h-4 w-4 text-success" />
+					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">Revenue</p>
+				</div>
+				<p class="mt-3 text-3xl font-semibold tabular-nums">
+					€{data.stats.totalRevenue.toLocaleString('de-DE', {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2
+					})}
+				</p>
+				<p class="mt-1 text-sm text-base-content/50">Last 30 days</p>
+			</div>
+		</div>
+	</div>
+
+	<div class="rounded-lg border border-base-300 bg-base-200 p-5">
+		<div class="flex items-start justify-between">
+			<div class="flex-1">
+				<div class="flex items-center gap-2">
+					<FluentChartMultiple24Regular class="h-4 w-4 text-info" />
+					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">Completion</p>
+				</div>
+				<p class="mt-3 text-3xl font-semibold tabular-nums">{data.stats.completionRate}%</p>
+				<p class="mt-1 text-sm text-base-content/50">
+					{data.stats.activeOffers} active offers
+				</p>
+			</div>
+		</div>
+	</div>
+
+	<div class="rounded-lg border border-base-300 bg-base-200 p-5">
+		<div class="flex items-start justify-between">
+			<div class="flex-1">
+				<div class="flex items-center gap-2">
+					<IconStar class="h-4 w-4 text-warning" />
+					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">Favorites</p>
+				</div>
+				<p class="mt-3 text-3xl font-semibold tabular-nums">{data.stats.favoriteCount}</p>
+				<p class="mt-1 text-sm text-base-content/50">Total users</p>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<!-- Reservations Trend -->
+	<div class="rounded-lg border border-base-300 bg-base-200 p-6">
+		<h2 class="mb-6 text-base font-semibold">Reservations Over Time</h2>
+		{#if reservationsData.length > 0}
+			<div class="h-64">
+				<Chart
+					data={reservationsData}
+					x="date"
+					xScale={scaleTime()}
+					y="count"
+					yScale={scaleLinear()}
+					yDomain={[0, null]}
+					padding={{ left: 16, bottom: 24, top: 8 }}
+				>
+					<Svg>
+						<Area line={{ class: 'stroke-primary stroke-2' }} fill="transparent" />
+						<Axis
+							placement="left"
+							grid
+							rule={{ class: 'stroke-base-content/10' }}
+							labelProps={{ class: 'text-xs fill-base-content/60' }}
+						/>
+						<Axis
+							placement="bottom"
+							formatTick={(d) => format(d, PeriodType.Day, { variant: 'short' })}
+							labelProps={{ class: 'text-xs fill-base-content/60' }}
+						/>
+						<Highlight area />
+					</Svg>
+					<Tooltip header={(data) => timeFormat('%B %d, %Y')(data.date)} let:data>
+						<div class="tooltip-row">
+							<span class="tooltip-label">Reservations:</span>
+							<span class="tooltip-value">{data.count}</span>
+						</div>
+						<div class="tooltip-row">
+							<span class="tooltip-label">Revenue:</span>
+							<span class="tooltip-value">€{data.revenue.toFixed(2)}</span>
+						</div>
+					</Tooltip>
+				</Chart>
+			</div>
+		{:else}
+			<div class="flex h-64 items-center justify-center text-sm text-base-content/50">
+				No reservation data available
+			</div>
+		{/if}
+	</div>
+
+	<!-- Revenue Trend -->
+	<div class="rounded-lg border border-base-300 bg-base-200 p-6">
+		<h2 class="mb-6 text-base font-semibold">Revenue Over Time</h2>
+		{#if reservationsData.length > 0}
+			<div class="h-64">
+				<Chart
+					data={reservationsData}
+					x="date"
+					xScale={scaleTime()}
+					y="revenue"
+					yScale={scaleLinear()}
+					yDomain={[0, null]}
+					padding={{ left: 16, bottom: 24, top: 8 }}
+				>
+					<Svg>
+						<Area line={{ class: 'stroke-success stroke-2' }} fill="transparent" />
+						<Axis
+							placement="left"
+							grid
+							rule={{ class: 'stroke-base-content/10' }}
+							labelProps={{ class: 'text-xs fill-base-content/60' }}
+							format={(d) => `€${d}`}
+						/>
+						<Axis
+							placement="bottom"
+							formatTick={(d) => format(d, PeriodType.Day, { variant: 'short' })}
+							labelProps={{ class: 'text-xs fill-base-content/60' }}
+						/>
+						<Highlight area />
+					</Svg>
+					<Tooltip header={(data) => timeFormat('%B %d, %Y')(data.date)} let:data>
+						<div class="tooltip-row">
+							<span class="tooltip-label">Revenue:</span>
+							<span class="tooltip-value">€{data.revenue.toFixed(2)}</span>
+						</div>
+					</Tooltip>
+				</Chart>
+			</div>
+		{:else}
+			<div class="flex h-64 items-center justify-center text-sm text-base-content/50">
+				No revenue data available
+			</div>
+		{/if}
+	</div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<!-- Peak Hours -->
+	<div class="rounded-lg border border-base-300 bg-base-200 p-6">
+		<h2 class="mb-6 flex items-center gap-2 text-base font-semibold">
+			<IconClock class="h-4 w-4" />
+			Peak Pickup Hours
+		</h2>
+		{#if data.peakHoursData.length > 0}
+			<div class="h-64">
+				<Chart
+					data={data.peakHoursData}
+					x="hour"
+					y="pickups"
+					yScale={scaleLinear()}
+					yDomain={[0, null]}
+					padding={{ left: 16, bottom: 24, top: 8, right: 8 }}
+				>
+					<Svg>
+						<Area line={{ class: 'stroke-info stroke-2' }} fill="transparent" />
+						<Axis
+							placement="left"
+							grid
+							rule={{ class: 'stroke-base-content/10' }}
+							labelProps={{ class: 'text-xs fill-base-content/60' }}
+						/>
+						<Axis placement="bottom" labelProps={{ class: 'text-xs fill-base-content/60' }} />
+						<Highlight area />
+					</Svg>
+					<Tooltip let:data>
+						<div class="tooltip-row">
+							<span class="tooltip-label">Time:</span>
+							<span class="tooltip-value">{data.hour}</span>
+						</div>
+						<div class="tooltip-row">
+							<span class="tooltip-label">Pickups:</span>
+							<span class="tooltip-value">{data.pickups}</span>
+						</div>
+					</Tooltip>
+				</Chart>
+			</div>
+		{:else}
+			<div class="flex h-64 items-center justify-center text-sm text-base-content/50">
+				No pickup data available
+			</div>
+		{/if}
+	</div>
+
+	<!-- Top Offers Performance -->
+	<div class="rounded-lg border border-base-300 bg-base-200 p-6">
+		<h2 class="mb-6 text-base font-semibold">Top Performing Offers</h2>
+		{#if data.offerPerformanceData.length > 0}
+			<div class="max-h-64 space-y-2 overflow-y-auto">
+				{#each data.offerPerformanceData as offer, i}
+					<div class="flex items-center gap-3 rounded border border-base-300 bg-base-100 p-3">
+						<div
+							class="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+						>
+							{i + 1}
+						</div>
+						<div class="min-w-0 flex-1">
+							<p class="truncate text-sm font-medium">{offer.name}</p>
+							<div class="mt-1 flex items-center gap-3 text-xs text-base-content/60">
+								<span class="flex items-center gap-1">
+									<IconBox class="h-3.5 w-3.5" />
+									{offer.reservations}
+								</span>
+								<span class="flex items-center gap-1">
+									<IconStar class="h-3.5 w-3.5 text-warning" />
+									{offer.avgRating}
+								</span>
+							</div>
+						</div>
+						<div class="text-right">
+							<div class="text-sm font-semibold tabular-nums">
+								€{offer.revenue.toFixed(0)}
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<div class="flex h-64 items-center justify-center text-sm text-base-content/50">
+				No active offers found
+			</div>
+		{/if}
+	</div>
+</div>
+
+<!-- Location Performance Table -->
+<div class="rounded-lg border border-base-300 bg-base-200 p-6">
+	<h2 class="mb-6 flex items-center gap-2 text-base font-semibold">
+		<IconPeople class="h-4 w-4" />
+		Location Performance
+	</h2>
+	{#if data.locationPerformanceData.length > 0}
+		<div class="overflow-x-auto">
+			<table class="table table-sm">
+				<thead>
+					<tr class="border-base-300">
+						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
+							Location
+						</th>
+						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
+							Reservations
+						</th>
+						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
+							Revenue
+						</th>
+						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
+							Completion
+						</th>
+						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
+							Favorites
+						</th>
+						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
+							Rating
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each data.locationPerformanceData as location}
+						<tr class="border-base-300">
+							<td>
+								<div class="font-medium">{location.name}</div>
+								<div class="text-xs text-base-content/50">
+									{location.address}, {location.city}
+								</div>
+							</td>
+							<td class="tabular-nums">{location.totalReservations}</td>
+							<td class="font-medium tabular-nums">
+								€{location.revenue.toLocaleString('de-DE', {
+									minimumFractionDigits: 2,
+									maximumFractionDigits: 2
+								})}
+							</td>
+							<td>
+								<div class="flex items-center gap-2">
+									<progress
+										class="progress-xs progress w-16"
+										class:progress-success={location.completionRate >= 80}
+										class:progress-warning={location.completionRate >= 60 &&
+											location.completionRate < 80}
+										class:progress-error={location.completionRate < 60}
+										value={location.completionRate}
+										max="100"
+									></progress>
+									<span class="text-xs tabular-nums">{location.completionRate}%</span>
+								</div>
+							</td>
+							<td class="tabular-nums">{location.favoritesCount}</td>
+							<td>
+								<div class="flex items-center gap-1">
+									<IconStar class="h-3.5 w-3.5 text-warning" />
+									<span class="tabular-nums">{location.avgRating}</span>
+								</div>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{:else}
+		<div class="flex h-32 items-center justify-center text-sm text-base-content/50">
+			No location data available
+		</div>
+	{/if}
 </div>

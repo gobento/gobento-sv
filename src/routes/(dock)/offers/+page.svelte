@@ -291,10 +291,6 @@
 
 						<!-- Actions -->
 						<div class="flex gap-2">
-							<button class="btn flex-1 gap-1 btn-ghost btn-sm">
-								<IconEdit class="size-4" />
-								Edit
-							</button>
 							<button class="btn gap-1 btn-outline btn-sm btn-error">
 								<IconDelete class="size-4" />
 							</button>
