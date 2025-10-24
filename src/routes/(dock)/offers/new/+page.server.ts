@@ -5,6 +5,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { Actions, PageServerLoad } from './$types';
+import { notifyNewOffer } from '$lib/server/notifications';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const account = locals.account!;
@@ -181,9 +182,11 @@ export const actions = {
 			const pickupTimeFromFormatted = `${pickupTimeFrom}:00`;
 			const pickupTimeUntilFormatted = `${pickupTimeUntil}:00`;
 
+			const offerId = randomUUID();
+
 			// Insert offer
 			await db.insert(businessOffers).values({
-				id: randomUUID(),
+				id: offerId,
 				businessAccountId: account.id,
 				locationId: locationId && locationId !== '' ? locationId : null,
 				name: name.trim(),
@@ -191,12 +194,21 @@ export const actions = {
 				originalValue,
 				price,
 				currency: currency.trim(),
+				quantity,
 				isActive: true,
 				isRecurring,
 				pickupTimeFrom: pickupTimeFromFormatted,
 				pickupTimeUntil: pickupTimeUntilFormatted,
 				validUntil: validUntil
 			});
+
+			// Send notifications to subscribers if this is a location-specific offer
+			if (locationId && locationId !== '') {
+				// Fire and forget - don't wait for notifications to complete
+				notifyNewOffer(locationId, name.trim(), price, currency.trim(), offerId).catch((err) => {
+					console.error('Failed to send notifications:', err);
+				});
+			}
 		} catch (e) {
 			console.error('Failed to create offer:', e);
 			return fail(500, { message: 'Failed to create offer' });
