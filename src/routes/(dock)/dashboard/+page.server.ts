@@ -1,12 +1,12 @@
-<!-- +page.server.ts -->
+// /src/routes/(dock)/dashboard/+page.server.ts
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { 
-	reservations, 
-	businessOffers, 
-	businessLocations, 
+import {
+	reservations,
+	businessOffers,
+	businessLocations,
 	favoriteLocations,
-	accounts 
+	accounts
 } from '$lib/server/schema';
 import { eq, and, gte, sql, desc } from 'drizzle-orm';
 
@@ -102,15 +102,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			favoritesCount: sql<number>`COUNT(DISTINCT ${favoriteLocations.accountId})::int`
 		})
 		.from(businessLocations)
-		.leftJoin(
-			businessOffers,
-			eq(businessOffers.locationId, businessLocations.id)
-		)
+		.leftJoin(businessOffers, eq(businessOffers.locationId, businessLocations.id))
 		.leftJoin(reservations, eq(reservations.offerId, businessOffers.id))
-		.leftJoin(
-			favoriteLocations,
-			eq(favoriteLocations.locationId, businessLocations.id)
-		)
+		.leftJoin(favoriteLocations, eq(favoriteLocations.locationId, businessLocations.id))
 		.where(eq(businessLocations.businessAccountId, businessAccountId))
 		.groupBy(businessLocations.id)
 		.orderBy(desc(sql`COUNT(${reservations.id})`));
@@ -130,7 +124,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				gte(reservations.reservedAt, thirtyDaysAgo)
 			)
 		)
-		.then(rows => rows[0]);
+		.then((rows) => rows[0]);
 
 	const activeOffersCount = await db
 		.select({ count: sql<number>`COUNT(*)::int` })
@@ -141,25 +135,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 				eq(businessOffers.isActive, true)
 			)
 		)
-		.then(rows => rows[0].count);
+		.then((rows) => rows[0].count);
 
 	const totalFavoritesCount = await db
 		.select({ count: sql<number>`COUNT(DISTINCT ${favoriteLocations.accountId})::int` })
 		.from(favoriteLocations)
-		.innerJoin(
-			businessLocations,
-			eq(favoriteLocations.locationId, businessLocations.id)
-		)
+		.innerJoin(businessLocations, eq(favoriteLocations.locationId, businessLocations.id))
 		.where(eq(businessLocations.businessAccountId, businessAccountId))
-		.then(rows => rows[0].count);
+		.then((rows) => rows[0].count);
 
 	return {
-		reservationsData: reservationsData.map(row => ({
+		reservationsData: reservationsData.map((row) => ({
 			date: row.date,
 			count: row.count,
 			revenue: row.revenue || 0
 		})),
-		offerPerformanceData: offerPerformanceData.map(row => ({
+		offerPerformanceData: offerPerformanceData.map((row) => ({
 			id: row.id,
 			name: row.name,
 			reservations: row.reservations,
@@ -167,16 +158,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 			avgRating: 4.5 // TODO: Add ratings table to schema
 		})),
 		peakHoursData,
-		locationPerformanceData: locationPerformanceData.map(row => ({
+		locationPerformanceData: locationPerformanceData.map((row) => ({
 			id: row.id,
 			name: row.name,
 			address: row.address,
 			city: row.city,
 			totalReservations: row.totalReservations,
 			revenue: row.revenue,
-			completionRate: row.totalCount > 0 
-				? Math.round((row.completedCount / row.totalCount) * 100) 
-				: 0,
+			completionRate:
+				row.totalCount > 0 ? Math.round((row.completedCount / row.totalCount) * 100) : 0,
 			favoritesCount: row.favoritesCount,
 			avgRating: 4.5 // TODO: Add ratings table to schema
 		})),
@@ -185,9 +175,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 			totalRevenue: totalReservations.revenue,
 			avgPerDay: Math.round(totalReservations.count / 30),
 			activeOffers: activeOffersCount,
-			completionRate: totalReservations.count > 0
-				? Math.round((totalReservations.completedCount / totalReservations.count) * 100)
-				: 0,
+			completionRate:
+				totalReservations.count > 0
+					? Math.round((totalReservations.completedCount / totalReservations.count) * 100)
+					: 0,
 			favoriteCount: totalFavoritesCount
 		}
 	};
