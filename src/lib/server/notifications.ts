@@ -3,7 +3,7 @@ import { db } from '$lib/server/db';
 import { businessLocations, businessProfiles, pushSubscriptions } from './schema';
 import { eq } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
-import { error } from '@sveltejs/kit';
+import { NTFY_SERVER } from '$env/static/private';
 
 interface NotificationPayload {
 	title: string;
@@ -19,8 +19,6 @@ interface NotificationPayload {
 }
 
 export async function sendNotification(topic: string, payload: NotificationPayload) {
-	const ntfyServer = env.NTFY_SERVER || 'http://localhost:8080';
-
 	try {
 		// Use the simple message format with headers (more compatible)
 		const headers: Record<string, string> = {
@@ -44,7 +42,7 @@ export async function sendNotification(topic: string, payload: NotificationPaylo
 			});
 		}
 
-		const url = `${ntfyServer}/${topic}`;
+		const url = `${NTFY_SERVER}/${topic}`;
 		console.log('Sending to ntfy:', url);
 		console.log('Headers:', headers);
 		console.log('Message:', payload.message);
@@ -59,7 +57,7 @@ export async function sendNotification(topic: string, payload: NotificationPaylo
 		try {
 			responseText = await response.text();
 		} catch (e) {
-			responseText = 'Could not read response';
+			responseText = 'Could not read response: ' + e;
 		}
 
 		if (!response.ok) {
