@@ -7,12 +7,7 @@ import { randomUUID } from 'crypto';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	const session = locals.session;
-	const account = locals.account;
-
-	if (!session || !account) {
-		throw error(401, 'Unauthorized');
-	}
+	const account = locals.account!;
 
 	if (account.accountType !== 'business') {
 		throw error(403, 'Only business accounts can create offers');
@@ -28,7 +23,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			name: businessLocations.name,
 			address: businessLocations.address,
 			city: businessLocations.city,
-			state: businessLocations.state
+			province: businessLocations.province
 		})
 		.from(businessLocations)
 		.where(eq(businessLocations.businessAccountId, account.id))

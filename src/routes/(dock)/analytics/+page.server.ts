@@ -9,20 +9,13 @@ import {
 	accounts
 } from '$lib/server/schema';
 import { eq, and, gte, sql, desc } from 'drizzle-orm';
+import { error, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	// Ensure user is a business account
-	const session = locals.session;
-	if (!session) {
-		throw redirect(302, '/login');
-	}
+	const account = locals.account!;
 
-	const account = await db.query.accounts.findFirst({
-		where: eq(accounts.id, session.accountId)
-	});
-
-	if (!account || account.accountType !== 'business') {
-		throw error(403, 'Access denied');
+	if (account.accountType !== 'business') {
+		throw error(403, 'Only business accounts can access analytics');
 	}
 
 	const businessAccountId = account.id;

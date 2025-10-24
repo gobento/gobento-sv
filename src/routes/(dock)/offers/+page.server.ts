@@ -38,6 +38,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.where(eq(businessOffers.businessAccountId, account.id))
 		.orderBy(desc(businessOffers.createdAt));
 
+	console.dir(offers);
+
 	return {
 		offers
 	};
