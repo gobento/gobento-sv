@@ -1,6 +1,11 @@
 // src/lib/server/notifications.ts
 import { db } from '$lib/server/db';
-import { locationSubscriptions, businessLocations, businessProfiles } from './schema';
+import {
+	favoriteLocations,
+	businessLocations,
+	businessProfiles,
+	pushSubscriptions
+} from './schema';
 import { eq, and } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
@@ -22,42 +27,47 @@ export async function sendNotification(topic: string, payload: NotificationPaylo
 	const ntfyServer = env.NTFY_SERVER || 'http://localhost:8080';
 
 	try {
-		const headers: Record<string, string> = {
-			Title: payload.title,
-			Message: payload.message,
-			Priority: payload.priority || 'default'
-		};
-
-		if (payload.tags && payload.tags.length > 0) {
-			headers['Tags'] = payload.tags.join(',');
-		}
-
-		if (payload.click) {
-			headers['Click'] = payload.click;
-		}
-
-		if (payload.actions && payload.actions.length > 0) {
-			payload.actions.forEach((action, index) => {
-				headers[`Actions`] = payload
-					.actions!.map((a) => `${a.action}, ${a.label}${a.url ? `, ${a.url}` : ''}`)
-					.join('; ');
-			});
-		}
-
-		const response = await fetch(`${ntfyServer}/${topic}`, {
-			method: 'POST',
-			body: payload.message,
-			headers
+		// Format actions according to ntfy spec: "action=<action>, label=<label>, url=<url>"
+		const formattedActions = payload.actions?.map((a) => {
+			const parts = [`action=${a.action}`, `label=${a.label}`];
+			if (a.url) {
+				parts.push(`url=${a.url}`);
+			}
+			return parts.join(', ');
 		});
 
+		const body = {
+			topic: topic,
+			title: payload.title,
+			message: payload.message,
+			priority: payload.priority || 'default',
+			tags: payload.tags || [],
+			...(payload.click && { click: payload.click }),
+			...(formattedActions && formattedActions.length > 0 && { actions: formattedActions })
+		};
+
+		console.log('Sending to ntfy:', JSON.stringify(body, null, 2));
+
+		const response = await fetch(ntfyServer, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(body)
+		});
+
+		const responseText = await response.text();
+
 		if (!response.ok) {
-			console.error('Failed to send notification:', await response.text());
+			console.error('Failed to send notification:', responseText);
+			console.error('Request body was:', JSON.stringify(body, null, 2));
 			return false;
 		}
 
+		console.log('Notification sent successfully:', responseText);
 		return true;
-	} catch (error) {
-		console.error('Error sending notification:', error);
+	} catch (err) {
+		console.error('Error sending notification:', err);
 		return false;
 	}
 }
@@ -97,16 +107,20 @@ export async function notifyNewOffer(
 
 	const business = businesses[0];
 
-	// Get all active subscriptions for this location
-	const subscriptions = await db
-		.select()
-		.from(locationSubscriptions)
-		.where(
-			and(
-				eq(locationSubscriptions.locationId, locationId),
-				eq(locationSubscriptions.isActive, true)
-			)
-		);
+	// Get all users who have favorited this location AND have active push subscriptions
+	const subscribers = await db
+		.select({
+			accountId: favoriteLocations.accountId,
+			ntfyTopic: pushSubscriptions.ntfyTopic
+		})
+		.from(favoriteLocations)
+		.innerJoin(pushSubscriptions, eq(favoriteLocations.accountId, pushSubscriptions.accountId))
+		.where(and(eq(favoriteLocations.locationId, locationId), eq(pushSubscriptions.isActive, true)));
+
+	if (subscribers.length === 0) {
+		console.log(`No subscribers found for location ${locationId}`);
+		return;
+	}
 
 	const priceFormatted = new Intl.NumberFormat('en-US', {
 		style: 'currency',
@@ -128,10 +142,16 @@ export async function notifyNewOffer(
 		]
 	};
 
+	console.log(
+		`Sending notifications to ${subscribers.length} subscribers for location ${locationId}`
+	);
 	console.dir(notificationPayload);
 
 	// Send notification to each subscriber
-	const promises = subscriptions.map((sub) => sendNotification(sub.ntfyTopic, notificationPayload));
+	const promises = subscribers.map((sub) => sendNotification(sub.ntfyTopic, notificationPayload));
 
-	await Promise.allSettled(promises);
+	const results = await Promise.allSettled(promises);
+
+	const successCount = results.filter((r) => r.status === 'fulfilled' && r.value === true).length;
+	console.log(`Sent ${successCount}/${subscribers.length} notifications successfully`);
 }
