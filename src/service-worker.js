@@ -1,85 +1,116 @@
 // /src/service-worker.js
 // <reference types="@sveltejs/kit" />
 import { build, files, version } from '$service-worker';
+import { precacheAndRoute } from 'workbox-precaching';
 
-// Create a unique cache name for this deployment
 const CACHE = `cache-${version}`;
+const ASSETS = [...build, ...files];
 
-const ASSETS = [
-	...build, // the app itself
-	...files // everything in `static`
-];
+// Precache assets
+precacheAndRoute(
+	ASSETS.map((url) => ({
+		url,
+		revision: version
+	}))
+);
 
-self.addEventListener('install', (event) => {
-	// Create a new cache and add all files to it
-	async function addFilesToCache() {
-		const cache = await caches.open(CACHE);
-		await cache.addAll(ASSETS);
-	}
+// Listen for ntfy subscription messages
+let ntfyConnection = null;
+let currentTopic = null;
+let ntfyServerUrl = 'http://localhost:8080'; // Default
 
-	event.waitUntil(addFilesToCache());
-});
+self.addEventListener('message', (event) => {
+	if (event.data && event.data.type === 'SUBSCRIBE_NTFY') {
+		const { topic, serverUrl } = event.data;
 
-self.addEventListener('activate', (event) => {
-	// Remove previous cached data from disk
-	async function deleteOldCaches() {
-		for (const key of await caches.keys()) {
-			if (key !== CACHE) {
-				await caches.delete(key);
-			}
-		}
-	}
-
-	event.waitUntil(deleteOldCaches());
-});
-
-self.addEventListener('fetch', (event) => {
-	// ignore POST requests etc
-	if (event.request.method !== 'GET') {
-		return;
-	}
-
-	async function respond() {
-		const url = new URL(event.request.url);
-		const cache = await caches.open(CACHE);
-
-		// `build`/`files` can always be served from the cache
-		if (ASSETS.includes(url.pathname)) {
-			const response = await cache.match(url.pathname);
-
-			if (response) {
-				return response;
-			}
+		if (ntfyConnection) {
+			ntfyConnection.close();
 		}
 
-		// for everything else, try the network first, but
-		// fall back to the cache if we're offline
+		if (serverUrl) {
+			ntfyServerUrl = serverUrl;
+		}
+
+		currentTopic = topic;
+		subscribeToNtfy(topic);
+	}
+
+	if (event.data && event.data.type === 'UNSUBSCRIBE_NTFY') {
+		if (ntfyConnection) {
+			ntfyConnection.close();
+			ntfyConnection = null;
+			currentTopic = null;
+		}
+	}
+});
+
+function subscribeToNtfy(topic) {
+	console.log(`Connecting to ${ntfyServerUrl}/${topic}/sse`);
+
+	const eventSource = new EventSource(`${ntfyServerUrl}/${topic}/sse`);
+
+	eventSource.onopen = () => {
+		console.log('Connected to ntfy server');
+	};
+
+	eventSource.onmessage = (event) => {
 		try {
-			const response = await fetch(event.request);
+			const data = JSON.parse(event.data);
 
-			// if we're offline, fetch can return a value that is not a Response
-			// instead of throwing - and we can't pass this non-Response to respondWith
-			if (!(response instanceof Response)) {
-				throw new Error('invalid response from fetch');
+			// Only show message events (not open/keepalive)
+			if (data.event === 'message') {
+				console.log('Received notification:', data);
+
+				self.registration.showNotification(data.title || 'New Message', {
+					body: data.message,
+					icon: '/icon-192.png',
+					badge: '/icon-192.png',
+					tag: data.id,
+					timestamp: data.time * 1000,
+					data: {
+						url: data.click || '/',
+						actions: data.actions,
+						raw: data
+					}
+				});
 			}
-
-			if (response.status === 200) {
-				cache.put(event.request, response.clone());
-			}
-
-			return response;
-		} catch (err) {
-			const response = await cache.match(event.request);
-
-			if (response) {
-				return response;
-			}
-
-			// if there's no cache, then just error out
-			// as there is nothing we can do to respond to this request
-			throw err;
+		} catch (e) {
+			console.error('Error parsing notification:', e);
 		}
-	}
+	};
 
-	event.respondWith(respond());
+	eventSource.onerror = (error) => {
+		console.error('EventSource error:', error);
+		eventSource.close();
+
+		// Reconnect after 5 seconds
+		setTimeout(() => {
+			if (currentTopic) {
+				console.log('Reconnecting to ntfy...');
+				subscribeToNtfy(currentTopic);
+			}
+		}, 5000);
+	};
+
+	ntfyConnection = eventSource;
+}
+
+// Handle notification clicks
+self.addEventListener('notificationclick', (event) => {
+	event.notification.close();
+
+	const urlToOpen = event.notification.data?.url || '/';
+
+	event.waitUntil(
+		clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+			for (let client of windowClients) {
+				if (client.url === urlToOpen && 'focus' in client) {
+					return client.focus();
+				}
+			}
+			if (clients.openWindow) {
+				return clients.openWindow(urlToOpen);
+			}
+		})
+	);
 });
