@@ -1,18 +1,21 @@
 // /src/service-worker.js
-// <reference types="@sveltejs/kit" />
 import { build, files, version } from '$service-worker';
 import { precacheAndRoute } from 'workbox-precaching';
+
+// Required for injectManifest strategy
+//const manifest = self.__WB_MANIFEST;
 
 const CACHE = `cache-${version}`;
 const ASSETS = [...build, ...files];
 
-// Precache assets
-precacheAndRoute(
-	ASSETS.map((url) => ({
+// Precache assets using Workbox
+precacheAndRoute([
+	...self.__WB_MANIFEST,
+	...ASSETS.map((url) => ({
 		url,
 		revision: version
 	}))
-);
+]);
 
 // Listen for ntfy subscription messages
 let ntfyConnection = null;
@@ -102,14 +105,14 @@ self.addEventListener('notificationclick', (event) => {
 	const urlToOpen = event.notification.data?.url || '/';
 
 	event.waitUntil(
-		clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+		self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
 			for (let client of windowClients) {
 				if (client.url === urlToOpen && 'focus' in client) {
 					return client.focus();
 				}
 			}
-			if (clients.openWindow) {
-				return clients.openWindow(urlToOpen);
+			if (self.clients.openWindow) {
+				return self.clients.openWindow(urlToOpen);
 			}
 		})
 	);

@@ -6,6 +6,8 @@
 	import IconSave from '~icons/fluent/save-20-regular';
 	import IconMap from '~icons/fluent/map-24-regular';
 	import IconSearch from '~icons/fluent/search-20-regular';
+	import IconImage from '~icons/fluent/image-24-regular';
+	import IconCamera from '~icons/fluent/camera-24-regular';
 
 	let { data } = $props();
 	let form = $page.form;
@@ -15,12 +17,19 @@
 	let isSearching = $state(false);
 	let selectedLocation = $state<any>(null);
 
+	// Image upload state
+	let selectedImage = $state<File | null>(null);
+	let imagePreviewUrl = $state<string | null>(null);
+	let dragActive = $state(false);
+	let fileInput: HTMLInputElement;
+
+	const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
 	async function searchLocation() {
 		if (!searchQuery.trim()) return;
 
 		isSearching = true;
 		try {
-			// Search only within business country using countrycodes parameter
 			const response = await fetch(
 				`https://nominatim.openstreetmap.org/search?` +
 					`format=json&` +
@@ -41,17 +50,15 @@
 	function selectLocation(result: any) {
 		selectedLocation = result;
 
-		// Populate form fields
 		const nameInput = document.querySelector<HTMLInputElement>('input[name="name"]');
 		const addressInput = document.querySelector<HTMLInputElement>('input[name="address"]');
 		const cityInput = document.querySelector<HTMLInputElement>('input[name="city"]');
-		const stateInput = document.querySelector<HTMLInputElement>('input[name="state"]');
+		const provinceInput = document.querySelector<HTMLInputElement>('input[name="province"]');
 		const countryInput = document.querySelector<HTMLInputElement>('input[name="country"]');
 		const latInput = document.querySelector<HTMLInputElement>('input[name="latitude"]');
 		const lonInput = document.querySelector<HTMLInputElement>('input[name="longitude"]');
 		const zipInput = document.querySelector<HTMLInputElement>('input[name="zipCode"]');
 
-		// Extract street address (first part of display_name)
 		const addressParts = result.display_name.split(',');
 		const streetAddress = addressParts[0] || '';
 
@@ -62,7 +69,7 @@
 		if (cityInput)
 			cityInput.value =
 				result.address?.city || result.address?.town || result.address?.village || '';
-		if (stateInput) stateInput.value = result.address?.state || '';
+		if (provinceInput) provinceInput.value = result.address?.province || '';
 		if (countryInput) countryInput.value = result.address?.country || data.businessCountry;
 		if (latInput) latInput.value = result.lat;
 		if (lonInput) lonInput.value = result.lon;
@@ -72,7 +79,6 @@
 		searchQuery = '';
 	}
 
-	// Auto-fill city based on ZIP code
 	async function lookupZipCode() {
 		const zipInput = document.querySelector<HTMLInputElement>('input[name="zipCode"]');
 		const zipCode = zipInput?.value;
@@ -93,7 +99,7 @@
 			if (results.length > 0) {
 				const result = results[0];
 				const cityInput = document.querySelector<HTMLInputElement>('input[name="city"]');
-				const stateInput = document.querySelector<HTMLInputElement>('input[name="state"]');
+				const provinceInput = document.querySelector<HTMLInputElement>('input[name="province"]');
 				const latInput = document.querySelector<HTMLInputElement>('input[name="latitude"]');
 				const lonInput = document.querySelector<HTMLInputElement>('input[name="longitude"]');
 
@@ -101,8 +107,8 @@
 					cityInput.value =
 						result.address?.city || result.address?.town || result.address?.village || '';
 				}
-				if (stateInput && !stateInput.value) {
-					stateInput.value = result.address?.state || '';
+				if (provinceInput && !provinceInput.value) {
+					provinceInput.value = result.address?.state || result.address?.province || '';
 				}
 				if (latInput && !latInput.value) {
 					latInput.value = result.lat;
@@ -115,17 +121,91 @@
 			console.error('ZIP code lookup failed:', error);
 		}
 	}
+
+	// Image handling functions
+	function handleFileSelect(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+		processImage(file);
+	}
+
+	function handleDrop(event: DragEvent) {
+		event.preventDefault();
+		dragActive = false;
+		const file = event.dataTransfer?.files[0];
+		processImage(file);
+	}
+
+	function handleDragOver(event: DragEvent) {
+		event.preventDefault();
+		dragActive = true;
+	}
+
+	function handleDragLeave() {
+		dragActive = false;
+	}
+
+	function processImage(file: File | undefined) {
+		if (!file) return;
+
+		if (!file.type.startsWith('image/')) {
+			alert('Please select an image file');
+			return;
+		}
+
+		if (file.size > MAX_IMAGE_SIZE) {
+			alert('Image size must be less than 5MB');
+			return;
+		}
+
+		if (file.size === 0) {
+			alert('Image file is empty');
+			return;
+		}
+
+		selectedImage = file;
+
+		if (imagePreviewUrl) {
+			URL.revokeObjectURL(imagePreviewUrl);
+		}
+
+		imagePreviewUrl = URL.createObjectURL(file);
+	}
+
+	function clearImage() {
+		if (isSubmitting) return;
+
+		selectedImage = null;
+
+		if (imagePreviewUrl) {
+			URL.revokeObjectURL(imagePreviewUrl);
+			imagePreviewUrl = null;
+		}
+
+		if (fileInput) {
+			fileInput.value = '';
+		}
+	}
+
+	// Cleanup on unmount
+	$effect(() => {
+		return () => {
+			if (imagePreviewUrl) {
+				URL.revokeObjectURL(imagePreviewUrl);
+			}
+		};
+	});
 </script>
 
 <!-- Header -->
-<div class="flex items-center justify-between mb-12">
+<div class="mb-12 flex items-center justify-between">
 	<div class="flex items-center gap-5">
-		<div class="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center">
-			<IconLocation class="w-7 h-7 text-primary-content" />
+		<div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
+			<IconLocation class="h-7 w-7 text-primary-content" />
 		</div>
 		<div>
 			<h1 class="text-4xl font-bold tracking-tight">Add New Location</h1>
-			<p class="text-base text-base-content/60 mt-2">
+			<p class="mt-2 text-base text-base-content/60">
 				Create a new business location in {data.businessCountry}
 			</p>
 		</div>
@@ -133,13 +213,13 @@
 </div>
 
 <!-- Address Search Card -->
-<div class="card bg-primary/10 border-2 border-primary/30 mb-6">
+<div class="card mb-6 border-2 border-primary/30 bg-primary/10">
 	<div class="card-body p-8">
-		<div class="flex items-center gap-3 mb-4">
-			<IconSearch class="w-6 h-6 text-primary" />
+		<div class="mb-4 flex items-center gap-3">
+			<IconSearch class="h-6 w-6 text-primary" />
 			<h2 class="text-2xl font-bold">Search Address</h2>
 		</div>
-		<p class="text-base text-base-content/70 mb-6">
+		<p class="mb-6 text-base text-base-content/70">
 			Search for an address in {data.businessCountry} to automatically fill in all details
 		</p>
 
@@ -149,17 +229,17 @@
 				bind:value={searchQuery}
 				onkeydown={(e) => e.key === 'Enter' && searchLocation()}
 				placeholder="Enter address, city, or place name..."
-				class="input input-bordered input-lg join-item flex-1"
+				class="input-bordered input input-lg join-item flex-1"
 			/>
 			<button
 				onclick={searchLocation}
 				disabled={isSearching}
-				class="btn btn-primary btn-lg join-item gap-2.5"
+				class="btn join-item gap-2.5 btn-lg btn-primary"
 			>
 				{#if isSearching}
-					<span class="loading loading-spinner loading-md"></span>
+					<span class="loading loading-md loading-spinner"></span>
 				{:else}
-					<IconSearch class="w-5 h-5" />
+					<IconSearch class="h-5 w-5" />
 				{/if}
 				Search
 			</button>
@@ -167,16 +247,16 @@
 
 		{#if searchResults.length > 0}
 			<div class="divider my-4"></div>
-			<div class="space-y-3 max-h-80 overflow-y-auto">
+			<div class="max-h-80 space-y-3 overflow-y-auto">
 				{#each searchResults as result}
 					<button
 						onclick={() => selectLocation(result)}
-						class="w-full text-left p-4 rounded-xl bg-base-100 hover:bg-base-200 border-2 border-base-300 hover:border-primary transition-all duration-200"
+						class="w-full rounded-xl border-2 border-base-300 bg-base-100 p-4 text-left transition-all duration-200 hover:border-primary hover:bg-base-200"
 					>
 						<div class="flex items-start gap-4">
-							<IconMap class="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-							<div class="flex-1 min-w-0">
-								<div class="font-semibold text-lg mb-1">{result.display_name}</div>
+							<IconMap class="mt-1 h-6 w-6 shrink-0 text-primary" />
+							<div class="min-w-0 flex-1">
+								<div class="mb-1 text-lg font-semibold">{result.display_name}</div>
 								{#if result.address?.postcode}
 									<div class="text-sm text-base-content/60">ZIP: {result.address.postcode}</div>
 								{/if}
@@ -192,6 +272,7 @@
 <!-- Form Card -->
 <form
 	method="POST"
+	enctype="multipart/form-data"
 	use:enhance={() => {
 		isSubmitting = true;
 		return async ({ update }) => {
@@ -199,14 +280,14 @@
 			isSubmitting = false;
 		};
 	}}
-	class="card bg-base-100 border-2 border-base-300"
+	class="card border-2 border-base-300 bg-base-100"
 >
 	<div class="card-body p-8">
 		{#if form?.message}
-			<div class="alert alert-error mb-6">
+			<div class="mb-6 alert alert-error">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
-					class="stroke-current shrink-0 h-6 w-6"
+					class="h-6 w-6 shrink-0 stroke-current"
 					fill="none"
 					viewBox="0 0 24 24"
 				>
@@ -222,10 +303,115 @@
 		{/if}
 
 		<div class="space-y-6">
+			<!-- Location Image Upload -->
+			<div class="form-control">
+				<label class="label" for="locationImage">
+					<span class="label-text text-base font-semibold">
+						Location Front Image <span class="text-error">*</span>
+					</span>
+				</label>
+				<p class="mb-3 text-sm text-base-content/60">
+					Upload a photo of your location's storefront to help customers find you
+				</p>
+
+				<div
+					class="relative"
+					ondrop={handleDrop}
+					ondragover={handleDragOver}
+					ondragleave={handleDragLeave}
+				>
+					<input
+						bind:this={fileInput}
+						id="locationImage"
+						name="locationImage"
+						type="file"
+						accept="image/*"
+						class="hidden"
+						onchange={handleFileSelect}
+						disabled={isSubmitting}
+						required
+					/>
+
+					<button
+						type="button"
+						onclick={() => fileInput?.click()}
+						disabled={isSubmitting}
+						class="group relative w-full overflow-hidden rounded-lg border-2 border-dashed transition-all duration-200 active:scale-[0.98]"
+						class:border-primary={dragActive}
+						class:bg-primary-5={dragActive}
+						class:border-base-300={!dragActive && !selectedImage}
+						class:border-success={selectedImage && !dragActive}
+						class:bg-success-5={selectedImage && !dragActive}
+						class:hover:border-primary={!isSubmitting}
+						class:hover:bg-base-200={!isSubmitting && !selectedImage}
+						class:opacity-50={isSubmitting}
+						class:input-error={form?.field === 'locationImage'}
+					>
+						{#if !selectedImage}
+							<div class="flex min-h-[200px] flex-col items-center justify-center gap-3 p-6">
+								<div
+									class="rounded-full bg-base-200 p-4 transition-transform group-hover:scale-110"
+								>
+									<IconCamera class="h-10 w-10 text-base-content/40" />
+								</div>
+								<div class="text-center">
+									<p class="text-base font-semibold text-base-content">
+										{#if dragActive}
+											Drop image here
+										{:else if isSubmitting}
+											Uploading...
+										{:else}
+											Tap to upload location photo
+										{/if}
+									</p>
+									{#if !isSubmitting}
+										<p class="mt-1 text-sm text-base-content/60">Images only • 5MB max</p>
+									{/if}
+								</div>
+							</div>
+						{:else}
+							<div class="relative">
+								<img
+									src={imagePreviewUrl}
+									alt="Location preview"
+									class="h-64 w-full object-cover"
+								/>
+								<div
+									class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
+								>
+									<p class="text-lg font-semibold text-white">Tap to change</p>
+								</div>
+								<button
+									type="button"
+									onclick={(e) => {
+										e.stopPropagation();
+										clearImage();
+									}}
+									disabled={isSubmitting}
+									class="btn absolute top-2 right-2 btn-circle btn-sm"
+								>
+									✕
+								</button>
+							</div>
+							<div class="border-t border-base-300 p-3">
+								<p class="truncate text-sm font-medium" title={selectedImage.name}>
+									{selectedImage.name}
+								</p>
+								<p class="text-xs text-base-content/60">
+									{Math.round(selectedImage.size / 1024)} KB
+								</p>
+							</div>
+						{/if}
+					</button>
+				</div>
+			</div>
+
+			<div class="divider text-lg font-semibold">Location Details</div>
+
 			<!-- Location Name -->
 			<div class="form-control">
 				<label class="label" for="name">
-					<span class="label-text font-semibold text-base"
+					<span class="label-text text-base font-semibold"
 						>Location Name <span class="text-error">*</span></span
 					>
 				</label>
@@ -235,7 +421,7 @@
 					name="name"
 					required
 					placeholder="e.g., Downtown Branch, Main Office"
-					class="input input-bordered input-lg"
+					class="input-bordered input input-lg"
 					class:input-error={form?.field === 'name'}
 				/>
 				<label class="label">
@@ -247,10 +433,10 @@
 
 			<div class="divider text-lg font-semibold">Address Details</div>
 
-			<!-- ZIP Code (now first and required) -->
+			<!-- ZIP Code -->
 			<div class="form-control">
 				<label class="label" for="zipCode">
-					<span class="label-text font-semibold text-base"
+					<span class="label-text text-base font-semibold"
 						>ZIP / Postal Code <span class="text-error">*</span></span
 					>
 				</label>
@@ -260,7 +446,7 @@
 					name="zipCode"
 					required
 					placeholder="Enter ZIP code"
-					class="input input-bordered input-lg"
+					class="input-bordered input input-lg"
 					class:input-error={form?.field === 'zipCode'}
 					onblur={lookupZipCode}
 				/>
@@ -274,7 +460,7 @@
 			<!-- Street Address -->
 			<div class="form-control">
 				<label class="label" for="address">
-					<span class="label-text font-semibold text-base"
+					<span class="label-text text-base font-semibold"
 						>Street Address <span class="text-error">*</span></span
 					>
 				</label>
@@ -284,16 +470,16 @@
 					name="address"
 					required
 					placeholder="123 Main Street"
-					class="input input-bordered input-lg"
+					class="input-bordered input input-lg"
 					class:input-error={form?.field === 'address'}
 				/>
 			</div>
 
-			<!-- City and State -->
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+			<!-- City and Province -->
+			<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 				<div class="form-control">
 					<label class="label" for="city">
-						<span class="label-text font-semibold text-base"
+						<span class="label-text text-base font-semibold"
 							>City <span class="text-error">*</span></span
 						>
 					</label>
@@ -303,21 +489,21 @@
 						name="city"
 						required
 						placeholder="City name"
-						class="input input-bordered input-lg"
+						class="input-bordered input input-lg"
 						class:input-error={form?.field === 'city'}
 					/>
 				</div>
 
 				<div class="form-control">
-					<label class="label" for="state">
-						<span class="label-text font-semibold text-base">State / Province</span>
+					<label class="label" for="province">
+						<span class="label-text text-base font-semibold">Province</span>
 					</label>
 					<input
 						type="text"
-						id="state"
-						name="state"
+						id="province"
+						name="province"
 						placeholder="Optional"
-						class="input input-bordered input-lg"
+						class="input-bordered input input-lg"
 					/>
 				</div>
 			</div>
@@ -329,21 +515,25 @@
 
 			{#if selectedLocation}
 				<div class="alert alert-success">
-					<IconMap class="w-6 h-6" />
+					<IconMap class="h-6 w-6" />
 					<span class="text-base font-medium">Location coordinates set from search</span>
 				</div>
 			{/if}
 		</div>
 
 		<!-- Actions -->
-		<div class="flex justify-end gap-3 mt-10">
+		<div class="mt-10 flex justify-end gap-3">
 			<a href="/locations" class="btn btn-ghost btn-lg">Cancel</a>
-			<button type="submit" disabled={isSubmitting} class="btn btn-primary btn-lg gap-2.5">
+			<button
+				type="submit"
+				disabled={isSubmitting || !selectedImage}
+				class="btn gap-2.5 btn-lg btn-primary"
+			>
 				{#if isSubmitting}
-					<span class="loading loading-spinner loading-md"></span>
+					<span class="loading loading-md loading-spinner"></span>
 					Creating...
 				{:else}
-					<IconSave class="w-5 h-5" />
+					<IconSave class="h-5 w-5" />
 					Create Location
 				{/if}
 			</button>

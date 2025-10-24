@@ -31,7 +31,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			locationId: businessOffers.locationId,
 			locationName: businessLocations.name,
 			locationCity: businessLocations.city,
-			locationState: businessLocations.state
+			locationProvince: businessLocations.province
 		})
 		.from(businessOffers)
 		.leftJoin(businessLocations, eq(businessOffers.locationId, businessLocations.id))

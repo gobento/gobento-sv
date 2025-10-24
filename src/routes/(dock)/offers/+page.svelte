@@ -45,41 +45,6 @@
 	<p class="text-base-content/60">Manage your special offers and promotions</p>
 </div>
 
-<!-- Stats -->
-<div class="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-		<div class="mb-2 flex items-center gap-2">
-			<IconTag class="size-5 text-primary" />
-			<span class="text-sm text-base-content/60">Total Offers</span>
-		</div>
-		<div class="text-2xl font-semibold">{data.offers.length}</div>
-	</div>
-
-	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-		<div class="mb-2 flex items-center gap-2">
-			<IconCheckmark class="size-5 text-success" />
-			<span class="text-sm text-base-content/60">Active</span>
-		</div>
-		<div class="text-2xl font-semibold text-success">{activeOffers.length}</div>
-	</div>
-
-	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-		<div class="mb-2 flex items-center gap-2">
-			<IconGlobe class="size-5 text-secondary" />
-			<span class="text-sm text-base-content/60">All Locations</span>
-		</div>
-		<div class="text-2xl font-semibold">{allLocationOffers.length}</div>
-	</div>
-
-	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-		<div class="mb-2 flex items-center gap-2">
-			<IconLocation class="size-5 text-info" />
-			<span class="text-sm text-base-content/60">Location-Specific</span>
-		</div>
-		<div class="text-2xl font-semibold">{specificLocationOffers.length}</div>
-	</div>
-</div>
-
 {#if data.offers.length === 0}
 	<!-- Empty State -->
 	<div class="rounded-lg border-2 border-dashed border-base-300 bg-base-100 p-12 text-center">
@@ -251,7 +216,7 @@
 								<div class="min-w-0 text-xs">
 									<div class="font-semibold text-info">{offer.locationName}</div>
 									<div class="text-base-content/60">
-										{offer.locationCity}{#if offer.locationState}, {offer.locationState}{/if}
+										{offer.locationCity}{#if offer.locationProvince}, {offer.locationProvince}{/if}
 									</div>
 								</div>
 							</div>

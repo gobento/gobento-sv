@@ -18,7 +18,7 @@ export default defineConfig({
 		}),
 		SvelteKitPWA({
 			strategies: 'injectManifest',
-			srcDir: './src',
+			srcDir: 'src',
 			filename: 'service-worker.js',
 			manifest: {
 				name: 'Go Bento',

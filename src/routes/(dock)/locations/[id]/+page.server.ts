@@ -15,23 +15,24 @@ import { url } from 'valibot';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const session = locals.session!;
+	const account = locals.account!;
+	const isUser = account.accountType === 'user';
 
 	// Fetch the location
-	const location = await db
+	const locations = await db
 		.select()
 		.from(businessLocations)
 		.where(eq(businessLocations.id, params.id))
 		.limit(1);
 
-	if (location.length === 0) {
+	if (locations.length === 0) {
 		throw error(404, 'Location not found');
 	}
 
-	const locationData = location[0];
+	const location = locations[0];
 
 	// Check if current user is the owner
-	const isOwner = locationData.businessAccountId === session.accountId;
+	const isOwner = location.businessAccountId === account.id;
 
 	// Fetch the business profile for this location
 	const businesses = await db
@@ -40,7 +41,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			logo: files
 		})
 		.from(businessProfiles)
-		.where(eq(businessProfiles.accountId, locationData.businessAccountId))
+		.where(eq(businessProfiles.accountId, location.businessAccountId))
 		.leftJoin(files, eq(businessProfiles.profilePictureId, files.id))
 		.limit(1);
 
@@ -52,11 +53,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	// Fetch location image if exists
 	let locationImage = null;
-	if (locationData.imageId) {
-		const image = await db.select().from(files).where(eq(files.id, locationData.imageId)).limit(1);
+	if (location.imageId) {
+		const image = await db.select().from(files).where(eq(files.id, location.imageId)).limit(1);
 
 		if (image.length > 0) {
-			locationImage = image[0];
+			locationImage = { ...image[0], url: await getSignedDownloadUrl(image[0].key, 3600) };
 		}
 	}
 
@@ -67,15 +68,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.where(eq(businessOffers.locationId, params.id))
 		.orderBy(businessOffers.createdAt);
 
-	// Check if current account is a user
-	const account = await db
-		.select()
-		.from(accounts)
-		.where(eq(accounts.id, session.accountId))
-		.limit(1);
-
-	const isUser = account.length > 0 && account[0].accountType === 'user';
-
 	// Check if location is favorited by current user (only for users)
 	let isFavorite = false;
 	if (isUser) {
@@ -84,7 +76,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			.from(favoriteLocations)
 			.where(
 				and(
-					eq(favoriteLocations.accountId, session.accountId),
+					eq(favoriteLocations.accountId, account.id),
 					eq(favoriteLocations.locationId, params.id)
 				)
 			)
@@ -93,10 +85,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		isFavorite = favorite.length > 0;
 	}
 
+	//	const locationLogoUrl = await getSignedDownloadUrl(!.key, 3600); // 1 hour expiry
 	const logoUrl = await getSignedDownloadUrl(business.logo!.key, 3600); // 1 hour expiry
 
 	return {
-		location: locationData,
+		location: { ...location, logo: { url: locationImage?.url } },
 		offers,
 		business: { ...business, logo: { url: logoUrl } },
 		locationImage,
@@ -108,10 +101,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 export const actions: Actions = {
 	addFavorite: async ({ params, locals }) => {
-		const session = locals.session;
-		if (!session) {
-			return fail(401, { error: 'Unauthorized' });
-		}
+		const session = locals.session!;
 
 		// Verify account is a user
 		const account = await db

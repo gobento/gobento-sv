@@ -16,15 +16,6 @@
 	// State for favorite - initialize from server data
 	let isFavorite = $state(data.isFavorite ?? false);
 	let isTogglingFavorite = $state(false);
-
-	const getLogoUrl = (key: string) => {
-		return `/api/files/${key}`;
-	};
-
-	const getLocationImageUrl = (key: string | null) => {
-		if (!key) return null;
-		return `/api/files/${key}`;
-	};
 </script>
 
 <!-- Location Header with Background Image -->
@@ -33,7 +24,7 @@
 	<div class="relative h-64 bg-linear-to-br from-primary/20 via-primary/10 to-base-200">
 		{#if data.location.imageId && data.locationImage}
 			<img
-				src={getLogoUrl(data.locationImage.key)}
+				src={data.locationImage.url}
 				alt={data.location.name}
 				class="absolute inset-0 h-full w-full object-cover"
 			/>
@@ -59,7 +50,7 @@
 					href="/locations/{data.location.id}/edit"
 					class="btn btn-circle border-0 bg-base-100/90 shadow-lg hover:bg-base-100"
 				>
-					<IconEdit class="h-6 w-6" />
+					<IconEdit class="size-6" />
 				</a>
 			{/if}
 
@@ -88,9 +79,9 @@
 					>
 						{#if !isTogglingFavorite}
 							{#if isFavorite}
-								<IconHeartFilled class="h-6 w-6 text-error" />
+								<IconHeartFilled class="size-6 text-error" />
 							{:else}
-								<IconHeart class="h-6 w-6" />
+								<IconHeart class="size-6" />
 							{/if}
 						{/if}
 					</button>
@@ -103,12 +94,7 @@
 	<div class="card-body p-8 pt-20">
 		<div class="flex items-start justify-between gap-6">
 			<div class="min-w-0 flex-1">
-				<!-- Business Name (if available) -->
-				{#if data.business?.name}
-					<p class="mb-2 text-sm font-medium text-primary">{data.business.name}</p>
-				{/if}
-
-				<h1 class="mb-4 text-4xl font-bold tracking-tight">{data.location.name}</h1>
+				<h1 class="mb-4 text-lg font-bold tracking-tight">{data.business.name}</h1>
 
 				<!-- Address Section -->
 				<div class="mb-6 flex items-start gap-3">
@@ -116,7 +102,7 @@
 					<div class="space-y-1 text-base text-base-content/70">
 						<p class="font-medium">{data.location.address}</p>
 						<p>
-							{data.location.city}{#if data.location.state}, {data.location.state}{/if}
+							{data.location.city}{#if data.location.province}, {data.location.province}{/if}
 							{#if data.location.zipCode}
 								{data.location.zipCode}
 							{/if}
