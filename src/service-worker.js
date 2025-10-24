@@ -1,4 +1,5 @@
-/// <reference types="@sveltejs/kit" />
+// /src/service-worker.js
+// <reference types="@sveltejs/kit" />
 import { build, files, version } from '$service-worker';
 
 // Create a unique cache name for this deployment

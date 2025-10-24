@@ -1,3 +1,4 @@
+// /vite.config.ts
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
@@ -11,43 +12,39 @@ export default defineConfig({
 		Icons({
 			compiler: 'svelte',
 			autoInstall: true,
-			// Configure for separate files
-
 			iconCustomizer(collection, icon, props) {
 				props.mode = 'url';
 			}
 		}),
-		SvelteKitPWA()
-		/*{
+		SvelteKitPWA({
 			strategies: 'injectManifest',
-			srcDir: 'src',
+			srcDir: './src',
 			filename: 'service-worker.js',
 			manifest: {
-				name: 'Viz.rs',
-				short_name: 'Viz.rs',
-				theme_color: '#ff3e00',
+				name: 'Go Bento',
+				short_name: 'Go Bento',
+				theme_color: '#3b82f6',
+				background_color: '#ffffff',
+				display: 'standalone',
 				icons: [
 					{
-						src: 'favicon.png',
-						sizes: '16x16',
+						src: '/icon-192.png',
+						sizes: '192x192',
 						type: 'image/png'
 					},
 					{
-						src: 'favicon.png',
-						sizes: '32x32',
-						type: 'image/png'
-					},
-					{
-						src: 'favicon.png',
-						sizes: '48x48',
+						src: '/icon-512.png',
+						sizes: '512x512',
 						type: 'image/png'
 					}
 				]
+			},
+			devOptions: {
+				enabled: true,
+				type: 'module'
 			}
-			// other pwa options 
-		} */
+		})
 	],
-
 	server: {
 		allowedHosts: true,
 		port: 3021

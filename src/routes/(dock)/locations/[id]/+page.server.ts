@@ -11,9 +11,11 @@ import {
 import { eq, and } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
+import { url } from 'valibot';
+import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const session = locals.session;
+	const session = locals.session!;
 
 	// Fetch the location
 	const location = await db
@@ -32,7 +34,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const isOwner = locationData.businessAccountId === session.accountId;
 
 	// Fetch the business profile for this location
-	const business = await db
+	const businesses = await db
 		.select({
 			name: businessProfiles.name,
 			logo: files
@@ -41,6 +43,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.where(eq(businessProfiles.accountId, locationData.businessAccountId))
 		.leftJoin(files, eq(businessProfiles.profilePictureId, files.id))
 		.limit(1);
+
+	if (businesses.length === 0) {
+		throw error(404, 'Business not found');
+	}
+
+	const business = businesses[0];
 
 	// Fetch location image if exists
 	let locationImage = null;
@@ -85,10 +93,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		isFavorite = favorite.length > 0;
 	}
 
+	const logoUrl = await getSignedDownloadUrl(business.logo!.key, 3600); // 1 hour expiry
+
 	return {
 		location: locationData,
 		offers,
-		business: business[0] || null,
+		business: { ...business, logo: { url: logoUrl } },
 		locationImage,
 		isOwner,
 		isUser,

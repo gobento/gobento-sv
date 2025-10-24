@@ -102,12 +102,12 @@
 						<button
 							type="submit"
 							disabled={isRemoving}
-							class="btn btn-circle border-0 bg-base-100/90 shadow-lg backdrop-blur-sm btn-sm hover:bg-error hover:text-error-content"
+							class="btn btn-circle border-0 bg-base-100/90 backdrop-blur-sm btn-sm hover:bg-error hover:text-error-content"
 							class:loading={isRemoving}
 							aria-label="Remove from favorites"
 						>
 							{#if !isRemoving}
-								<IconDelete class="h-4 w-4" />
+								<IconDelete class="size-4" />
 							{/if}
 						</button>
 					</form>
@@ -115,14 +115,12 @@
 					<!-- Business Logo -->
 					<div class="absolute bottom-0 left-4 translate-y-1/2">
 						<div class="avatar">
-							<div class="h-16 w-16 rounded-xl border-4 border-base-100 bg-base-100 shadow-lg">
-								{#if favorite.businessLogo}
-									<img src={getFileUrl(favorite.businessLogo.key)} alt={favorite.businessName} />
-								{:else}
-									<div class="flex h-full w-full items-center justify-center bg-primary">
-										<IconLocation class="h-8 w-8 text-primary-content" />
-									</div>
-								{/if}
+							<div class="size-16 rounded-xl border-4 border-base-100 bg-base-100">
+								<img
+									src={favorite.business.logo!.url}
+									alt={favorite.businessName}
+									class="h-full w-full object-cover"
+								/>
 							</div>
 						</div>
 					</div>
@@ -142,7 +140,7 @@
 
 					<!-- Address -->
 					<div class="mb-4 flex items-start gap-2">
-						<IconMapPin class="mt-0.5 h-4 w-4 shrink-0 text-base-content/60" />
+						<IconMapPin class="mt-0.5 size-4 shrink-0 text-base-content/60" />
 						<p class="line-clamp-2 text-sm text-base-content/70">
 							{favorite.location.address}, {favorite.location.city}
 							{#if favorite.location.state}, {favorite.location.state}{/if}
@@ -152,14 +150,14 @@
 					<!-- Stats -->
 					<div class="flex flex-wrap items-center gap-4 text-sm">
 						<div class="flex items-center gap-1.5">
-							<IconTag class="h-4 w-4 text-base-content/60" />
+							<IconTag class="size-4 text-base-content/60" />
 							<span class="font-semibold">
 								{favorite.offerCount}
 								{favorite.offerCount === 1 ? 'offer' : 'offers'}
 							</span>
 						</div>
 						<div class="flex items-center gap-1.5 text-base-content/60">
-							<IconCalendar class="h-4 w-4" />
+							<IconCalendar class="size-4" />
 							<span>
 								Added {new Date(favorite.favoritedAt).toLocaleDateString('en-US', {
 									month: 'short',

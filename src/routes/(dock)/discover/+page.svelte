@@ -360,7 +360,7 @@
 					<div class="mb-4 flex justify-center">
 						<div class="h-20 w-20 overflow-hidden rounded-full">
 							<img
-								src={getLogoUrl(offer.business.logo.key)}
+								src={offer.business.logo.url}
 								alt={offer.business.name}
 								class="h-full w-full object-cover"
 							/>

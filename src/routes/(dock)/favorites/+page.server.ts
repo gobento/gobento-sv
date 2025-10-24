@@ -11,6 +11,7 @@ import {
 import { eq, and, count } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
+import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const session = locals.session!;
@@ -64,6 +65,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			const result = await db
 				.select({ count: count() })
 				.from(businessOffers)
+
 				.where(eq(businessOffers.locationId, fav.locationId));
 
 			return {
@@ -76,11 +78,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const offerCountMap = new Map(offerCounts.map((oc) => [oc.locationId, oc.count]));
 
 	return {
-		favorites: favorites.map((fav) => ({
-			...fav,
-			locationImage: imageMap.get(fav.locationId) || null,
-			offerCount: offerCountMap.get(fav.locationId) || 0
-		}))
+		favorites: await Promise.all(
+			favorites.map(async (fav) => {
+				const logoUrl = fav.businessLogo
+					? await getSignedDownloadUrl(fav.businessLogo.key, 3600)
+					: null;
+
+				return {
+					...fav,
+					locationImage: imageMap.get(fav.locationId) || null,
+					offerCount: offerCountMap.get(fav.locationId) || 0,
+					business: {
+						logo: logoUrl ? { url: logoUrl } : null
+					}
+				};
+			})
+		)
 	};
 };
 
