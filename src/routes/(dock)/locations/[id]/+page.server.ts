@@ -6,12 +6,14 @@ import {
 	favoriteLocations,
 	files,
 	businessProfiles,
-	accounts
+	accounts,
+	pushSubscriptions
 } from '$lib/server/schema';
 import { eq, and } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { randomUUID } from 'crypto';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
@@ -140,11 +142,43 @@ export const actions: Actions = {
 		}
 
 		try {
+			// Ensure user has a push subscription
+			const existingSubscription = await db
+				.select()
+				.from(pushSubscriptions)
+				.where(eq(pushSubscriptions.accountId, session.accountId))
+				.limit(1);
+
+			if (existingSubscription.length === 0) {
+				// Create a push subscription for this user with a unique topic
+				const ntfyTopic = `user-${session.accountId}-${randomUUID().slice(0, 8)}`;
+				await db.insert(pushSubscriptions).values({
+					id: randomUUID(),
+					accountId: session.accountId,
+					ntfyTopic,
+					isActive: true
+				});
+				console.log(
+					`✓ Created push subscription for user ${session.accountId} with topic ${ntfyTopic}`
+				);
+			} else if (!existingSubscription[0].isActive) {
+				// Reactivate existing subscription
+				await db
+					.update(pushSubscriptions)
+					.set({ isActive: true })
+					.where(eq(pushSubscriptions.accountId, session.accountId));
+				console.log(`✓ Reactivated push subscription for user ${session.accountId}`);
+			} else {
+				console.log(`✓ User ${session.accountId} already has active push subscription`);
+			}
+
 			// Add to favorites
 			await db.insert(favoriteLocations).values({
 				accountId: session.accountId,
 				locationId: params.id
 			});
+
+			console.log(`✓ Added location ${params.id} to favorites for user ${session.accountId}`);
 
 			// Return success with subscription state
 			return { success: true, subscribed: true };
@@ -170,6 +204,27 @@ export const actions: Actions = {
 						eq(favoriteLocations.locationId, params.id)
 					)
 				);
+
+			console.log(`✓ Removed location ${params.id} from favorites for user ${session.accountId}`);
+
+			// Check if user has any other favorites left
+			const remainingFavorites = await db
+				.select()
+				.from(favoriteLocations)
+				.where(eq(favoriteLocations.accountId, session.accountId))
+				.limit(1);
+
+			// If no favorites left, deactivate push subscription
+			if (remainingFavorites.length === 0) {
+				await db
+					.update(pushSubscriptions)
+					.set({ isActive: false })
+					.where(eq(pushSubscriptions.accountId, session.accountId));
+
+				console.log(
+					`✓ Deactivated push subscription for user ${session.accountId} (no favorites left)`
+				);
+			}
 
 			// Return success with subscription state
 			return { success: true, subscribed: false };
