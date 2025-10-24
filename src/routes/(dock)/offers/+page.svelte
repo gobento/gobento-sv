@@ -11,6 +11,7 @@
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconBox from '~icons/fluent/box-24-regular';
+	import { formatDate, formatTime } from '$lib/util';
 
 	let { data } = $props();
 
@@ -19,21 +20,6 @@
 	const specificLocationOffers = $derived(data.offers.filter((o) => o.locationId !== null));
 	const activeOffers = $derived(data.offers.filter((o) => o.isActive));
 	const inactiveOffers = $derived(data.offers.filter((o) => !o.isActive));
-
-	function formatTime(timeString: string | null) {
-		if (!timeString) return '';
-		const [hours, minutes] = timeString.split(':');
-		return `${hours}:${minutes}`;
-	}
-
-	function formatDate(date: Date | null) {
-		if (!date) return 'No expiry';
-		return new Date(date).toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		});
-	}
 </script>
 
 <!-- Header -->

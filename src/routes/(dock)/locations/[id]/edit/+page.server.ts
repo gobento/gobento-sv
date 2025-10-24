@@ -1,10 +1,10 @@
 // src/routes/(dock)/locations/[id]/edit/+page.server.ts
 import { db } from '$lib/server/db';
-import { businessLocations, businessProfiles, files, accounts } from '$lib/server/schema';
+import { businessLocations, businessProfiles, files } from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { uploadToBackblaze, getSignedDownloadUrl } from '$lib/server/backblaze';
+import { getSignedDownloadUrl, uploadFileFromForm } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const session = locals.session!;
@@ -105,6 +105,8 @@ export const actions: Actions = {
 		const country = formData.get('country') as string;
 		const latitude = parseFloat(formData.get('latitude') as string);
 		const longitude = parseFloat(formData.get('longitude') as string);
+		const imageFile = formData.get('image') as File;
+		const removeImage = formData.get('removeImage') === 'true';
 
 		// Validate required fields
 		if (!name || !address || !city || !zipCode || !country) {
@@ -116,6 +118,51 @@ export const actions: Actions = {
 		}
 
 		try {
+			let newImageId = location[0].imageId;
+
+			// Handle image removal
+			if (removeImage) {
+				newImageId = null;
+			}
+			// Handle new image upload
+			else if (imageFile && imageFile.size > 0) {
+				// Validate file type
+				if (!imageFile.type.startsWith('image/')) {
+					return fail(400, { error: 'File must be an image' });
+				}
+
+				// Validate file size (5MB)
+				if (imageFile.size > 5 * 1024 * 1024) {
+					return fail(400, { error: 'Image must be less than 5MB' });
+				}
+
+				// Upload to Backblaze
+				const uploadResult = await uploadFileFromForm(imageFile);
+
+				if (!uploadResult.success) {
+					return fail(500, { error: uploadResult.error || 'Failed to upload file' });
+				}
+
+				// Generate unique file ID
+				const fileId = crypto.randomUUID();
+
+				// Save file record
+				const fileRecord = await db
+					.insert(files)
+					.values({
+						id: fileId,
+						key: uploadResult.key,
+						fileName: imageFile.name,
+						contentType: imageFile.type,
+						sizeBytes: imageFile.size,
+						uploadedBy: session.accountId
+					})
+					.returning();
+
+				newImageId = fileRecord[0].id;
+			}
+
+			// Update location
 			await db
 				.update(businessLocations)
 				.set({
@@ -126,7 +173,8 @@ export const actions: Actions = {
 					zipCode,
 					country,
 					latitude,
-					longitude
+					longitude,
+					imageId: newImageId
 				})
 				.where(eq(businessLocations.id, params.id));
 
@@ -134,117 +182,6 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('Error updating location:', err);
 			return fail(500, { error: 'Failed to update location' });
-		}
-	},
-
-	uploadImage: async ({ params, locals, request }) => {
-		const session = locals.session!;
-		const formData = await request.formData();
-		const file = formData.get('file') as File;
-
-		if (!file || file.size === 0) {
-			return fail(400, { error: 'No file provided' });
-		}
-
-		// Verify ownership
-		const location = await db
-			.select()
-			.from(businessLocations)
-			.where(eq(businessLocations.id, params.id))
-			.limit(1);
-
-		if (location.length === 0) {
-			return fail(404, { error: 'Location not found' });
-		}
-
-		if (location[0].businessAccountId !== session.accountId) {
-			return fail(403, { error: 'Unauthorized' });
-		}
-
-		// Validate file type
-		if (!file.type.startsWith('image/')) {
-			return fail(400, { error: 'File must be an image' });
-		}
-
-		// Validate file size (5MB max)
-		const maxSize = 5 * 1024 * 1024;
-		if (file.size > maxSize) {
-			return fail(400, { error: 'File size must be less than 5MB' });
-		}
-
-		try {
-			// Generate unique key for storage
-			const fileId = crypto.randomUUID();
-			const key = `locations/${params.id}/${fileId}-${file.name}`;
-
-			// Upload to Backblaze
-			await uploadToBackblaze(file, key);
-
-			// Save file record
-			const fileRecord = await db
-				.insert(files)
-				.values({
-					id: fileId,
-					key,
-					fileName: file.name,
-					contentType: file.type,
-					sizeBytes: file.size,
-					uploadedBy: session.accountId
-				})
-				.returning();
-
-			// Update location with new image
-			await db
-				.update(businessLocations)
-				.set({
-					imageId: fileRecord[0].id
-				})
-				.where(eq(businessLocations.id, params.id));
-
-			const url = await getSignedDownloadUrl(key, 3600);
-
-			return {
-				success: true,
-				url,
-				fileName: file.name,
-				key
-			};
-		} catch (err) {
-			console.error('Error uploading image:', err);
-			return fail(500, { error: 'Failed to upload image' });
-		}
-	},
-
-	removeImage: async ({ params, locals }) => {
-		const session = locals.session!;
-
-		// Verify ownership
-		const location = await db
-			.select()
-			.from(businessLocations)
-			.where(eq(businessLocations.id, params.id))
-			.limit(1);
-
-		if (location.length === 0) {
-			return fail(404, { error: 'Location not found' });
-		}
-
-		if (location[0].businessAccountId !== session.accountId) {
-			return fail(403, { error: 'Unauthorized' });
-		}
-
-		try {
-			await db
-				.update(businessLocations)
-				.set({
-					imageId: null
-				})
-				.where(eq(businessLocations.id, params.id));
-
-			return { success: true };
-		} catch (err) {
-			console.error('Error removing image:', err);
-			return fail(500, { error: 'Failed to remove image' });
 		}
 	}
 };

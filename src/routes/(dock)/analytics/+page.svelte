@@ -1,9 +1,8 @@
 <!-- /src/routes/(dock)/analytics/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { Chart, Svg, Tooltip, Area, Axis, Highlight } from 'layerchart';
+	import { Chart, Svg, Area, Axis, Highlight, Tooltip } from 'layerchart';
 	import { scaleTime, scaleLinear } from 'd3-scale';
-	import { timeFormat } from 'd3-time-format';
 	import FluentChartMultiple24Regular from '~icons/fluent/chart-multiple-24-regular';
 	import IconMoney from '~icons/fluent/money-20-filled';
 	import IconBox from '~icons/fluent/box-20-filled';
@@ -21,6 +20,20 @@
 			revenue: row.revenue
 		}))
 	);
+
+	// Format date for axis labels (short version)
+	const formatDateShort = (date: Date) => {
+		return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+	};
+
+	// Format date for tooltip header
+	const formatDateLong = (date: Date) => {
+		return date.toLocaleDateString('en-US', {
+			weekday: 'short',
+			month: 'long',
+			day: 'numeric'
+		});
+	};
 </script>
 
 <!-- Header -->
@@ -43,7 +56,7 @@
 		<div class="flex items-start justify-between">
 			<div class="flex-1">
 				<div class="flex items-center gap-2">
-					<IconBox class="h-4 w-4 text-primary" />
+					<IconBox class="size-4 text-primary" />
 					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
 						Reservations
 					</p>
@@ -60,7 +73,7 @@
 		<div class="flex items-start justify-between">
 			<div class="flex-1">
 				<div class="flex items-center gap-2">
-					<IconMoney class="h-4 w-4 text-success" />
+					<IconMoney class="size-4 text-success" />
 					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">Revenue</p>
 				</div>
 				<p class="mt-3 text-3xl font-semibold tabular-nums">
@@ -78,7 +91,7 @@
 		<div class="flex items-start justify-between">
 			<div class="flex-1">
 				<div class="flex items-center gap-2">
-					<FluentChartMultiple24Regular class="h-4 w-4 text-info" />
+					<FluentChartMultiple24Regular class="size-4 text-info" />
 					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">Completion</p>
 				</div>
 				<p class="mt-3 text-3xl font-semibold tabular-nums">{data.stats.completionRate}%</p>
@@ -93,7 +106,7 @@
 		<div class="flex items-start justify-between">
 			<div class="flex-1">
 				<div class="flex items-center gap-2">
-					<IconStar class="h-4 w-4 text-warning" />
+					<IconStar class="size-4 text-warning" />
 					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">Favorites</p>
 				</div>
 				<p class="mt-3 text-3xl font-semibold tabular-nums">{data.stats.favoriteCount}</p>
@@ -117,7 +130,9 @@
 					y="count"
 					yScale={scaleLinear()}
 					yDomain={[0, null]}
+					yNice
 					padding={{ left: 16, bottom: 24, top: 8 }}
+					tooltip={{ mode: 'bisect-x' }}
 				>
 					<Svg>
 						<Area line={{ class: 'stroke-primary stroke-2' }} fill="transparent" />
@@ -129,21 +144,19 @@
 						/>
 						<Axis
 							placement="bottom"
-							formatTick={(d) => format(d, PeriodType.Day, { variant: 'short' })}
+							format={formatDateShort}
+							rule={{ class: 'stroke-base-content/10' }}
 							labelProps={{ class: 'text-xs fill-base-content/60' }}
 						/>
-						<Highlight area />
+						<Highlight points lines />
 					</Svg>
-					<Tooltip header={(data) => timeFormat('%B %d, %Y')(data.date)} let:data>
-						<div class="tooltip-row">
-							<span class="tooltip-label">Reservations:</span>
-							<span class="tooltip-value">{data.count}</span>
-						</div>
-						<div class="tooltip-row">
-							<span class="tooltip-label">Revenue:</span>
-							<span class="tooltip-value">€{data.revenue.toFixed(2)}</span>
-						</div>
-					</Tooltip>
+					<Tooltip.Root let:data>
+						<Tooltip.Header>{formatDateLong(data.date)}</Tooltip.Header>
+						<Tooltip.List>
+							<Tooltip.Item label="Reservations" value={data.count} />
+							<Tooltip.Item label="Revenue" value={`€${data.revenue.toFixed(2)}`} />
+						</Tooltip.List>
+					</Tooltip.Root>
 				</Chart>
 			</div>
 		{:else}
@@ -165,7 +178,9 @@
 					y="revenue"
 					yScale={scaleLinear()}
 					yDomain={[0, null]}
+					yNice
 					padding={{ left: 16, bottom: 24, top: 8 }}
+					tooltip={{ mode: 'bisect-x' }}
 				>
 					<Svg>
 						<Area line={{ class: 'stroke-success stroke-2' }} fill="transparent" />
@@ -178,17 +193,18 @@
 						/>
 						<Axis
 							placement="bottom"
-							formatTick={(d) => format(d, PeriodType.Day, { variant: 'short' })}
+							format={formatDateShort}
+							rule={{ class: 'stroke-base-content/10' }}
 							labelProps={{ class: 'text-xs fill-base-content/60' }}
 						/>
-						<Highlight area />
+						<Highlight points lines />
 					</Svg>
-					<Tooltip header={(data) => timeFormat('%B %d, %Y')(data.date)} let:data>
-						<div class="tooltip-row">
-							<span class="tooltip-label">Revenue:</span>
-							<span class="tooltip-value">€{data.revenue.toFixed(2)}</span>
-						</div>
-					</Tooltip>
+					<Tooltip.Root let:data>
+						<Tooltip.Header>{formatDateLong(data.date)}</Tooltip.Header>
+						<Tooltip.List>
+							<Tooltip.Item label="Revenue" value={`€${data.revenue.toFixed(2)}`} />
+						</Tooltip.List>
+					</Tooltip.Root>
 				</Chart>
 			</div>
 		{:else}
@@ -204,7 +220,7 @@
 	<!-- Peak Hours -->
 	<div class="rounded-lg border border-base-300 bg-base-200 p-6">
 		<h2 class="mb-6 flex items-center gap-2 text-base font-semibold">
-			<IconClock class="h-4 w-4" />
+			<IconClock class="size-4" />
 			Peak Pickup Hours
 		</h2>
 		{#if data.peakHoursData.length > 0}
@@ -215,7 +231,9 @@
 					y="pickups"
 					yScale={scaleLinear()}
 					yDomain={[0, null]}
+					yNice
 					padding={{ left: 16, bottom: 24, top: 8, right: 8 }}
+					tooltip={{ mode: 'bisect-x' }}
 				>
 					<Svg>
 						<Area line={{ class: 'stroke-info stroke-2' }} fill="transparent" />
@@ -225,19 +243,19 @@
 							rule={{ class: 'stroke-base-content/10' }}
 							labelProps={{ class: 'text-xs fill-base-content/60' }}
 						/>
-						<Axis placement="bottom" labelProps={{ class: 'text-xs fill-base-content/60' }} />
-						<Highlight area />
+						<Axis
+							placement="bottom"
+							rule={{ class: 'stroke-base-content/10' }}
+							labelProps={{ class: 'text-xs fill-base-content/60' }}
+						/>
+						<Highlight points lines />
 					</Svg>
-					<Tooltip let:data>
-						<div class="tooltip-row">
-							<span class="tooltip-label">Time:</span>
-							<span class="tooltip-value">{data.hour}</span>
-						</div>
-						<div class="tooltip-row">
-							<span class="tooltip-label">Pickups:</span>
-							<span class="tooltip-value">{data.pickups}</span>
-						</div>
-					</Tooltip>
+					<Tooltip.Root let:data>
+						<Tooltip.Header>{data.hour}</Tooltip.Header>
+						<Tooltip.List>
+							<Tooltip.Item label="Pickups" value={data.pickups} />
+						</Tooltip.List>
+					</Tooltip.Root>
 				</Chart>
 			</div>
 		{:else}
@@ -255,7 +273,7 @@
 				{#each data.offerPerformanceData as offer, i}
 					<div class="flex items-center gap-3 rounded border border-base-300 bg-base-100 p-3">
 						<div
-							class="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+							class="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
 						>
 							{i + 1}
 						</div>
@@ -291,7 +309,7 @@
 <!-- Location Performance Table -->
 <div class="rounded-lg border border-base-300 bg-base-200 p-6">
 	<h2 class="mb-6 flex items-center gap-2 text-base font-semibold">
-		<IconPeople class="h-4 w-4" />
+		<IconPeople class="size-4" />
 		Location Performance
 	</h2>
 	{#if data.locationPerformanceData.length > 0}
