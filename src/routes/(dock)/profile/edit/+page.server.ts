@@ -4,7 +4,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import { businessProfiles, charityProfiles, files } from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
-import { uploadToBackblaze, getSignedDownloadUrl } from '$lib/server/backblaze';
+import { uploadFileFromForm, getSignedDownloadUrl } from '$lib/server/backblaze';
 import { randomUUID } from 'crypto';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -35,6 +35,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			.from(files)
 			.where(eq(files.id, profile.profilePictureId))
 			.limit(1);
+
 		profilePictureUrl = file ? await getSignedDownloadUrl(file.key) : null;
 	}
 
@@ -88,28 +89,27 @@ export const actions: Actions = {
 					return fail(400, { error: 'File size must be less than 5MB' });
 				}
 
-				// Upload new file
-				const fileId = randomUUID();
-				const key = `profile-pictures/${accountId}/${fileId}`;
+				// Upload new file using the correct function
+				const uploadResult = await uploadFileFromForm(profilePicture);
 
-				try {
-					await uploadToBackblaze(profilePicture, key);
-
-					// Save file metadata to database
-					await db.insert(files).values({
-						id: fileId,
-						key,
-						fileName: profilePicture.name,
-						contentType: profilePicture.type,
-						sizeBytes: profilePicture.size,
-						uploadedBy: accountId
-					});
-
-					profilePictureId = fileId;
-				} catch (uploadErr) {
-					console.error('Upload error:', uploadErr);
-					return fail(500, { error: 'Failed to upload profile picture' });
+				if (!uploadResult.success) {
+					return fail(500, { error: uploadResult.error || 'Failed to upload profile picture' });
 				}
+
+				const fileId = randomUUID();
+				const storageKey = uploadResult.key;
+
+				// Save file metadata to database
+				await db.insert(files).values({
+					id: fileId,
+					key: storageKey,
+					fileName: profilePicture.name,
+					contentType: profilePicture.type,
+					sizeBytes: profilePicture.size,
+					uploadedBy: accountId
+				});
+
+				profilePictureId = fileId;
 			} else if (!profilePictureId) {
 				// No new file and no existing file
 				return fail(400, { error: 'Profile picture is required' });

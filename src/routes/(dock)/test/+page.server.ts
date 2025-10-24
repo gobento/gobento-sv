@@ -1,7 +1,7 @@
 // src/routes/(public)/test/+page.server.ts
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { uploadToBackblaze } from '$lib/server/backblaze';
+import { uploadFileFromForm } from '$lib/server/backblaze';
 import { db } from '$lib/server/db';
 import { files } from '$lib/server/schema';
 
@@ -35,18 +35,21 @@ export const actions: Actions = {
 				return fail(400, { error: 'File size must be less than 5MB' });
 			}
 
-			// Generate unique file ID and storage key
-			const fileId = crypto.randomUUID();
-			const timestamp = Date.now();
-			const fileExtension = file.name.split('.').pop() || 'jpg';
-			const storageKey = `uploads/${locals.account.id}/${fileId}.${fileExtension}`;
-
 			console.log('Uploading file:', file.name);
-			console.log('Storage key:', storageKey);
 			console.log('File size:', file.size, 'bytes');
 
-			// Upload to Backblaze
-			await uploadToBackblaze(file, storageKey);
+			// Upload to Backblaze using the correct function
+			const uploadResult = await uploadFileFromForm(file);
+
+			if (!uploadResult.success) {
+				return fail(500, { error: uploadResult.error || 'Upload failed' });
+			}
+
+			// Generate unique file ID and use storage key from upload
+			const fileId = crypto.randomUUID();
+			const storageKey = uploadResult.key;
+
+			console.log('Storage key:', storageKey);
 
 			// Save file record to database
 			await db.insert(files).values({
@@ -71,11 +74,9 @@ export const actions: Actions = {
 			};
 		} catch (error) {
 			console.error('Upload error:', error);
-
 			if (error instanceof Error) {
 				return fail(500, { error: `Upload failed: ${error.message}` });
 			}
-
 			return fail(500, { error: 'Failed to upload file' });
 		}
 	}

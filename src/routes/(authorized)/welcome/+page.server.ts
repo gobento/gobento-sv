@@ -4,26 +4,18 @@ import type { Actions, PageServerLoad } from './$types';
 import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { db } from '$lib/server/db';
-import {
-	accounts,
-	userProfiles,
-	businessProfiles,
-	charityProfiles,
-	files
-} from '$lib/server/schema';
-import { uploadToBackblaze } from '$lib/server/backblaze';
+import { accounts, businessProfiles, charityProfiles, files } from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { welcomeSchema } from './schema';
+import { uploadFileFromForm } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.account) {
 		redirect(303, '/auth/login');
 	}
-
 	// Initialize form with empty values
 	const form = await superValidate(valibot(welcomeSchema));
-
 	return {
 		form
 	};
@@ -52,13 +44,12 @@ export const actions = {
 
 			// Handle user account (no additional data needed)
 			if (accountType === 'user') {
-				/*	await db.insert(userProfiles).values({
-					accountId: locals.account.id
-				}); */
+				/*  await db.insert(userProfiles).values({
+                    accountId: locals.account.id
+                }); */
 			} else {
 				// Handle business/charity accounts - require profile picture
 				const pictureFile = formData.get('picture') as File;
-
 				if (!pictureFile || pictureFile.size === 0) {
 					return fail(400, {
 						form,
@@ -81,13 +72,19 @@ export const actions = {
 					});
 				}
 
-				// Generate file metadata
-				const fileId = randomUUID();
-				const fileExtension = pictureFile.name.split('.').pop() || 'jpg';
-				const storageKey = `profiles/${locals.account.id}/${fileId}.${fileExtension}`;
+				// Upload to Backblaze using the correct function
+				const uploadResult = await uploadFileFromForm(pictureFile);
 
-				// Upload to Backblaze
-				await uploadToBackblaze(pictureFile, storageKey);
+				if (!uploadResult.success) {
+					return fail(500, {
+						form,
+						error: uploadResult.error || 'Failed to upload file'
+					});
+				}
+
+				// Generate file ID and use the storage key from upload
+				const fileId = randomUUID();
+				const storageKey = uploadResult.key;
 
 				// Save file record
 				await db.insert(files).values({
@@ -101,7 +98,6 @@ export const actions = {
 
 				// Create profile based on type
 				if (accountType === 'business') {
-					//todo: check if this actually works
 					await db.insert(businessProfiles).values({
 						accountId: locals.account.id,
 						name: form.data.name,
