@@ -4,7 +4,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import { accounts, businessProfiles, charityProfiles, files } from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
-import { uploadToBackblaze, getSignedDownloadUrl } from '$lib/server/backblaze';
+import { getSignedDownloadUrl, uploadFileFromForm } from '$lib/server/backblaze';
 import { randomUUID } from 'crypto';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -100,16 +100,20 @@ export const actions: Actions = {
 		}
 
 		try {
-			const fileId = randomUUID();
-			const key = `profile-pictures/${accountId}/${fileId}`;
+			// Upload to Backblaze using the correct function
+			const uploadResult = await uploadFileFromForm(file);
 
-			// Upload to Backblaze
-			await uploadToBackblaze(file, key);
+			if (!uploadResult.success) {
+				return fail(500, { error: uploadResult.error || 'Upload failed' });
+			}
+
+			const fileId = randomUUID();
+			const storageKey = uploadResult.key;
 
 			// Save file metadata to database
 			await db.insert(files).values({
 				id: fileId,
-				key,
+				key: storageKey,
 				fileName: file.name,
 				contentType: file.type,
 				sizeBytes: file.size,
@@ -118,7 +122,7 @@ export const actions: Actions = {
 
 			return {
 				success: true,
-				url: await getSignedDownloadUrl(key),
+				url: await getSignedDownloadUrl(storageKey),
 				fileName: file.name,
 				key: fileId
 			};

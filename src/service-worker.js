@@ -1,28 +1,67 @@
-// /src/service-worker.js
-import { build, files, version } from '$service-worker';
-import { precacheAndRoute } from 'workbox-precaching';
+const sw = /** @type {ServiceWorkerGlobalScope} */ (/** @type {unknown} */ (self));
 
-// Required for injectManifest strategy
-//const manifest = self.__WB_MANIFEST;
+import { build, files, version } from '$service-worker';
 
 const CACHE = `cache-${version}`;
 const ASSETS = [...build, ...files];
 
-// Precache assets using Workbox
-precacheAndRoute([
-	...self.__WB_MANIFEST,
-	...ASSETS.map((url) => ({
-		url,
-		revision: version
-	}))
-]);
+// Install event - cache assets
+sw.addEventListener('install', (event) => {
+	async function addFilesToCache() {
+		const cache = await caches.open(CACHE);
+		await cache.addAll(ASSETS);
+	}
+
+	event.waitUntil(addFilesToCache());
+});
+
+// Activate event - delete old caches
+sw.addEventListener('activate', (event) => {
+	async function deleteOldCaches() {
+		for (const key of await caches.keys()) {
+			if (key !== CACHE) await caches.delete(key);
+		}
+	}
+
+	event.waitUntil(deleteOldCaches());
+});
+
+// Fetch event - serve from cache, fallback to network
+sw.addEventListener('fetch', (event) => {
+	if (event.request.method !== 'GET') return;
+
+	async function respond() {
+		const url = new URL(event.request.url);
+		const cache = await caches.open(CACHE);
+
+		// Try cache first
+		if (ASSETS.includes(url.pathname)) {
+			const response = await cache.match(url.pathname);
+			if (response) return response;
+		}
+
+		// Try network
+		try {
+			const response = await fetch(event.request);
+			if (response.status === 200) {
+				cache.put(event.request, response.clone());
+			}
+			return response;
+		} catch {
+			const response = await cache.match(url.pathname);
+			if (response) return response;
+		}
+	}
+
+	event.respondWith(respond());
+});
 
 // Listen for ntfy subscription messages
 let ntfyConnection = null;
 let currentTopic = null;
-let ntfyServerUrl = 'http://localhost:8080'; // Default
+let ntfyServerUrl = 'http://localhost:8080';
 
-self.addEventListener('message', (event) => {
+sw.addEventListener('message', (event) => {
 	if (event.data && event.data.type === 'SUBSCRIBE_NTFY') {
 		const { topic, serverUrl } = event.data;
 
@@ -60,11 +99,10 @@ function subscribeToNtfy(topic) {
 		try {
 			const data = JSON.parse(event.data);
 
-			// Only show message events (not open/keepalive)
 			if (data.event === 'message') {
 				console.log('Received notification:', data);
 
-				self.registration.showNotification(data.title || 'New Message', {
+				sw.registration.showNotification(data.title || 'New Message', {
 					body: data.message,
 					icon: '/icon-192.png',
 					badge: '/icon-192.png',
@@ -86,7 +124,6 @@ function subscribeToNtfy(topic) {
 		console.error('EventSource error:', error);
 		eventSource.close();
 
-		// Reconnect after 5 seconds
 		setTimeout(() => {
 			if (currentTopic) {
 				console.log('Reconnecting to ntfy...');
@@ -99,20 +136,20 @@ function subscribeToNtfy(topic) {
 }
 
 // Handle notification clicks
-self.addEventListener('notificationclick', (event) => {
+sw.addEventListener('notificationclick', (event) => {
 	event.notification.close();
 
 	const urlToOpen = event.notification.data?.url || '/';
 
 	event.waitUntil(
-		self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+		sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
 			for (let client of windowClients) {
 				if (client.url === urlToOpen && 'focus' in client) {
 					return client.focus();
 				}
 			}
-			if (self.clients.openWindow) {
-				return self.clients.openWindow(urlToOpen);
+			if (sw.clients.openWindow) {
+				return sw.clients.openWindow(urlToOpen);
 			}
 		})
 	);
