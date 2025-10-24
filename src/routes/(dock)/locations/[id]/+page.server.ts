@@ -4,6 +4,7 @@ import {
 	businessLocations,
 	businessOffers,
 	favoriteLocations,
+	locationSubscriptions,
 	files,
 	businessProfiles,
 	accounts
@@ -11,7 +12,6 @@ import {
 import { eq, and } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { url } from 'valibot';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -85,8 +85,25 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		isFavorite = favorite.length > 0;
 	}
 
-	//	const locationLogoUrl = await getSignedDownloadUrl(!.key, 3600); // 1 hour expiry
-	const logoUrl = await getSignedDownloadUrl(business.logo!.key, 3600); // 1 hour expiry
+	// Check if user is subscribed to notifications (only for users)
+	let isSubscribed = false;
+	if (isUser) {
+		const subscription = await db
+			.select()
+			.from(locationSubscriptions)
+			.where(
+				and(
+					eq(locationSubscriptions.accountId, account.id),
+					eq(locationSubscriptions.locationId, params.id),
+					eq(locationSubscriptions.isActive, true)
+				)
+			)
+			.limit(1);
+
+		isSubscribed = subscription.length > 0;
+	}
+
+	const logoUrl = await getSignedDownloadUrl(business.logo!.key, 3600);
 
 	return {
 		location: { ...location, logo: { url: locationImage?.url } },
@@ -95,7 +112,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		locationImage,
 		isOwner,
 		isUser,
-		isFavorite
+		isFavorite,
+		isSubscribed
 	};
 };
 
@@ -141,14 +159,34 @@ export const actions: Actions = {
 			return fail(400, { error: 'Location already favorited' });
 		}
 
-		// Add to favorites
 		try {
+			// Add to favorites
 			await db.insert(favoriteLocations).values({
 				accountId: session.accountId,
 				locationId: params.id
 			});
 
-			return { success: true };
+			// Automatically subscribe to notifications using location-based topic
+			const ntfyTopic = `location-${params.id}`;
+
+			await db
+				.insert(locationSubscriptions)
+				.values({
+					accountId: session.accountId,
+					locationId: params.id,
+					ntfyTopic,
+					isActive: true
+				})
+				.onConflictDoUpdate({
+					target: [locationSubscriptions.accountId, locationSubscriptions.locationId],
+					set: {
+						isActive: true,
+						ntfyTopic
+					}
+				});
+
+			// Return success with subscription state
+			return { success: true, subscribed: true };
 		} catch (err) {
 			console.error('Error adding favorite:', err);
 			return fail(500, { error: 'Failed to add favorite' });
@@ -161,8 +199,8 @@ export const actions: Actions = {
 			return fail(401, { error: 'Unauthorized' });
 		}
 
-		// Delete from favorites
 		try {
+			// Delete from favorites
 			await db
 				.delete(favoriteLocations)
 				.where(
@@ -172,10 +210,103 @@ export const actions: Actions = {
 					)
 				);
 
-			return { success: true };
+			// Also unsubscribe from notifications
+			await db
+				.update(locationSubscriptions)
+				.set({ isActive: false })
+				.where(
+					and(
+						eq(locationSubscriptions.accountId, session.accountId),
+						eq(locationSubscriptions.locationId, params.id)
+					)
+				);
+
+			// Return success with subscription state
+			return { success: true, subscribed: false };
 		} catch (err) {
 			console.error('Error removing favorite:', err);
 			return fail(500, { error: 'Failed to remove favorite' });
+		}
+	},
+
+	subscribe: async ({ params, locals }) => {
+		const session = locals.session;
+		if (!session) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		// Verify account is a user
+		const account = await db
+			.select()
+			.from(accounts)
+			.where(eq(accounts.id, session.accountId))
+			.limit(1);
+
+		if (account.length === 0 || account[0].accountType !== 'user') {
+			return fail(403, { error: 'Only users can subscribe to notifications' });
+		}
+
+		// Verify location exists
+		const location = await db
+			.select()
+			.from(businessLocations)
+			.where(eq(businessLocations.id, params.id))
+			.limit(1);
+
+		if (location.length === 0) {
+			return fail(404, { error: 'Location not found' });
+		}
+
+		// Use location-based topic format
+		const ntfyTopic = `location-${params.id}`;
+
+		try {
+			// Insert or update subscription
+			await db
+				.insert(locationSubscriptions)
+				.values({
+					accountId: session.accountId,
+					locationId: params.id,
+					ntfyTopic,
+					isActive: true
+				})
+				.onConflictDoUpdate({
+					target: [locationSubscriptions.accountId, locationSubscriptions.locationId],
+					set: {
+						ntfyTopic,
+						isActive: true
+					}
+				});
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error subscribing to notifications:', err);
+			return fail(500, { error: 'Failed to subscribe' });
+		}
+	},
+
+	unsubscribe: async ({ params, locals }) => {
+		const session = locals.session;
+		if (!session) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		try {
+			// Set subscription to inactive
+			await db
+				.update(locationSubscriptions)
+				.set({ isActive: false })
+				.where(
+					and(
+						eq(locationSubscriptions.accountId, session.accountId),
+						eq(locationSubscriptions.locationId, params.id)
+					)
+				);
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error unsubscribing from notifications:', err);
+			return fail(500, { error: 'Failed to unsubscribe' });
 		}
 	}
 };

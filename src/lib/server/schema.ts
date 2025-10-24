@@ -225,7 +225,26 @@ export const notificationLog = pgTable('notification_log', {
 	status: text('status', { enum: ['sent', 'failed'] }).notNull()
 });
 
-// Type exports
+// Location subscriptions for push notifications
+export const locationSubscriptions = pgTable(
+	'location_subscriptions',
+	{
+		accountId: text('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		locationId: text('location_id')
+			.notNull()
+			.references(() => businessLocations.id, { onDelete: 'cascade' }),
+		ntfyTopic: text('ntfy_topic').notNull(), // User's unique ntfy topic
+		isActive: boolean('is_active').notNull().default(true),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => ({
+		pk: primaryKey({ columns: [table.accountId, table.locationId] })
+	})
+);
+
+export type LocationSubscription = typeof locationSubscriptions.$inferSelect;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NotificationLog = typeof notificationLog.$inferSelect;
 export type Account = typeof accounts.$inferSelect;

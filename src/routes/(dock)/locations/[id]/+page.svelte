@@ -16,6 +16,11 @@
 	// State for favorite - initialize from server data
 	let isFavorite = $state(data.isFavorite ?? false);
 	let isTogglingFavorite = $state(false);
+
+	// State for notifications
+	let isSubscribed = $state(data.isSubscribed ?? false);
+	let isTogglingSubscription = $state(false);
+	let showSubscriptionSetup = $state(false);
 </script>
 
 <!-- Location Header with Background Image -->
@@ -65,6 +70,14 @@
 							await update();
 							if (result.type === 'success') {
 								isFavorite = !isFavorite;
+								// If favoriting and not subscribed, prompt for ntfy topic
+								if (isFavorite && !isSubscribed && result.data?.needsNtfyTopic) {
+									isSubscribed = true;
+								}
+								// If unfavoriting, also unsubscribe
+								if (!isFavorite && isSubscribed) {
+									isSubscribed = false;
+								}
 							}
 							isTogglingFavorite = false;
 						};
@@ -138,6 +151,111 @@
 		</div>
 	</div>
 </div>
+
+<!-- Notification Subscription Panel -->
+{#if showSubscriptionSetup && data.isUser}
+	<div class="card mb-8 border-2 border-primary/30 bg-base-100 shadow-lg">
+		<div class="card-body">
+			<h2 class="card-title">
+				<IconAlert class="size-6 text-primary" />
+				Push Notifications
+			</h2>
+
+			{#if !isSubscribed}
+				<div role="alert" class="alert">
+					<IconAlert class="size-6" />
+					<div>
+						<div class="font-bold">Subscribe to this location</div>
+						<div class="text-sm">
+							Topic: <code class="badge font-mono badge-neutral">location-{data.location.id}</code>
+						</div>
+					</div>
+				</div>
+
+				<p class="text-base-content/70">
+					Get notified instantly when new offers are posted at this location. Subscribe to the topic
+					above in your ntfy app, then click the button below.
+				</p>
+
+				<form
+					method="POST"
+					action="?/subscribe"
+					use:enhance={() => {
+						isTogglingSubscription = true;
+						return async ({ update, result }) => {
+							await update();
+							if (result.type === 'success') {
+								isSubscribed = true;
+								showSubscriptionSetup = false;
+							}
+							isTogglingSubscription = false;
+						};
+					}}
+					class="mt-4 space-y-4"
+				>
+					<div class="flex justify-end gap-3">
+						<button
+							type="button"
+							class="btn btn-ghost"
+							onclick={() => (showSubscriptionSetup = false)}
+						>
+							Cancel
+						</button>
+						<button type="submit" disabled={isTogglingSubscription} class="btn btn-primary">
+							{#if isTogglingSubscription}
+								<span class="loading loading-sm loading-spinner"></span>
+								Subscribing...
+							{:else}
+								I've Subscribed in ntfy
+							{/if}
+						</button>
+					</div>
+				</form>
+			{:else}
+				<div role="alert" class="alert alert-success">
+					<IconAlert class="size-6" />
+					<div>
+						<div class="font-bold">You're subscribed!</div>
+						<div class="text-sm">
+							Topic: <code class="badge font-mono text-xs badge-neutral"
+								>location-{data.location.id}</code
+							>
+						</div>
+					</div>
+				</div>
+
+				<p class="text-sm text-base-content/70">
+					You'll receive notifications when new offers are posted at this location.
+				</p>
+
+				<form
+					method="POST"
+					action="?/unsubscribe"
+					use:enhance={() => {
+						isTogglingSubscription = true;
+						return async ({ update, result }) => {
+							await update();
+							if (result.type === 'success') {
+								isSubscribed = false;
+							}
+							isTogglingSubscription = false;
+						};
+					}}
+					class="mt-4"
+				>
+					<button type="submit" disabled={isTogglingSubscription} class="btn btn-ghost btn-sm">
+						{#if isTogglingSubscription}
+							<span class="loading loading-xs loading-spinner"></span>
+							Unsubscribing...
+						{:else}
+							Unsubscribe
+						{/if}
+					</button>
+				</form>
+			{/if}
+		</div>
+	</div>
+{/if}
 
 <!-- Offers Section -->
 <div class="mb-8">
