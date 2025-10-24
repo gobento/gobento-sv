@@ -11,6 +11,7 @@
 	import IconMail from '~icons/fluent/mail-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import FluentBuildingShop24Regular from '~icons/fluent/building-shop-24-regular';
+
 	interface Props {
 		data: PageData;
 	}
@@ -66,18 +67,18 @@
 	const config = $derived(getAccountTypeConfig(data.account.accountType));
 </script>
 
-<div class="mx-auto max-w-4xl">
-	<div class="bg-base-100">
+<div class="mx-auto max-w-4xl px-4 py-8">
+	<div class="overflow-hidden rounded-2xl bg-base-100">
 		<!-- Header Section -->
-		<div class="flex flex-col items-center border-b border-base-300 px-6 py-12">
+		<div class="flex flex-col items-center px-6 py-16">
 			<!-- Profile Picture -->
-			<div class="avatar mb-6">
-				<div class="w-32 rounded-full bg-base-200">
+			<div class="avatar mb-8">
+				<div class="w-32 rounded-full bg-base-200/50">
 					{#if data.profilePictureUrl}
 						<img src={data.profilePictureUrl} alt="Profile" />
 					{:else}
 						<div class="flex h-full w-full items-center justify-center">
-							<config.icon class="h-16 w-16 text-base-content/30" />
+							<config.icon class="h-16 w-16 text-base-content/20" />
 						</div>
 					{/if}
 				</div>
@@ -85,105 +86,109 @@
 
 			<!-- Name/Title -->
 			{#if hasProfile && data.profile}
-				<h1 class="mb-2 text-3xl font-semibold">{data.profile.name}</h1>
-				<p class="mb-4 max-w-2xl text-center text-base-content/70">
+				<h1 class="mb-3 text-4xl font-bold tracking-tight">{data.profile.name}</h1>
+				<p class="mb-6 max-w-2xl text-center text-lg text-base-content/60">
 					{data.profile.description}
 				</p>
 			{:else if canEdit}
-				<h1 class="mb-2 text-3xl font-semibold text-base-content/50">Profile Incomplete</h1>
-				<p class="mb-4 text-sm text-base-content/60">{config.emptyMessage}</p>
+				<h1 class="mb-3 text-4xl font-bold tracking-tight text-base-content/40">
+					Profile Incomplete
+				</h1>
+				<p class="mb-6 text-base text-base-content/50">{config.emptyMessage}</p>
 			{:else}
-				<h1 class="mb-2 text-3xl font-semibold">
+				<h1 class="mb-3 text-4xl font-bold tracking-tight">
 					{data.account.accountType === 'admin' ? 'Administrator' : 'My Profile'}
 				</h1>
 			{/if}
 
-			<!-- Account Type Label -->
-			<div class="mb-4 flex items-center gap-2 text-sm text-base-content/60">
-				<config.icon class="h-4 w-4" />
+			<!-- Account Type Badge -->
+			<div
+				class="mb-5 inline-flex items-center gap-2 rounded-full bg-base-200/50 px-4 py-2 text-sm font-medium text-base-content/70"
+			>
+				<config.icon class="size-4" />
 				<span>{config.label}</span>
 			</div>
 
 			<!-- Email -->
-			<p class="text-sm text-base-content/50">{data.account.email}</p>
+			<p class="text-sm text-base-content/40">{data.account.email}</p>
 		</div>
 
 		<!-- Info Section -->
-		<div class="px-6 py-8">
-			<div class="mx-auto grid max-w-md gap-6">
+		<div class="px-6 pb-8">
+			<div class="mx-auto max-w-2xl space-y-3">
 				<!-- Saving food since -->
-				<div class="flex items-center justify-between border-b border-base-300 pb-4">
-					<div class="flex items-center gap-3">
-						<div class="flex h-10 w-10 items-center justify-center rounded-full bg-base-200">
-							<IconCalendar class="h-5 w-5 text-base-content/60" />
-						</div>
-						<div>
-							<p class="text-xs text-base-content/50">Saving food since</p>
-							<p class="font-medium">
-								{new Date(data.account.createdAt).toLocaleDateString('en-US', {
-									month: 'long',
-									year: 'numeric'
-								})}
-							</p>
-						</div>
+				<div class="flex items-center gap-4 rounded-xl bg-base-200/30 px-5 py-4">
+					<div class="flex h-12 w-12 items-center justify-center rounded-full bg-base-200/50">
+						<IconCalendar class="h-5 w-5 text-base-content/50" />
+					</div>
+					<div class="flex-1">
+						<p class="text-xs font-medium tracking-wide text-base-content/40 uppercase">
+							Saving food since
+						</p>
+						<p class="mt-1 text-base font-semibold">
+							{new Date(data.account.createdAt).toLocaleDateString('en-US', {
+								month: 'long',
+								year: 'numeric'
+							})}
+						</p>
 					</div>
 				</div>
 
 				{#if data.account.accountType === 'business' && data.profile}
 					<!-- Business Type -->
-					<div class="flex items-center justify-between border-b border-base-300 pb-4">
-						<div class="flex items-center gap-3">
-							<div class="flex h-10 w-10 items-center justify-center rounded-full bg-base-200">
-								<FluentBuildingShop24Regular class="h-5 w-5 text-base-content/60" />
-							</div>
-							<div>
-								<p class="text-xs text-base-content/50">Business Type</p>
-								<p class="font-medium">
-									{businessTypeLabels[data.profile.businessType] || data.profile.businessType || ''}
-								</p>
-							</div>
+					<div class="flex items-center gap-4 rounded-xl bg-base-200/30 px-5 py-4">
+						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-base-200/50">
+							<FluentBuildingShop24Regular class="h-5 w-5 text-base-content/50" />
+						</div>
+						<div class="flex-1">
+							<p class="text-xs font-medium tracking-wide text-base-content/40 uppercase">
+								Business Type
+							</p>
+							<p class="mt-1 text-base font-semibold">
+								{businessTypeLabels[data.profile.businessType] || data.profile.businessType || ''}
+							</p>
 						</div>
 					</div>
 
 					<!-- Country -->
-					<div class="flex items-center justify-between border-b border-base-300 pb-4">
-						<div class="flex items-center gap-3">
-							<div class="flex h-10 w-10 items-center justify-center rounded-full bg-base-200">
-								<IconLocation class="h-5 w-5 text-base-content/60" />
-							</div>
-							<div>
-								<p class="text-xs text-base-content/50">Country</p>
-								<p class="font-medium">{data.profile.country}</p>
-							</div>
+					<div class="flex items-center gap-4 rounded-xl bg-base-200/30 px-5 py-4">
+						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-base-200/50">
+							<IconLocation class="h-5 w-5 text-base-content/50" />
+						</div>
+						<div class="flex-1">
+							<p class="text-xs font-medium tracking-wide text-base-content/40 uppercase">
+								Country
+							</p>
+							<p class="mt-1 text-base font-semibold">{data.profile.country}</p>
 						</div>
 					</div>
 				{/if}
 
 				{#if data.account.accountType === 'charity' && data.profile}
 					<!-- Country -->
-					<div class="flex items-center justify-between border-b border-base-300 pb-4">
-						<div class="flex items-center gap-3">
-							<div class="flex h-10 w-10 items-center justify-center rounded-full bg-base-200">
-								<IconLocation class="h-5 w-5 text-base-content/60" />
-							</div>
-							<div>
-								<p class="text-xs text-base-content/50">Country</p>
-								<p class="font-medium">{data.profile.country}</p>
-							</div>
+					<div class="flex items-center gap-4 rounded-xl bg-base-200/30 px-5 py-4">
+						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-base-200/50">
+							<IconLocation class="h-5 w-5 text-base-content/50" />
+						</div>
+						<div class="flex-1">
+							<p class="text-xs font-medium tracking-wide text-base-content/40 uppercase">
+								Country
+							</p>
+							<p class="mt-1 text-base font-semibold">{data.profile.country}</p>
 						</div>
 					</div>
 				{/if}
 
 				{#if data.account.accountType === 'admin'}
-					<div class="flex items-center justify-between border-b border-base-300 pb-4">
-						<div class="flex items-center gap-3">
-							<div class="flex h-10 w-10 items-center justify-center rounded-full bg-base-200">
-								<IconShield class="h-5 w-5 text-base-content/60" />
-							</div>
-							<div>
-								<p class="text-xs text-base-content/50">Access Level</p>
-								<p class="font-medium">Full Access</p>
-							</div>
+					<div class="flex items-center gap-4 rounded-xl bg-base-200/30 px-5 py-4">
+						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-base-200/50">
+							<IconShield class="h-5 w-5 text-base-content/50" />
+						</div>
+						<div class="flex-1">
+							<p class="text-xs font-medium tracking-wide text-base-content/40 uppercase">
+								Access Level
+							</p>
+							<p class="mt-1 text-base font-semibold">Full Access</p>
 						</div>
 					</div>
 				{/if}
@@ -191,7 +196,7 @@
 		</div>
 
 		<!-- Action Buttons -->
-		<div class="flex gap-3 border-t border-base-300 px-6 py-6">
+		<div class="flex gap-3 px-6 py-6">
 			{#if canEdit}
 				<a href="/profile/edit" class="btn flex-1 btn-primary">
 					<IconEdit class="h-5 w-5" />
@@ -199,24 +204,24 @@
 				</a>
 			{/if}
 
-			<a href="/auth/logout" class="btn flex-1 btn-outline">Logout</a>
+			<a href="/auth/logout" class="btn flex-1 btn-secondary">Logout</a>
 		</div>
 
 		<!-- Footer Links -->
-		<div class="border-t border-base-300 px-6 py-4">
-			<div class="flex flex-wrap justify-center gap-6 text-sm">
+		<div class="px-6 py-6">
+			<div class="flex flex-wrap justify-center gap-8 text-sm">
 				<a
 					href="/about"
-					class="flex items-center gap-2 text-base-content/60 hover:text-base-content"
+					class="flex items-center gap-2 text-base-content/50 transition-colors hover:text-base-content/80"
 				>
-					<IconInfo class="h-4 w-4" />
+					<IconInfo class="size-4" />
 					<span>About & Legal</span>
 				</a>
 				<a
 					href="/contact"
-					class="flex items-center gap-2 text-base-content/60 hover:text-base-content"
+					class="flex items-center gap-2 text-base-content/50 transition-colors hover:text-base-content/80"
 				>
-					<IconMail class="h-4 w-4" />
+					<IconMail class="size-4" />
 					<span>Contact</span>
 				</a>
 			</div>

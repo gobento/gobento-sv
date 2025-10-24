@@ -1,7 +1,6 @@
 <!-- src/routes/(dock)/profile/edit/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
-	import FileUpload from '$lib/components/FileUpload.svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import IconUser from '~icons/fluent/person-24-regular';
@@ -10,6 +9,7 @@
 	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
 	import IconCheck from '~icons/fluent/checkmark-24-regular';
 	import IconImage from '~icons/fluent/image-24-regular';
+	import IconUpload from '~icons/fluent/arrow-upload-24-regular';
 
 	interface Props {
 		data: PageData;
@@ -18,23 +18,52 @@
 	let { data }: Props = $props();
 
 	let saving = $state(false);
-	let uploadedFileId = $state<string | null>(data.profile?.profilePictureId || null);
-	let uploadError = $state<string | null>(null);
+	let selectedFile = $state<File | null>(null);
+	let previewUrl = $state<string | null>(data.profilePictureUrl);
+	let fileInputError = $state<string | null>(null);
 	let formError = $state<string | null>(null);
 
 	// Form fields
 	let editName = $state(data.profile?.name || '');
 	let editDescription = $state(data.profile?.description || '');
-	let newProfilePicture = $state<string | null>(data.profilePictureUrl);
 
-	function handleUploadSuccess(uploadData: { url: string; fileName: string; key: string }) {
-		uploadedFileId = uploadData.key;
-		newProfilePicture = uploadData.url;
-		uploadError = null;
-	}
+	// Track if we're using existing picture or new one
+	let hasExistingPicture = $state(!!data.profile?.profilePictureId);
+	let keepExistingPicture = $state(hasExistingPicture);
 
-	function handleUploadError(error: string) {
-		uploadError = error;
+	function handleFileSelect(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+
+		if (!file) {
+			return;
+		}
+
+		// Validate file type
+		if (!file.type.startsWith('image/')) {
+			fileInputError = 'Only images are allowed';
+			input.value = '';
+			return;
+		}
+
+		// Validate file size (5MB max)
+		const maxSize = 5 * 1024 * 1024;
+		if (file.size > maxSize) {
+			fileInputError = 'File size must be less than 5MB';
+			input.value = '';
+			return;
+		}
+
+		// Clear error and set file
+		fileInputError = null;
+		selectedFile = file;
+		keepExistingPicture = false;
+
+		// Create preview URL
+		if (previewUrl && !hasExistingPicture) {
+			URL.revokeObjectURL(previewUrl);
+		}
+		previewUrl = URL.createObjectURL(file);
 	}
 
 	function getAccountTypeConfig(type: string) {
@@ -62,6 +91,9 @@
 	}
 
 	const config = $derived(getAccountTypeConfig(data.account.accountType));
+	const canSave = $derived(
+		editName.trim() && editDescription.trim() && (selectedFile || keepExistingPicture)
+	);
 </script>
 
 <div class="mx-auto max-w-3xl">
@@ -82,6 +114,7 @@
 		<form
 			method="POST"
 			action="?/updateProfile"
+			enctype="multipart/form-data"
 			use:enhance={() => {
 				saving = true;
 				formError = null;
@@ -99,8 +132,6 @@
 			}}
 			class="px-6 py-8"
 		>
-			<input type="hidden" name="profilePictureId" value={uploadedFileId || ''} />
-
 			<div class="space-y-8">
 				<!-- Profile Picture -->
 				<div>
@@ -109,11 +140,11 @@
 						<span class="ml-1 text-sm text-error">*</span>
 					</label>
 
-					{#if newProfilePicture}
+					{#if previewUrl}
 						<div class="mb-6 flex justify-center">
 							<div class="avatar">
 								<div class="w-32 rounded-full bg-base-200">
-									<img src={newProfilePicture} alt="Preview" />
+									<img src={previewUrl} alt="Preview" />
 								</div>
 							</div>
 						</div>
@@ -125,18 +156,33 @@
 						</div>
 					{/if}
 
-					<FileUpload
-						action="?/upload"
-						maxSizeBytes={5 * 1024 * 1024}
-						acceptedTypes="image/*"
-						disabled={saving}
-						onSuccess={handleUploadSuccess}
-						onError={handleUploadError}
-					/>
+					<div class="flex flex-col items-center gap-3">
+						<label class="btn w-full max-w-xs cursor-pointer gap-2 btn-outline">
+							<IconUpload class="h-5 w-5" />
+							{selectedFile ? 'Change Picture' : 'Choose Picture'}
+							<input
+								type="file"
+								name="profilePicture"
+								accept="image/*"
+								class="hidden"
+								onchange={handleFileSelect}
+								disabled={saving}
+							/>
+						</label>
 
-					{#if uploadError}
+						{#if selectedFile}
+							<div class="text-center">
+								<p class="text-sm font-medium text-success">✓ Ready to upload</p>
+								<p class="mt-1 text-xs text-base-content/60">{selectedFile.name}</p>
+							</div>
+						{:else if keepExistingPicture}
+							<p class="text-sm text-base-content/60">Using current profile picture</p>
+						{/if}
+					</div>
+
+					{#if fileInputError}
 						<div class="mt-3 rounded-lg border border-error/20 bg-error/10 px-4 py-3">
-							<p class="text-sm text-error">{uploadError}</p>
+							<p class="text-sm text-error">{fileInputError}</p>
 						</div>
 					{/if}
 				</div>
@@ -189,11 +235,7 @@
 
 				<!-- Action Buttons -->
 				<div class="flex gap-3 border-t border-base-300 pt-6">
-					<button
-						type="submit"
-						class="btn flex-1 btn-primary"
-						disabled={saving || !uploadedFileId || !editName.trim() || !editDescription.trim()}
-					>
+					<button type="submit" class="btn flex-1 btn-primary" disabled={saving || !canSave}>
 						{#if saving}
 							<span class="loading loading-spinner"></span>
 							Saving...

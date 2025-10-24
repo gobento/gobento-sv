@@ -292,19 +292,6 @@
 {:else if data.isOwner}
 	<!-- Owner Controls -->
 	<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
-		<h3 class="mb-4 text-lg font-bold">Manage Offer</h3>
-
-		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-			<button onclick={handleEdit} class="btn rounded-xl font-semibold btn-outline">
-				<IconEdit class="size-5" />
-				Edit Offer
-			</button>
-			<button onclick={handleDelete} class="btn rounded-xl font-semibold btn-outline btn-error">
-				<IconDelete class="size-5" />
-				Delete Offer
-			</button>
-		</div>
-
 		{#if data.isReserved}
 			<div class="mt-4 rounded-xl border border-info bg-info/5 p-4">
 				<div class="flex items-center gap-2">
@@ -312,6 +299,12 @@
 					<span class="font-semibold">Currently reserved by a user</span>
 				</div>
 			</div>
+		{:else}
+			<!-- todo: also make sure that an offer can only deleted if it's not reserved on the server side -->
+			<button onclick={handleDelete} class="btn rounded-xl font-semibold btn-outline btn-error">
+				<IconDelete class="size-5" />
+				Delete Offer
+			</button>
 		{/if}
 	</div>
 {:else if !data.offer.isActive}

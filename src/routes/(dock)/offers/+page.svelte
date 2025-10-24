@@ -241,9 +241,6 @@
 									{offer.originalValue.toFixed(2)}
 									{offer.currency}
 								</span>
-								<span class="badge badge-sm badge-success">
-									{Math.round((1 - offer.price / offer.originalValue) * 100)}% off
-								</span>
 							{/if}
 						</div>
 
@@ -291,6 +288,7 @@
 
 						<!-- Actions -->
 						<div class="flex gap-2">
+							<!-- todo: also make sure that an offer can only deleted if it's not reserved. also fix this on the server side -->
 							<button class="btn gap-1 btn-outline btn-sm btn-error">
 								<IconDelete class="size-4" />
 							</button>

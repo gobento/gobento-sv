@@ -28,13 +28,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	// Get signed URL for profile picture
-	const [file] = await db
-		.select()
-		.from(files)
-		.where(eq(files.id, profile.profilePictureId))
-		.limit(1);
-
-	const profilePictureUrl = file ? await getSignedDownloadUrl(file.key) : null;
+	let profilePictureUrl = null;
+	if (profile.profilePictureId) {
+		const [file] = await db
+			.select()
+			.from(files)
+			.where(eq(files.id, profile.profilePictureId))
+			.limit(1);
+		profilePictureUrl = file ? await getSignedDownloadUrl(file.key) : null;
+	}
 
 	return {
 		account: locals.account,
@@ -44,69 +46,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	upload: async ({ request, locals }) => {
-		const { id: accountId, accountType } = locals.account!;
-
-		// Only allow uploads for business and charity accounts
-		if (accountType !== 'business' && accountType !== 'charity') {
-			return fail(403, { error: 'File uploads not allowed for this account type' });
-		}
-
-		const formData = await request.formData();
-		const file = formData.get('file') as File;
-
-		if (!file || file.size === 0) {
-			return fail(400, { error: 'No file provided' });
-		}
-
-		// Validate file type (images only)
-		if (!file.type.startsWith('image/')) {
-			return fail(400, { error: 'Only images are allowed' });
-		}
-
-		// Validate file size (5MB max)
-		const maxSize = 5 * 1024 * 1024;
-		if (file.size > maxSize) {
-			return fail(400, { error: 'File size must be less than 5MB' });
-		}
-
-		try {
-			const fileId = randomUUID();
-			const key = `profile-pictures/${accountId}/${fileId}`;
-
-			// Upload to Backblaze
-			await uploadToBackblaze(file, key);
-
-			// Save file metadata to database
-			await db.insert(files).values({
-				id: fileId,
-				key,
-				fileName: file.name,
-				contentType: file.type,
-				sizeBytes: file.size,
-				uploadedBy: accountId
-			});
-
-			return {
-				success: true,
-				url: await getSignedDownloadUrl(key),
-				fileName: file.name,
-				key: fileId
-			};
-		} catch (err) {
-			console.error('Upload error:', err);
-			return fail(500, { error: 'Upload failed' });
-		}
-	},
-
 	updateProfile: async ({ request, locals }) => {
 		const { id: accountId, accountType } = locals.account!;
 		const formData = await request.formData();
 
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
-		const profilePictureId = formData.get('profilePictureId') as string;
+		const profilePicture = formData.get('profilePicture') as File | null;
 
+		// Validate required fields
 		if (!name?.trim()) {
 			return fail(400, { error: 'Name is required' });
 		}
@@ -115,13 +63,59 @@ export const actions: Actions = {
 			return fail(400, { error: 'Description is required' });
 		}
 
-		if (!profilePictureId) {
-			return fail(400, { error: 'Profile picture is required' });
-		}
-
 		try {
 			const profileTable = accountType === 'business' ? businessProfiles : charityProfiles;
 
+			// Get current profile to check if it has a picture
+			const [currentProfile] = await db
+				.select()
+				.from(profileTable)
+				.where(eq(profileTable.accountId, accountId))
+				.limit(1);
+
+			let profilePictureId = currentProfile?.profilePictureId;
+
+			// Handle new profile picture upload
+			if (profilePicture && profilePicture.size > 0) {
+				// Validate file type
+				if (!profilePicture.type.startsWith('image/')) {
+					return fail(400, { error: 'Only images are allowed' });
+				}
+
+				// Validate file size (5MB max)
+				const maxSize = 5 * 1024 * 1024;
+				if (profilePicture.size > maxSize) {
+					return fail(400, { error: 'File size must be less than 5MB' });
+				}
+
+				// Upload new file
+				const fileId = randomUUID();
+				const key = `profile-pictures/${accountId}/${fileId}`;
+
+				try {
+					await uploadToBackblaze(profilePicture, key);
+
+					// Save file metadata to database
+					await db.insert(files).values({
+						id: fileId,
+						key,
+						fileName: profilePicture.name,
+						contentType: profilePicture.type,
+						sizeBytes: profilePicture.size,
+						uploadedBy: accountId
+					});
+
+					profilePictureId = fileId;
+				} catch (uploadErr) {
+					console.error('Upload error:', uploadErr);
+					return fail(500, { error: 'Failed to upload profile picture' });
+				}
+			} else if (!profilePictureId) {
+				// No new file and no existing file
+				return fail(400, { error: 'Profile picture is required' });
+			}
+
+			// Update profile
 			await db
 				.update(profileTable)
 				.set({
