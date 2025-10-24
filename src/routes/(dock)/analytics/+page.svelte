@@ -34,15 +34,25 @@
 			day: 'numeric'
 		});
 	};
+
+	// Handle offer click
+	const handleOfferClick = (offerId: string) => {
+		window.location.href = `/offers/${offerId}`;
+	};
+
+	// Handle location click
+	const handleLocationClick = (locationId: string) => {
+		window.location.href = `/locations/${locationId}`;
+	};
 </script>
 
 <!-- Header -->
-<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+<div class="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
 	<div>
-		<h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">Analytics</h1>
-		<p class="mt-1 text-sm text-base-content/60">Track performance and insights</p>
+		<h1 class="text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">Analytics</h1>
+		<p class="mt-0.5 text-xs text-base-content/60 sm:text-sm">Track performance and insights</p>
 	</div>
-	<select class="select-bordered select bg-base-200 select-sm font-medium">
+	<select class="select-bordered select w-full bg-base-200 select-sm font-medium sm:w-auto">
 		<option>Last 30 Days</option>
 		<option>Last 7 Days</option>
 		<option>Last 90 Days</option>
@@ -51,78 +61,82 @@
 </div>
 
 <!-- Stats Cards -->
-<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-	<div class="rounded-lg border border-base-300 bg-base-200 p-5">
-		<div class="flex items-start justify-between">
-			<div class="flex-1">
-				<div class="flex items-center gap-2">
-					<IconBox class="size-4 text-primary" />
-					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
-						Reservations
-					</p>
-				</div>
-				<p class="mt-3 text-3xl font-semibold tabular-nums">{data.stats.totalReservations}</p>
-				<p class="mt-1 text-sm text-base-content/50">
-					{data.stats.avgPerDay} per day
-				</p>
+<div class="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 lg:grid-cols-4">
+	<div class="rounded-lg border border-base-300 bg-base-200 p-3 sm:p-4">
+		<div class="flex items-center gap-1.5 sm:gap-2">
+			<div class="size-3.5 shrink-0 text-primary sm:size-4">
+				<IconBox class="size-full" />
 			</div>
+			<p class="text-[10px] font-medium tracking-wide text-base-content/60 uppercase sm:text-xs">
+				Reservations
+			</p>
 		</div>
+		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-3xl">
+			{data.stats.totalReservations}
+		</p>
+		<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">
+			{data.stats.avgPerDay} per day
+		</p>
 	</div>
 
-	<div class="rounded-lg border border-base-300 bg-base-200 p-5">
-		<div class="flex items-start justify-between">
-			<div class="flex-1">
-				<div class="flex items-center gap-2">
-					<IconMoney class="size-4 text-success" />
-					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">Revenue</p>
-				</div>
-				<p class="mt-3 text-3xl font-semibold tabular-nums">
-					€{data.stats.totalRevenue.toLocaleString('de-DE', {
-						minimumFractionDigits: 2,
-						maximumFractionDigits: 2
-					})}
-				</p>
-				<p class="mt-1 text-sm text-base-content/50">Last 30 days</p>
+	<div class="rounded-lg border border-base-300 bg-base-200 p-3 sm:p-4">
+		<div class="flex items-center gap-1.5 sm:gap-2">
+			<div class="size-3.5 shrink-0 text-success sm:size-4">
+				<IconMoney class="size-full" />
 			</div>
+			<p class="text-[10px] font-medium tracking-wide text-base-content/60 uppercase sm:text-xs">
+				Revenue
+			</p>
 		</div>
+		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-3xl">
+			€{data.stats.totalRevenue.toLocaleString('de-DE', {
+				minimumFractionDigits: 0,
+				maximumFractionDigits: 0
+			})}
+		</p>
+		<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">Last 30 days</p>
 	</div>
 
-	<div class="rounded-lg border border-base-300 bg-base-200 p-5">
-		<div class="flex items-start justify-between">
-			<div class="flex-1">
-				<div class="flex items-center gap-2">
-					<FluentChartMultiple24Regular class="size-4 text-info" />
-					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">Completion</p>
-				</div>
-				<p class="mt-3 text-3xl font-semibold tabular-nums">{data.stats.completionRate}%</p>
-				<p class="mt-1 text-sm text-base-content/50">
-					{data.stats.activeOffers} active offers
-				</p>
+	<div class="rounded-lg border border-base-300 bg-base-200 p-3 sm:p-4">
+		<div class="flex items-center gap-1.5 sm:gap-2">
+			<div class="size-3.5 shrink-0 text-info sm:size-4">
+				<FluentChartMultiple24Regular class="size-full" />
 			</div>
+			<p class="text-[10px] font-medium tracking-wide text-base-content/60 uppercase sm:text-xs">
+				Completion
+			</p>
 		</div>
+		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-3xl">
+			{data.stats.completionRate}%
+		</p>
+		<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">
+			{data.stats.activeOffers} active
+		</p>
 	</div>
 
-	<div class="rounded-lg border border-base-300 bg-base-200 p-5">
-		<div class="flex items-start justify-between">
-			<div class="flex-1">
-				<div class="flex items-center gap-2">
-					<IconStar class="size-4 text-warning" />
-					<p class="text-xs font-medium tracking-wide text-base-content/60 uppercase">Favorites</p>
-				</div>
-				<p class="mt-3 text-3xl font-semibold tabular-nums">{data.stats.favoriteCount}</p>
-				<p class="mt-1 text-sm text-base-content/50">Total users</p>
+	<div class="rounded-lg border border-base-300 bg-base-200 p-3 sm:p-4">
+		<div class="flex items-center gap-1.5 sm:gap-2">
+			<div class="size-3.5 shrink-0 text-warning sm:size-4">
+				<IconStar class="size-full" />
 			</div>
+			<p class="text-[10px] font-medium tracking-wide text-base-content/60 uppercase sm:text-xs">
+				Favorites
+			</p>
 		</div>
+		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-3xl">
+			{data.stats.favoriteCount}
+		</p>
+		<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">Total users</p>
 	</div>
 </div>
 
 <!-- Charts Row 1 -->
-<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+<div class="mb-4 grid grid-cols-1 gap-4 sm:mb-6 lg:grid-cols-2">
 	<!-- Reservations Trend -->
-	<div class="rounded-lg border border-base-300 bg-base-200 p-6">
-		<h2 class="mb-6 text-base font-semibold">Reservations Over Time</h2>
+	<div class="rounded-lg border border-base-300 bg-base-200 p-4 sm:p-5">
+		<h2 class="mb-4 text-sm font-semibold sm:mb-5 sm:text-base">Reservations Over Time</h2>
 		{#if reservationsData.length > 0}
-			<div class="h-64">
+			<div class="h-48 sm:h-56 lg:h-64">
 				<Chart
 					data={reservationsData}
 					x="date"
@@ -140,13 +154,13 @@
 							placement="left"
 							grid
 							rule={{ class: 'stroke-base-content/10' }}
-							labelProps={{ class: 'text-xs fill-base-content/60' }}
+							labelProps={{ class: 'text-[10px] sm:text-xs fill-base-content/60' }}
 						/>
 						<Axis
 							placement="bottom"
 							format={formatDateShort}
 							rule={{ class: 'stroke-base-content/10' }}
-							labelProps={{ class: 'text-xs fill-base-content/60' }}
+							labelProps={{ class: 'text-[10px] sm:text-xs fill-base-content/60' }}
 						/>
 						<Highlight points lines />
 					</Svg>
@@ -160,17 +174,19 @@
 				</Chart>
 			</div>
 		{:else}
-			<div class="flex h-64 items-center justify-center text-sm text-base-content/50">
+			<div
+				class="flex h-48 items-center justify-center text-xs text-base-content/50 sm:h-56 sm:text-sm lg:h-64"
+			>
 				No reservation data available
 			</div>
 		{/if}
 	</div>
 
 	<!-- Revenue Trend -->
-	<div class="rounded-lg border border-base-300 bg-base-200 p-6">
-		<h2 class="mb-6 text-base font-semibold">Revenue Over Time</h2>
+	<div class="rounded-lg border border-base-300 bg-base-200 p-4 sm:p-5">
+		<h2 class="mb-4 text-sm font-semibold sm:mb-5 sm:text-base">Revenue Over Time</h2>
 		{#if reservationsData.length > 0}
-			<div class="h-64">
+			<div class="h-48 sm:h-56 lg:h-64">
 				<Chart
 					data={reservationsData}
 					x="date"
@@ -188,14 +204,14 @@
 							placement="left"
 							grid
 							rule={{ class: 'stroke-base-content/10' }}
-							labelProps={{ class: 'text-xs fill-base-content/60' }}
+							labelProps={{ class: 'text-[10px] sm:text-xs fill-base-content/60' }}
 							format={(d) => `€${d}`}
 						/>
 						<Axis
 							placement="bottom"
 							format={formatDateShort}
 							rule={{ class: 'stroke-base-content/10' }}
-							labelProps={{ class: 'text-xs fill-base-content/60' }}
+							labelProps={{ class: 'text-[10px] sm:text-xs fill-base-content/60' }}
 						/>
 						<Highlight points lines />
 					</Svg>
@@ -208,7 +224,9 @@
 				</Chart>
 			</div>
 		{:else}
-			<div class="flex h-64 items-center justify-center text-sm text-base-content/50">
+			<div
+				class="flex h-48 items-center justify-center text-xs text-base-content/50 sm:h-56 sm:text-sm lg:h-64"
+			>
 				No revenue data available
 			</div>
 		{/if}
@@ -216,15 +234,17 @@
 </div>
 
 <!-- Charts Row 2 -->
-<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+<div class="mb-4 grid grid-cols-1 gap-4 sm:mb-6 lg:grid-cols-2">
 	<!-- Peak Hours -->
-	<div class="rounded-lg border border-base-300 bg-base-200 p-6">
-		<h2 class="mb-6 flex items-center gap-2 text-base font-semibold">
-			<IconClock class="size-4" />
+	<div class="rounded-lg border border-base-300 bg-base-200 p-4 sm:p-5">
+		<h2 class="mb-4 flex items-center gap-2 text-sm font-semibold sm:mb-5 sm:text-base">
+			<div class="size-3.5 sm:size-4">
+				<IconClock class="size-full" />
+			</div>
 			Peak Pickup Hours
 		</h2>
 		{#if data.peakHoursData.length > 0}
-			<div class="h-64">
+			<div class="h-48 sm:h-56 lg:h-64">
 				<Chart
 					data={data.peakHoursData}
 					x="hour"
@@ -241,12 +261,12 @@
 							placement="left"
 							grid
 							rule={{ class: 'stroke-base-content/10' }}
-							labelProps={{ class: 'text-xs fill-base-content/60' }}
+							labelProps={{ class: 'text-[10px] sm:text-xs fill-base-content/60' }}
 						/>
 						<Axis
 							placement="bottom"
 							rule={{ class: 'stroke-base-content/10' }}
-							labelProps={{ class: 'text-xs fill-base-content/60' }}
+							labelProps={{ class: 'text-[10px] sm:text-xs fill-base-content/60' }}
 						/>
 						<Highlight points lines />
 					</Svg>
@@ -259,47 +279,61 @@
 				</Chart>
 			</div>
 		{:else}
-			<div class="flex h-64 items-center justify-center text-sm text-base-content/50">
+			<div
+				class="flex h-48 items-center justify-center text-xs text-base-content/50 sm:h-56 sm:text-sm lg:h-64"
+			>
 				No pickup data available
 			</div>
 		{/if}
 	</div>
 
 	<!-- Top Offers Performance -->
-	<div class="rounded-lg border border-base-300 bg-base-200 p-6">
-		<h2 class="mb-6 text-base font-semibold">Top Performing Offers</h2>
+	<div class="rounded-lg border border-base-300 bg-base-200 p-4 sm:p-5">
+		<h2 class="mb-4 text-sm font-semibold sm:mb-5 sm:text-base">Top Performing Offers</h2>
 		{#if data.offerPerformanceData.length > 0}
-			<div class="max-h-64 space-y-2 overflow-y-auto">
+			<div class="max-h-48 space-y-2 overflow-y-auto sm:max-h-56 lg:max-h-64">
 				{#each data.offerPerformanceData as offer, i}
-					<div class="flex items-center gap-3 rounded border border-base-300 bg-base-100 p-3">
+					<button
+						type="button"
+						onclick={() => handleOfferClick(offer.id)}
+						class="flex w-full items-center gap-2.5 rounded border border-base-300 bg-base-100 p-2.5 text-left transition-colors hover:border-primary hover:bg-base-100/50 sm:gap-3 sm:p-3"
+					>
 						<div
-							class="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+							class="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary sm:size-6 sm:text-xs"
 						>
 							{i + 1}
 						</div>
 						<div class="min-w-0 flex-1">
-							<p class="truncate text-sm font-medium">{offer.name}</p>
-							<div class="mt-1 flex items-center gap-3 text-xs text-base-content/60">
-								<span class="flex items-center gap-1">
-									<IconBox class="h-3.5 w-3.5" />
+							<p class="truncate text-xs font-medium sm:text-sm">{offer.name}</p>
+							<div
+								class="mt-0.5 flex items-center gap-2.5 text-[10px] text-base-content/60 sm:mt-1 sm:gap-3 sm:text-xs"
+							>
+								<span class="flex items-center gap-0.5 sm:gap-1">
+									<div class="h-3 w-3 sm:h-3.5 sm:w-3.5">
+										<IconBox class="size-full" />
+									</div>
 									{offer.reservations}
 								</span>
-								<span class="flex items-center gap-1">
-									<IconStar class="h-3.5 w-3.5 text-warning" />
+								<span class="flex items-center gap-0.5 sm:gap-1">
+									<div class="h-3 w-3 text-warning sm:h-3.5 sm:w-3.5">
+										<IconStar class="size-full" />
+									</div>
 									{offer.avgRating}
 								</span>
 							</div>
 						</div>
 						<div class="text-right">
-							<div class="text-sm font-semibold tabular-nums">
+							<div class="text-xs font-semibold tabular-nums sm:text-sm">
 								€{offer.revenue.toFixed(0)}
 							</div>
 						</div>
-					</div>
+					</button>
 				{/each}
 			</div>
 		{:else}
-			<div class="flex h-64 items-center justify-center text-sm text-base-content/50">
+			<div
+				class="flex h-48 items-center justify-center text-xs text-base-content/50 sm:h-56 sm:text-sm lg:h-64"
+			>
 				No active offers found
 			</div>
 		{/if}
@@ -307,80 +341,103 @@
 </div>
 
 <!-- Location Performance Table -->
-<div class="rounded-lg border border-base-300 bg-base-200 p-6">
-	<h2 class="mb-6 flex items-center gap-2 text-base font-semibold">
-		<IconPeople class="size-4" />
+<div class="rounded-lg border border-base-300 bg-base-200 p-4 sm:p-5">
+	<h2 class="mb-4 flex items-center gap-2 text-sm font-semibold sm:mb-5 sm:text-base">
+		<div class="size-3.5 sm:size-4">
+			<IconPeople class="size-full" />
+		</div>
 		Location Performance
 	</h2>
 	{#if data.locationPerformanceData.length > 0}
-		<div class="overflow-x-auto">
-			<table class="table table-sm">
-				<thead>
-					<tr class="border-base-300">
-						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
-							Location
-						</th>
-						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
-							Reservations
-						</th>
-						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
-							Revenue
-						</th>
-						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
-							Completion
-						</th>
-						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
-							Favorites
-						</th>
-						<th class="text-xs font-medium tracking-wide text-base-content/60 uppercase">
-							Rating
-						</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each data.locationPerformanceData as location}
+		<div class="-mx-4 overflow-x-auto sm:mx-0">
+			<div class="inline-block min-w-full align-middle">
+				<table class="table w-full table-sm">
+					<thead>
 						<tr class="border-base-300">
-							<td>
-								<div class="font-medium">{location.name}</div>
-								<div class="text-xs text-base-content/50">
-									{location.address}, {location.city}
-								</div>
-							</td>
-							<td class="tabular-nums">{location.totalReservations}</td>
-							<td class="font-medium tabular-nums">
-								€{location.revenue.toLocaleString('de-DE', {
-									minimumFractionDigits: 2,
-									maximumFractionDigits: 2
-								})}
-							</td>
-							<td>
-								<div class="flex items-center gap-2">
-									<progress
-										class="progress-xs progress w-16"
-										class:progress-success={location.completionRate >= 80}
-										class:progress-warning={location.completionRate >= 60 &&
-											location.completionRate < 80}
-										class:progress-error={location.completionRate < 60}
-										value={location.completionRate}
-										max="100"
-									></progress>
-									<span class="text-xs tabular-nums">{location.completionRate}%</span>
-								</div>
-							</td>
-							<td class="tabular-nums">{location.favoritesCount}</td>
-							<td>
-								<div class="flex items-center gap-1">
-									<IconStar class="h-3.5 w-3.5 text-warning" />
-									<span class="tabular-nums">{location.avgRating}</span>
-								</div>
-							</td>
+							<th
+								class="text-[10px] font-medium tracking-wide text-base-content/60 uppercase sm:text-xs"
+							>
+								Location
+							</th>
+							<th
+								class="text-[10px] font-medium tracking-wide text-base-content/60 uppercase sm:text-xs"
+							>
+								Reservations
+							</th>
+							<th
+								class="text-[10px] font-medium tracking-wide text-base-content/60 uppercase sm:text-xs"
+							>
+								Revenue
+							</th>
+							<th
+								class="hidden text-[10px] font-medium tracking-wide text-base-content/60 uppercase sm:table-cell sm:text-xs"
+							>
+								Completion
+							</th>
+							<th
+								class="hidden text-[10px] font-medium tracking-wide text-base-content/60 uppercase sm:table-cell sm:text-xs"
+							>
+								Favorites
+							</th>
+							<th
+								class="text-[10px] font-medium tracking-wide text-base-content/60 uppercase sm:text-xs"
+							>
+								Rating
+							</th>
 						</tr>
-					{/each}
-				</tbody>
-			</table>
+					</thead>
+					<tbody>
+						{#each data.locationPerformanceData as location}
+							<tr
+								class="cursor-pointer border-base-300 transition-colors hover:bg-base-300/50"
+								onclick={() => handleLocationClick(location.id)}
+							>
+								<td class="min-w-[120px] sm:min-w-0">
+									<div class="text-xs font-medium sm:text-sm">{location.name}</div>
+									<div class="text-[10px] text-base-content/50 sm:text-xs">
+										{location.address}, {location.city}
+									</div>
+								</td>
+								<td class="text-xs tabular-nums sm:text-sm">{location.totalReservations}</td>
+								<td class="text-xs font-medium tabular-nums sm:text-sm">
+									€{location.revenue.toLocaleString('de-DE', {
+										minimumFractionDigits: 0,
+										maximumFractionDigits: 0
+									})}
+								</td>
+								<td class="hidden sm:table-cell">
+									<div class="flex items-center gap-2">
+										<progress
+											class="progress-xs progress w-12 sm:w-16"
+											class:progress-success={location.completionRate >= 80}
+											class:progress-warning={location.completionRate >= 60 &&
+												location.completionRate < 80}
+											class:progress-error={location.completionRate < 60}
+											value={location.completionRate}
+											max="100"
+										></progress>
+										<span class="text-xs tabular-nums">{location.completionRate}%</span>
+									</div>
+								</td>
+								<td class="hidden text-xs tabular-nums sm:table-cell sm:text-sm">
+									{location.favoritesCount}
+								</td>
+								<td>
+									<div class="flex items-center gap-0.5 sm:gap-1">
+										<div class="h-3 w-3 text-warning sm:h-3.5 sm:w-3.5">
+											<IconStar class="size-full" />
+										</div>
+										<span class="text-xs tabular-nums sm:text-sm">{location.avgRating}</span>
+									</div>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
 		</div>
 	{:else}
-		<div class="flex h-32 items-center justify-center text-sm text-base-content/50">
+		<div class="flex h-32 items-center justify-center text-xs text-base-content/50 sm:text-sm">
 			No location data available
 		</div>
 	{/if}
