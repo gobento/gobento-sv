@@ -65,7 +65,7 @@ export const businessLocations = pgTable('business_locations', {
 	name: text('name').notNull(), // e.g., "Downtown Branch", "Main Office"
 	address: text('address').notNull(),
 	city: text('city').notNull(),
-	state: text('state'),
+	province: text('state'), // todo: rename to province
 	zipCode: text('zip_code').notNull(),
 	country: text('country').notNull(),
 	latitude: doublePrecision('latitude').notNull(),

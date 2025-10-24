@@ -94,7 +94,7 @@
 						<option value="">🌍 All Locations</option>
 						{#each data.locations as location}
 							<option value={location.id}>
-								📍 {location.name} - {location.city}{#if location.state}, {location.state}{/if}
+								📍 {location.name} - {location.city}{#if location.province}, {location.province}{/if}
 							</option>
 						{/each}
 					</select>

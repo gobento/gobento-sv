@@ -19,7 +19,7 @@
 				location.name.toLowerCase().includes(query) ||
 				location.address.toLowerCase().includes(query) ||
 				location.city.toLowerCase().includes(query) ||
-				location.state?.toLowerCase().includes(query) ||
+				location.province?.toLowerCase().includes(query) ||
 				location.country.toLowerCase().includes(query)
 			);
 		})
@@ -102,7 +102,7 @@
 					<div class="mb-4 space-y-0.5 text-sm text-base-content/60">
 						<p>{location.address}</p>
 						<p>
-							{location.city}{#if location.state}, {location.state}{/if}
+							{location.city}{#if location.province}, {location.province}{/if}
 							{#if location.zipCode}
 								{location.zipCode}{/if}
 						</p>

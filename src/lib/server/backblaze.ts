@@ -1,6 +1,8 @@
 // src/lib/server/backblaze.ts
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+import { randomUUID } from 'crypto';
 import {
 	BACKBLAZE_KEY_ID,
 	BACKBLAZE_APPLICATION_KEY,
@@ -16,25 +18,88 @@ const s3Client = new S3Client({
 		accessKeyId: BACKBLAZE_KEY_ID,
 		secretAccessKey: BACKBLAZE_APPLICATION_KEY
 	},
-	// Force path-style addressing for Backblaze
 	forcePathStyle: true
 });
 
-export async function uploadToBackblaze(file: File, key: string): Promise<string> {
+export interface UploadResult {
+	success: boolean;
+	key: string;
+	error?: string;
+}
+
+/**
+ * Upload a file buffer to Backblaze B2
+ * @param buffer - File buffer to upload
+ * @param fileName - Original filename (for reference)
+ * @param contentType - MIME type of the file
+ * @returns Upload result with storage key
+ */
+export async function uploadFile(
+	buffer: Buffer,
+	fileName: string,
+	contentType: string
+): Promise<UploadResult> {
+	try {
+		// Generate unique key with file extension
+		const extension = fileName.split('.').pop() || '';
+		const uniqueKey = `${randomUUID()}.${extension}`;
+
+		const command = new PutObjectCommand({
+			Bucket: BACKBLAZE_BUCKET_NAME,
+			Key: uniqueKey,
+			Body: buffer,
+			ContentType: contentType,
+			// Optional: Add metadata
+			Metadata: {
+				originalName: fileName,
+				uploadedAt: new Date().toISOString()
+			}
+		});
+
+		await s3Client.send(command);
+
+		return {
+			success: true,
+			key: uniqueKey
+		};
+	} catch (error) {
+		console.error('Upload failed:', error);
+		return {
+			success: false,
+			key: '',
+			error: error instanceof Error ? error.message : 'Unknown error'
+		};
+	}
+}
+
+/**
+ * Upload a file directly from FormData
+ * @param file - File from form input
+ * @returns Upload result with storage key
+ */
+export async function uploadFileFromForm(file: File): Promise<UploadResult> {
+	if (!file || file.size === 0) {
+		return {
+			success: false,
+			key: '',
+			error: 'No file provided or file is empty'
+		};
+	}
+
+	// Validate file size (5MB limit)
+	const maxSize = 5 * 1024 * 1024;
+	if (file.size > maxSize) {
+		return {
+			success: false,
+			key: '',
+			error: 'File size exceeds 5MB limit'
+		};
+	}
+
+	// Convert to buffer
 	const buffer = Buffer.from(await file.arrayBuffer());
 
-	const command = new PutObjectCommand({
-		Bucket: BACKBLAZE_BUCKET_NAME,
-		Key: key,
-		Body: buffer,
-		ContentType: file.type
-	});
-
-	await s3Client.send(command);
-
-	// Return the key, not a URL (since bucket is private)
-	// Frontend will request signed URLs via API
-	return key;
+	return uploadFile(buffer, file.name, file.type);
 }
 
 export async function getPresignedUploadUrl(key: string, contentType: string): Promise<string> {
