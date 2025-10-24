@@ -42,7 +42,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				name: businessLocations.name,
 				address: businessLocations.address,
 				city: businessLocations.city,
-				state: businessLocations.state,
+				province: businessLocations.province,
 				zipCode: businessLocations.zipCode,
 				country: businessLocations.country
 			},

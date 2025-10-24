@@ -1,12 +1,12 @@
 <!-- /src/routes/(dock)/reservations/+page.svelte -->
 <script lang="ts">
-	import { page } from '$app/stores';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
 	import IconFilter from '~icons/fluent/filter-24-regular';
+	import { formatDate, formatTime } from '$lib/util.js';
 
 	let { data } = $props();
 
@@ -15,22 +15,6 @@
 	const filteredReservations = $derived(
 		showClaimed ? data.reservations : data.reservations.filter((r) => r.status === 'active')
 	);
-
-	function formatDate(date: Date) {
-		return new Date(date).toLocaleDateString('en-US', {
-			weekday: 'short',
-			day: '2-digit',
-			month: 'short',
-			year: 'numeric'
-		});
-	}
-
-	function formatTime(date: Date) {
-		return new Date(date).toLocaleTimeString('en-US', {
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
 
 	function getImageUrl(key: string) {
 		return `/api/files/${key}`;
@@ -103,7 +87,7 @@
 									<div class="flex justify-end">
 										<span class="badge {getStatusBadge(reservation.status)} gap-2 badge-lg">
 											{#if reservation.status === 'claimed'}
-												<IconCheckmark class="h-4 w-4" />
+												<IconCheckmark class="size-4" />
 											{/if}
 											{getStatusText(reservation.status)}
 										</span>
@@ -125,9 +109,11 @@
 											{formatDate(reservation.pickupFrom)}
 										</div>
 										<div class="mt-1 flex items-center gap-2 text-sm text-base-content/70">
-											<IconClock class="h-4 w-4" />
+											<IconClock class="size-4" />
 											<span>
-												{formatTime(reservation.pickupFrom)} - {formatTime(reservation.pickupUntil)}
+												{formatTime(reservation.pickupFrom.toLocaleTimeString())} - {formatTime(
+													reservation.pickupUntil.toLocaleTimeString()
+												)}
 											</span>
 										</div>
 									</div>
