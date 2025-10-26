@@ -10,11 +10,11 @@
 	import IconDismiss from '~icons/fluent/dismiss-circle-24-regular';
 	import IconQrCode from '~icons/fluent/qr-code-24-regular';
 	import IconFood from '~icons/fluent/food-24-regular';
-	import IconBuilding from '~icons/fluent/building-24-regular';
 	import IconShare from '~icons/fluent/share-24-regular';
-	import IconCancel from '~icons/fluent/delete-24-regular';
 	import IconCopy from '~icons/fluent/copy-24-regular';
 	import IconTimer from '~icons/fluent/timer-24-regular';
+	import IconChevronRight from '~icons/fluent/chevron-right-24-regular';
+
 	import { formatDate, formatTime } from '$lib/util.js';
 	import { onMount, onDestroy } from 'svelte';
 
@@ -46,21 +46,18 @@
 		const pickupStart = new Date(data.reservation.pickupFrom);
 		const pickupEnd = new Date(data.reservation.pickupUntil);
 
-		// Check if we're in the pickup window
 		if (now >= pickupStart && now <= pickupEnd) {
 			timeRemaining.isPickupTime = true;
 			timeRemaining.hasStarted = true;
 			return;
 		}
 
-		// Check if pickup has passed
 		if (now > pickupEnd) {
 			timeRemaining.hasStarted = true;
 			timeRemaining.isPickupTime = false;
 			return;
 		}
 
-		// Calculate time until pickup starts
 		const diff = pickupStart.getTime() - now.getTime();
 
 		timeRemaining.days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -72,15 +69,10 @@
 	}
 
 	onMount(() => {
-		// Initial calculation
 		calculateTimeRemaining();
-
-		// Update every second
 		countdownInterval = setInterval(() => {
 			const wasPickupTime = timeRemaining.isPickupTime;
 			calculateTimeRemaining();
-
-			// If pickup time just started, trigger notification
 			if (!wasPickupTime && timeRemaining.isPickupTime) {
 				sendPickupNotification();
 			}
@@ -94,7 +86,6 @@
 	});
 
 	async function sendPickupNotification() {
-		// Send browser notification if permitted
 		if ('Notification' in window && Notification.permission === 'granted') {
 			new Notification('Pickup Time!', {
 				body: `Your food is ready to pick up at ${data.business.name}`,
@@ -104,8 +95,6 @@
 				requireInteraction: true
 			});
 		}
-
-		// Vibrate if supported
 		if ('vibrate' in navigator) {
 			navigator.vibrate([200, 100, 200, 100, 200]);
 		}
@@ -224,546 +213,576 @@
 	ontouchend={handleSwipeEnd}
 />
 
-<!-- Invite Accepted Banner -->
-{#if form?.inviteAccepted}
-	<div class="mb-4 border-4 border-success bg-success/10 p-6 text-center">
-		<IconCheckmark class="mx-auto mb-3 h-16 w-16 text-success" />
-		<h2 class="mb-2 text-2xl font-bold text-success">Invite Accepted!</h2>
-		<p class="text-sm text-base-content/70">You can now claim this food reservation</p>
-	</div>
-{/if}
-
-<!-- Invite Declined Banner -->
-{#if form?.inviteDeclined}
-	<div class="mb-4 border-4 border-base-300 bg-base-200 p-6 text-center">
-		<IconDismiss class="mx-auto mb-3 h-16 w-16 text-base-content/60" />
-		<h2 class="mb-2 text-2xl font-bold">Invite Declined</h2>
-		<p class="text-sm text-base-content/70">You've declined this invitation</p>
-	</div>
-{/if}
-
-<!-- Countdown Timer -->
-{#if data.reservation.status === 'active' && !timeRemaining.hasStarted && !data.pendingInviteForUser}
-	<div class="mb-4 rounded-lg border-2 border-primary bg-primary/10 p-6">
-		<div class="mb-3 flex items-center justify-center gap-2">
-			<IconTimer class="h-6 w-6 text-primary" />
-			<h2 class="text-xl font-bold text-primary">Time Until Pickup</h2>
-		</div>
-		<div class="flex justify-center gap-2">
-			{#if timeRemaining.days > 0}
-				<div class="flex min-w-[70px] flex-col items-center rounded-lg bg-base-100 p-3">
-					<span class="text-3xl font-bold text-primary">{timeRemaining.days}</span>
-					<span class="text-xs text-base-content/60">Days</span>
+<div class="mx-auto max-w-2xl space-y-8 p-4">
+	<!-- Invite Accepted Banner -->
+	{#if form?.inviteAccepted}
+		<div class="border-l-4 border-success bg-base-100 p-6">
+			<div class="flex items-center gap-4">
+				<IconCheckmark class="h-12 w-12 text-success" />
+				<div>
+					<h2 class="text-xl font-bold text-success">Invite Accepted</h2>
+					<p class="mt-1 text-sm text-base-content/60">You can now claim this food reservation</p>
 				</div>
-			{/if}
-			<div class="flex min-w-[70px] flex-col items-center rounded-lg bg-base-100 p-3">
-				<span class="text-3xl font-bold text-primary">{timeRemaining.hours}</span>
-				<span class="text-xs text-base-content/60">Hours</span>
-			</div>
-			<div class="flex min-w-[70px] flex-col items-center rounded-lg bg-base-100 p-3">
-				<span class="text-3xl font-bold text-primary">{timeRemaining.minutes}</span>
-				<span class="text-xs text-base-content/60">Mins</span>
-			</div>
-			<div class="flex min-w-[70px] flex-col items-center rounded-lg bg-base-100 p-3">
-				<span class="text-3xl font-bold text-primary">{timeRemaining.seconds}</span>
-				<span class="text-xs text-base-content/60">Secs</span>
 			</div>
 		</div>
-		{#if 'Notification' in window && Notification.permission === 'default'}
-			<button
-				onclick={requestNotificationPermission}
-				class="btn mt-3 w-full btn-outline btn-sm btn-primary"
-			>
-				Enable Notifications
-			</button>
-		{/if}
-	</div>
-{/if}
+	{/if}
 
-<!-- Pickup Ready Banner -->
-{#if data.reservation.status === 'active' && timeRemaining.isPickupTime && !data.pendingInviteForUser}
-	<div class="mb-4 animate-pulse border-4 border-warning bg-warning/10 p-6 text-center">
-		<IconCheckmark class="mx-auto mb-3 h-16 w-16 text-warning" />
-		<h2 class="mb-2 text-2xl font-bold text-warning">Pickup Time!</h2>
-		<p class="text-sm text-base-content/70">Your food is ready to be picked up now</p>
-	</div>
-{/if}
+	<!-- Invite Declined Banner -->
+	{#if form?.inviteDeclined}
+		<div class="border-l-4 border-base-300 bg-base-100 p-6">
+			<div class="flex items-center gap-4">
+				<IconDismiss class="h-12 w-12 text-base-content/40" />
+				<div>
+					<h2 class="text-xl font-bold">Invite Declined</h2>
+					<p class="mt-1 text-sm text-base-content/60">You've declined this invitation</p>
+				</div>
+			</div>
+		</div>
+	{/if}
 
-<!-- Claimed Banner -->
-{#if data.reservation.status === 'claimed'}
-	<div class="mb-4 border-4 border-success bg-success/10 p-6 text-center">
-		<IconCheckmark class="mx-auto mb-3 h-16 w-16 text-success" />
-		<h2 class="mb-2 text-2xl font-bold text-success">Food Claimed!</h2>
-		{#if data.reservation.claimedAt}
-			<p class="mb-1 text-sm text-base-content/70">
-				{formatDate(data.reservation.claimedAt)} at {formatTime(data.reservation.claimedAt)}
-			</p>
-		{/if}
-		{#if data.reservation.claimedBy && data.isOwner}
-			{@const claimer = data.invites.find((inv) => inv.userId === data.reservation.claimedBy)}
-			{#if claimer}
-				<div class="mt-3 flex items-center justify-center gap-2 rounded-lg bg-base-100 p-3">
-					<div class="placeholder avatar">
-						<div class="w-8 rounded-full bg-primary/20 text-primary">
-							<span class="text-sm">👤</span>
-						</div>
+	<!-- Countdown Timer -->
+	{#if data.reservation.status === 'active' && !timeRemaining.hasStarted && !data.pendingInviteForUser}
+		<div class="border-l-4 border-primary bg-base-100 p-6">
+			<div class="mb-4 flex items-center gap-2">
+				<IconTimer class="size-5 text-primary" />
+				<h2 class="text-lg font-bold">Time Until Pickup</h2>
+			</div>
+			<div class="flex gap-3">
+				{#if timeRemaining.days > 0}
+					<div class="flex flex-1 flex-col items-center bg-base-200 p-4">
+						<span class="text-3xl font-bold text-primary tabular-nums">{timeRemaining.days}</span>
+						<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Days</span>
 					</div>
-					<span class="text-sm font-semibold">Claimed by your friend</span>
+				{/if}
+				<div class="flex flex-1 flex-col items-center bg-base-200 p-4">
+					<span class="text-3xl font-bold text-primary tabular-nums">{timeRemaining.hours}</span>
+					<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Hours</span>
 				</div>
+				<div class="flex flex-1 flex-col items-center bg-base-200 p-4">
+					<span class="text-3xl font-bold text-primary tabular-nums">{timeRemaining.minutes}</span>
+					<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Mins</span>
+				</div>
+				<div class="flex flex-1 flex-col items-center bg-base-200 p-4">
+					<span class="text-3xl font-bold text-primary tabular-nums">{timeRemaining.seconds}</span>
+					<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Secs</span>
+				</div>
+			</div>
+			{#if 'Notification' in window && Notification.permission === 'default'}
+				<button
+					onclick={requestNotificationPermission}
+					class="btn mt-4 w-full btn-outline btn-sm btn-primary"
+				>
+					Enable Notifications
+				</button>
 			{/if}
-		{/if}
-	</div>
-{/if}
-
-<!-- Cancelled Banner -->
-{#if data.reservation.status === 'cancelled'}
-	<div class="mb-4 border-4 border-error bg-error/10 p-6 text-center">
-		<IconCancel class="mx-auto mb-3 h-16 w-16 text-error" />
-		<h2 class="mb-2 text-2xl font-bold text-error">Reservation Cancelled</h2>
-		<p class="text-sm text-base-content/70">This reservation has been cancelled</p>
-	</div>
-{/if}
-
-<!-- Header Section -->
-<div class="mb-4 bg-base-100 p-4">
-	<h1 class="mb-1 text-2xl font-bold">{data.offer.name}</h1>
-	<p class="mb-3 text-sm text-base-content/70">{data.offer.description}</p>
-	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-2 text-sm">
-			<IconFood class="h-4 w-4 text-base-content/60" />
-			<span class="font-medium">{data.business.name}</span>
 		</div>
-		<div class="text-2xl font-bold text-primary">
-			{data.offer.price.toFixed(2)}
-			{data.offer.currency}
+	{/if}
+
+	<!-- Pickup Ready Banner -->
+	{#if data.reservation.status === 'active' && timeRemaining.isPickupTime && !data.pendingInviteForUser}
+		<div class="animate-pulse border-l-4 border-warning bg-base-100 p-6">
+			<div class="flex items-center gap-4">
+				<IconCheckmark class="h-12 w-12 text-warning" />
+				<div>
+					<h2 class="text-xl font-bold text-warning">Pickup Time!</h2>
+					<p class="mt-1 text-sm text-base-content/60">Your food is ready to be picked up now</p>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Claimed Banner -->
+	{#if data.reservation.status === 'claimed'}
+		<div class="border-l-4 border-success bg-base-100 p-6">
+			<div class="flex items-center gap-4">
+				<IconCheckmark class="h-12 w-12 text-success" />
+				<div class="flex-1">
+					<h2 class="text-xl font-bold text-success">Food Claimed</h2>
+					{#if data.reservation.claimedAt}
+						<p class="mt-1 text-sm text-base-content/60">
+							{formatDate(data.reservation.claimedAt)} at {formatTime(data.reservation.claimedAt)}
+						</p>
+					{/if}
+					{#if data.reservation.claimedBy && data.isOwner}
+						{@const claimer = data.invites.find((inv) => inv.userId === data.reservation.claimedBy)}
+						{#if claimer}
+							<div class="mt-3 flex items-center gap-2 bg-base-200 p-3">
+								<div
+									class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-sm"
+								>
+									👤
+								</div>
+								<span class="text-sm font-medium">Claimed by your friend</span>
+							</div>
+						{/if}
+					{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Business Info -->
+	<a
+		href="/businesses/{data.business.accountId}"
+		class="block bg-base-100 p-6 transition-colors hover:bg-base-200"
+	>
+		<div class="flex items-start gap-4">
+			<div class="h-16 w-16 shrink-0 overflow-hidden rounded-full">
+				<img
+					src={data.business.logo.url}
+					alt={data.business.name}
+					class="h-full w-full object-cover"
+				/>
+			</div>
+			<div class="min-w-0 flex-1">
+				<div class="flex items-center gap-2">
+					<h2 class="truncate text-xl font-bold">{data.business.name}</h2>
+					<IconChevronRight class="size-5 shrink-0 text-base-content/40" />
+				</div>
+				<p class="mt-1 text-xs text-base-content/40">{data.business.country}</p>
+				<p class="mt-2 line-clamp-2 text-sm text-base-content/60">{data.business.description}</p>
+			</div>
+		</div>
+	</a>
+
+	<!-- Header Section -->
+	<div class="bg-base-100 p-6">
+		<div class="flex items-start gap-3">
+			<IconFood class="mt-1 size-5 shrink-0 text-base-content/40" />
+			<div class="min-w-0 flex-1">
+				<h1 class="text-2xl font-bold">{data.offer.name}</h1>
+				<p class="mt-2 text-base-content/60">{data.offer.description}</p>
+			</div>
+			<div class="shrink-0 text-right">
+				<div class="text-2xl font-bold text-primary tabular-nums">
+					{data.offer.price.toFixed(2)}
+				</div>
+				<div class="text-xs text-base-content/40">{data.offer.currency}</div>
+			</div>
 		</div>
 	</div>
-</div>
 
-<!-- Pickup Information -->
-<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-	<h2 class="mb-3 flex items-center gap-2 text-lg font-bold">
-		<IconLocation class="h-5 w-5" />
-		Pickup Information
-	</h2>
+	<!-- Pickup Information -->
+	<div class="bg-base-100 p-6">
+		<div class="mb-6 flex items-center gap-2">
+			<IconCalendar class="size-5 text-base-content/60" />
+			<h2 class="text-lg font-bold">Pickup Details</h2>
+		</div>
 
-	{#if data.location}
-		<div class="space-y-3">
-			<div class="grid grid-cols-2 gap-2">
-				<div class="rounded-lg bg-base-200 p-3">
-					<div class="mb-1 flex items-center gap-1 text-xs text-base-content/60">
+		<div class="space-y-6">
+			<div class="grid grid-cols-2 gap-4">
+				<div>
+					<div
+						class="mb-2 flex items-center gap-1 text-xs tracking-wide text-base-content/40 uppercase"
+					>
 						<IconCalendar class="h-3 w-3" />
 						Date
 					</div>
-					<p class="text-sm font-semibold">{formatDate(data.reservation.pickupFrom)}</p>
+					<p class="font-medium">{formatDate(data.reservation.pickupFrom)}</p>
 				</div>
-				<div class="rounded-lg bg-base-200 p-3">
-					<div class="mb-1 flex items-center gap-1 text-xs text-base-content/60">
+				<div>
+					<div
+						class="mb-2 flex items-center gap-1 text-xs tracking-wide text-base-content/40 uppercase"
+					>
 						<IconClock class="h-3 w-3" />
 						Time
 					</div>
-					<p class="text-sm font-semibold">
-						{formatTime(data.reservation.pickupFrom)} - {formatTime(data.reservation.pickupUntil)}
+					<p class="font-medium tabular-nums">
+						{formatTime(data.reservation.pickupFrom)}–{formatTime(data.reservation.pickupUntil)}
 					</p>
 				</div>
 			</div>
 
-			<div class="bg-base-50 rounded-lg border border-base-300 p-3">
-				<p class="mb-1 text-sm font-semibold">{data.location.name}</p>
-				<p class="text-xs text-base-content/70">
-					{data.location.address}<br />
-					{data.location.city}, {data.location.zipCode}<br />
-					{data.location.country}
-				</p>
-			</div>
-		</div>
-	{:else}
-		<div class="alert">
-			<IconLocation class="size-5" />
-			<span>Location details not specified</span>
-		</div>
-	{/if}
+			{#if data.location}
+				<a
+					href="/locations/{data.location.id}"
+					class="flex items-start gap-3 bg-base-200 p-4 transition-colors hover:bg-base-300"
+				>
+					<IconLocation class="mt-0.5 size-5 shrink-0 text-base-content/60" />
+					<div class="min-w-0 flex-1">
+						<p class="font-medium">{data.location.name}</p>
+						<p class="mt-1 text-sm text-base-content/60">
+							{data.location.address}<br />
+							{data.location.city}, {data.location.zipCode}<br />
+							{data.location.country}
+						</p>
+					</div>
+					<IconChevronRight class="mt-0.5 size-5 shrink-0 text-base-content/40" />
+				</a>
+			{:else}
+				<div class="flex items-center gap-3 bg-base-200 p-4 text-base-content/60">
+					<IconLocation class="size-5" />
+					<span>Location details not specified</span>
+				</div>
+			{/if}
 
-	{#if data.reservation.notes}
-		<div class="mt-3 rounded-lg bg-base-200 p-3">
-			<p class="mb-1 text-xs font-semibold text-base-content/60">Your Notes</p>
-			<p class="text-sm">{data.reservation.notes}</p>
-		</div>
-	{/if}
-</div>
-
-<!-- Business Info -->
-<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-	<h2 class="mb-3 flex items-center gap-2 text-lg font-bold">
-		<IconBuilding class="h-5 w-5" />
-		Business
-	</h2>
-	<div class="flex items-center gap-3">
-		<div class="avatar">
-			<div class="w-12 rounded-full ring-2 ring-primary ring-offset-2 ring-offset-base-100">
-				<img src={data.business.logo.url} alt={data.business.name} />
-			</div>
-		</div>
-		<div>
-			<p class="font-semibold">{data.business.name}</p>
-			<p class="text-xs text-base-content/60">{data.business.country}</p>
+			{#if data.reservation.notes}
+				<div class="bg-base-200 p-4">
+					<p class="mb-2 text-xs tracking-wide text-base-content/40 uppercase">Your Notes</p>
+					<p class="text-sm">{data.reservation.notes}</p>
+				</div>
+			{/if}
 		</div>
 	</div>
-	<p class="mt-3 text-sm text-base-content/70">{data.business.description}</p>
-</div>
 
-<!-- Invite to Collection Section -->
-{#if data.isOwner && data.reservation.status === 'active'}
-	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
-		<div class="mb-3 flex items-center justify-between">
-			<h2 class="flex items-center gap-2 text-lg font-bold">
-				<IconShare class="h-5 w-5" />
-				Pass to Friend
-			</h2>
-		</div>
+	<!-- Invite to Collection Section -->
+	{#if data.isOwner && data.reservation.status === 'active'}
+		<div class="bg-base-100 p-6">
+			<div class="mb-4 flex items-center gap-2">
+				<IconShare class="size-5 text-base-content/60" />
+				<h2 class="text-lg font-bold">Pass to Friend</h2>
+			</div>
 
-		{#if hasPendingInvite}
-			{@const pendingInvite = data.invites.find((inv) => inv.status === 'pending')}
-			<div class="mb-3 rounded-lg border-2 border-warning bg-warning/10 p-3">
-				<p class="mb-2 text-sm font-semibold text-warning">Invite Link Active</p>
-				<p class="mb-3 text-xs text-base-content/70">
-					Share this link with a friend to let them collect this food
-				</p>
-				<div class="mb-2 rounded bg-base-100 p-2 font-mono text-xs break-all">
-					{$page.url.origin}/reservations/{data.reservation.id}?invite={pendingInvite?.inviteToken}
-				</div>
-				<div class="flex gap-2">
-					<button
-						onclick={() => {
-							inviteLink = `${$page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
-							copyInviteLink();
-						}}
-						class="btn flex-1 gap-2 btn-sm"
-					>
-						<IconCopy class="h-4 w-4" />
-						{linkCopied ? 'Copied!' : 'Copy Link'}
-					</button>
-					{#if canShare}
+			{#if hasPendingInvite}
+				{@const pendingInvite = data.invites.find((inv) => inv.status === 'pending')}
+				<div class="mb-4 border-l-4 border-warning bg-base-100 p-4">
+					<p class="font-medium text-warning">Invite Link Active</p>
+					<p class="mt-2 text-sm text-base-content/60">
+						Share this link with a friend to let them collect this food
+					</p>
+					<div class="mt-3 bg-base-200 p-3 font-mono text-xs break-all">
+						{$page.url.origin}/reservations/{data.reservation
+							.id}?invite={pendingInvite?.inviteToken}
+					</div>
+					<div class="mt-3 flex gap-2">
 						<button
 							onclick={() => {
 								inviteLink = `${$page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
-								shareInviteLink();
+								copyInviteLink();
 							}}
-							class="btn flex-1 gap-2 btn-sm btn-primary"
+							class="btn flex-1 gap-2 btn-sm"
 						>
-							<IconShare class="h-4 w-4" />
-							Share
+							<IconCopy class="h-4 w-4" />
+							{linkCopied ? 'Copied!' : 'Copy Link'}
 						</button>
+						{#if canShare}
+							<button
+								onclick={() => {
+									inviteLink = `${$page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
+									shareInviteLink();
+								}}
+								class="btn flex-1 gap-2 btn-sm btn-primary"
+							>
+								<IconShare class="h-4 w-4" />
+								Share
+							</button>
+						{/if}
+					</div>
+				</div>
+				<form method="POST" action="?/cancelInvite" use:enhance>
+					<button type="submit" class="btn btn-block gap-2 btn-ghost btn-sm">
+						<IconDismiss class="h-4 w-4" />
+						Cancel Invite
+					</button>
+				</form>
+			{:else if data.invites.length > 0 && data.invites[0].status === 'accepted'}
+				<div class="border-l-4 border-success bg-base-100 p-4">
+					<p class="font-medium text-success">Invite Accepted</p>
+					<p class="mt-1 text-sm text-base-content/60">Your friend can now collect this food</p>
+				</div>
+			{:else}
+				<p class="mb-4 text-sm text-base-content/60">
+					Can't make it? Let a friend collect this food instead!
+				</p>
+				<button onclick={() => (showInviteModal = true)} class="btn btn-block gap-2 btn-primary">
+					<IconShare class="h-4 w-4" />
+					Create Invite Link
+				</button>
+			{/if}
+		</div>
+	{/if}
+
+	<!-- Pending Invite (for invited user via link) -->
+	{#if data.pendingInviteForUser}
+		<div class="border-l-4 border-primary bg-base-100 p-6">
+			<div class="mb-6 text-center">
+				<IconPersonAdd class="mx-auto mb-4 h-16 w-16 text-primary" />
+				<h2 class="text-2xl font-bold text-primary">You've Been Invited</h2>
+				<p class="mt-2 text-sm text-base-content/60">
+					Someone wants to pass this food collection to you
+				</p>
+			</div>
+
+			<div class="mb-6 space-y-4 bg-base-200 p-4">
+				<div>
+					<p class="mb-1 text-xs tracking-wide text-base-content/40 uppercase">Offer</p>
+					<p class="font-medium">{data.offer.name}</p>
+				</div>
+				<div>
+					<p class="mb-1 text-xs tracking-wide text-base-content/40 uppercase">Pickup Time</p>
+					<p class="text-sm tabular-nums">
+						{formatDate(data.reservation.pickupFrom)} • {formatTime(
+							data.reservation.pickupFrom
+						)}–{formatTime(data.reservation.pickupUntil)}
+					</p>
+				</div>
+				<div>
+					<p class="mb-1 text-xs tracking-wide text-base-content/40 uppercase">Location</p>
+					<p class="text-sm">{data.business.name}</p>
+					{#if data.location}
+						<p class="text-xs text-base-content/60">
+							{data.location.address}, {data.location.city}
+						</p>
 					{/if}
 				</div>
 			</div>
-			<form method="POST" action="?/cancelInvite" use:enhance>
-				<button type="submit" class="btn btn-block gap-2 btn-ghost btn-sm">
-					<IconDismiss class="h-4 w-4" />
-					Cancel Invite
-				</button>
-			</form>
-		{:else if data.invites.length > 0 && data.invites[0].status === 'accepted'}
-			<div class="rounded-lg bg-success/10 p-3">
-				<p class="text-sm font-semibold text-success">Invite Accepted</p>
-				<p class="mt-1 text-xs text-base-content/70">Your friend can now collect this food</p>
-			</div>
-		{:else}
-			<p class="mb-3 text-sm text-base-content/70">
-				Can't make it? Let a friend collect this food instead!
-			</p>
-			<button onclick={() => (showInviteModal = true)} class="btn btn-block gap-2 btn-primary">
-				<IconShare class="h-4 w-4" />
-				Create Invite Link
-			</button>
-		{/if}
-	</div>
-{/if}
 
-<!-- Pending Invite (for invited user via link) -->
-{#if data.pendingInviteForUser}
-	<div class="rounded-lg border-4 border-primary bg-primary/10 p-6">
-		<div class="mb-4 text-center">
-			<IconPersonAdd class="mx-auto mb-3 h-16 w-16 text-primary" />
-			<h2 class="mb-2 text-2xl font-bold text-primary">You've Been Invited!</h2>
-			<p class="text-sm text-base-content/70">Someone wants to pass this food collection to you</p>
-		</div>
+			{#if form?.error}
+				<div class="mb-4 border-l-4 border-error bg-base-100 p-4">
+					<div class="flex items-center gap-2 text-error">
+						<IconDismiss class="size-5" />
+						<span>{form.error}</span>
+					</div>
+				</div>
+			{/if}
 
-		<div class="mb-4 rounded-lg border border-base-300 bg-base-100 p-4">
-			<div class="mb-3">
-				<p class="mb-1 text-xs font-semibold text-base-content/60">Offer</p>
-				<p class="font-semibold">{data.offer.name}</p>
-			</div>
-			<div class="mb-3">
-				<p class="mb-1 text-xs font-semibold text-base-content/60">Pickup Time</p>
-				<p class="text-sm">
-					{formatDate(data.reservation.pickupFrom)} • {formatTime(data.reservation.pickupFrom)} - {formatTime(
-						data.reservation.pickupUntil
-					)}
-				</p>
-			</div>
-			<div>
-				<p class="mb-1 text-xs font-semibold text-base-content/60">Location</p>
-				<p class="text-sm">{data.business.name}</p>
-				{#if data.location}
-					<p class="text-xs text-base-content/60">{data.location.address}, {data.location.city}</p>
-				{/if}
+			<div class="flex gap-3">
+				<form
+					method="POST"
+					action="?/declineInvite&invite={$page.url.searchParams.get('invite')}"
+					use:enhance
+					class="flex-1"
+				>
+					<button type="submit" class="btn btn-block gap-2 btn-ghost">
+						<IconDismiss class="size-5" />
+						Decline
+					</button>
+				</form>
+				<form
+					method="POST"
+					action="?/acceptInvite&invite={$page.url.searchParams.get('invite')}"
+					use:enhance
+					class="flex-1"
+				>
+					<button type="submit" class="btn btn-block gap-2 btn-lg btn-primary">
+						<IconCheckmark class="size-5" />
+						Accept
+					</button>
+				</form>
 			</div>
 		</div>
-
-		{#if form?.error}
-			<div class="mb-4 alert alert-error">
-				<IconDismiss class="size-5" />
-				<span>{form.error}</span>
-			</div>
-		{/if}
-
-		<div class="flex gap-2">
-			<form
-				method="POST"
-				action="?/declineInvite&invite={$page.url.searchParams.get('invite')}"
-				use:enhance
-				class="flex-1"
-			>
-				<button type="submit" class="btn btn-block gap-2 btn-ghost">
-					<IconDismiss class="h-5 w-5" />
-					Decline
-				</button>
-			</form>
-			<form
-				method="POST"
-				action="?/acceptInvite&invite={$page.url.searchParams.get('invite')}"
-				use:enhance
-				class="flex-1"
-			>
-				<button type="submit" class="btn btn-block gap-2 btn-lg btn-primary">
-					<IconCheckmark class="h-5 w-5" />
-					Accept & Collect
-				</button>
-			</form>
-		</div>
-	</div>
-{:else}
-	<!-- Action Buttons -->
-	{#if data.reservation.status === 'active' && (data.isOwner || data.userInvite?.status === 'accepted')}
-		<div class="space-y-2">
+	{:else}
+		<!-- Action Buttons -->
+		{#if data.reservation.status === 'active' && (data.isOwner || data.userInvite?.status === 'accepted')}
 			<button
 				onclick={() => (showClaimModal = true)}
 				class="btn btn-block gap-2 btn-lg btn-success"
 			>
-				<IconCheckmark class="h-5 w-5" />
+				<IconCheckmark class="size-5" />
 				Claim Food
 			</button>
-		</div>
-	{/if}
+		{/if}
 
-	<!-- Create Invite Modal -->
-	{#if showInviteModal}
-		<div class="modal-open modal">
-			<div class="modal-box">
-				<button
-					onclick={() => {
-						showInviteModal = false;
-						inviteLink = '';
-						linkCopied = false;
-					}}
-					class="btn absolute top-2 right-2 btn-circle btn-ghost btn-sm"
-				>
-					✕
-				</button>
-				<h3 class="mb-4 text-xl font-bold">Invite to Collection</h3>
+		<!-- Create Invite Modal -->
+		{#if showInviteModal}
+			<div class="modal-open modal">
+				<div class="modal-box">
+					<button
+						onclick={() => {
+							showInviteModal = false;
+							inviteLink = '';
+							linkCopied = false;
+						}}
+						class="btn absolute top-4 right-4 btn-circle btn-ghost btn-sm"
+					>
+						✕
+					</button>
+					<h3 class="mb-6 text-xl font-bold">Invite to Collection</h3>
 
-				{#if form?.error}
-					<div class="mb-4 alert alert-error">
-						<IconDismiss class="size-5" />
-						<span>{form.error}</span>
-					</div>
-				{/if}
-
-				{#if inviteLink}
-					<div class="mb-4 alert alert-success">
-						<IconCheckmark class="size-5" />
-						<span>Invite link created!</span>
-					</div>
-
-					<div class="mb-4">
-						<label class="label">
-							<span class="label-text font-semibold">Share this link</span>
-						</label>
-						<div class="flex gap-2">
-							<input
-								type="text"
-								value={inviteLink}
-								readonly
-								class="input-bordered input flex-1 font-mono text-xs"
-							/>
-							<button onclick={copyInviteLink} class="btn btn-square gap-2">
-								<IconCopy class="h-5 w-5" />
-							</button>
+					{#if form?.error}
+						<div class="mb-4 border-l-4 border-error bg-base-100 p-4">
+							<div class="flex items-center gap-2 text-error">
+								<IconDismiss class="size-5" />
+								<span>{form.error}</span>
+							</div>
 						</div>
-						{#if linkCopied}
-							<label class="label">
-								<span class="label-text-alt text-success">Link copied to clipboard!</span>
-							</label>
-						{/if}
-					</div>
-
-					{#if navigator.share}
-						<button onclick={shareInviteLink} class="btn btn-block gap-2 btn-primary">
-							<IconShare class="h-5 w-5" />
-							Share via...
-						</button>
 					{/if}
 
-					<div class="modal-action">
+					{#if inviteLink}
+						<div class="mb-4 border-l-4 border-success bg-base-100 p-4">
+							<div class="flex items-center gap-2 text-success">
+								<IconCheckmark class="size-5" />
+								<span class="font-medium">Invite link created!</span>
+							</div>
+						</div>
+
+						<div class="mb-6">
+							<label class="mb-2 block font-medium">Share this link</label>
+							<div class="flex gap-2">
+								<input
+									type="text"
+									value={inviteLink}
+									readonly
+									class="input-bordered input flex-1 font-mono text-xs"
+								/>
+								<button onclick={copyInviteLink} class="btn btn-square">
+									<IconCopy class="size-5" />
+								</button>
+							</div>
+							{#if linkCopied}
+								<p class="mt-2 text-sm text-success">Link copied to clipboard!</p>
+							{/if}
+						</div>
+
+						{#if canShare}
+							<button onclick={shareInviteLink} class="btn mb-4 btn-block gap-2 btn-primary">
+								<IconShare class="size-5" />
+								Share via...
+							</button>
+						{/if}
+
 						<button
 							onclick={() => {
 								showInviteModal = false;
 								inviteLink = '';
 								linkCopied = false;
 							}}
-							class="btn"
+							class="btn btn-block"
 						>
 							Done
 						</button>
-					</div>
-				{:else}
-					<p class="mb-4 text-sm text-base-content/70">
-						Create a shareable link that allows one person to collect this food reservation on your
-						behalf.
-					</p>
-
-					<div class="mb-4 rounded-lg border border-warning bg-warning/10 p-3">
-						<p class="text-xs text-base-content/70">
-							⚠️ Only one person can use this invite. Once accepted, they'll be able to claim the
-							food.
+					{:else}
+						<p class="mb-6 text-sm text-base-content/60">
+							Create a shareable link that allows one person to collect this food reservation on
+							your behalf.
 						</p>
+
+						<div class="mb-6 border-l-4 border-warning bg-base-100 p-4">
+							<p class="text-sm text-base-content/60">
+								⚠️ Only one person can use this invite. Once accepted, they'll be able to claim the
+								food.
+							</p>
+						</div>
+
+						<form
+							method="POST"
+							action="?/createInvite"
+							use:enhance={() => {
+								inviteLoading = true;
+								return async ({ update }) => {
+									await update();
+									inviteLoading = false;
+								};
+							}}
+						>
+							<div class="flex gap-3">
+								<button
+									type="button"
+									onclick={() => (showInviteModal = false)}
+									class="btn flex-1 btn-ghost"
+									disabled={inviteLoading}
+								>
+									Cancel
+								</button>
+								<button type="submit" class="btn flex-1 btn-primary" disabled={inviteLoading}>
+									{#if inviteLoading}
+										<span class="loading loading-spinner"></span>
+									{/if}
+									Create Link
+								</button>
+							</div>
+						</form>
+					{/if}
+				</div>
+				<div
+					class="modal-backdrop"
+					onclick={() => {
+						showInviteModal = false;
+						inviteLink = '';
+						linkCopied = false;
+					}}
+				></div>
+			</div>
+		{/if}
+
+		<!-- Claim Modal -->
+		{#if showClaimModal}
+			<div class="modal-open modal">
+				<div class="modal-box max-w-sm">
+					<button
+						onclick={() => (showClaimModal = false)}
+						class="btn absolute top-4 right-4 btn-circle btn-ghost btn-sm"
+					>
+						✕
+					</button>
+					<h3 class="mb-6 text-center text-xl font-bold">Claim Your Food</h3>
+
+					{#if form?.error && claimLoading === false}
+						<div class="mb-4 border-l-4 border-error bg-base-100 p-4">
+							<div class="flex items-center gap-2 text-error">
+								<IconDismiss class="size-5" />
+								<span>{form.error}</span>
+							</div>
+						</div>
+					{/if}
+
+					<!-- QR Code Display -->
+					<div class="mb-6 flex flex-col items-center">
+						<div class="bg-white p-8">
+							<IconQrCode class="h-32 w-32 text-gray-800" />
+						</div>
+						<div class="mt-4 w-full bg-base-200 p-4">
+							<p class="mb-2 text-center text-xs tracking-wide text-base-content/40 uppercase">
+								Claim Token
+							</p>
+							<p class="text-center font-mono text-sm font-medium break-all">
+								{data.reservation.claimToken}
+							</p>
+						</div>
+					</div>
+
+					<div class="divider my-6 text-xs tracking-wide uppercase">or</div>
+
+					<!-- Swipe to Claim -->
+					<div class="mb-6">
+						<p class="mb-4 text-center text-sm text-base-content/60">
+							Swipe right to confirm you've received your food
+						</p>
+						<div class="relative h-14 w-full overflow-hidden bg-base-200">
+							<div
+								class="absolute top-0 left-0 h-full bg-success transition-all duration-100"
+								style="width: {swipeProgress}%"
+							></div>
+							<button
+								type="button"
+								class="absolute top-0 left-0 h-14 w-14 cursor-grab bg-success text-success-content transition-transform active:cursor-grabbing"
+								style="transform: translateX({(swipeProgress / 100) * (300 - 56)}px)"
+								onmousedown={handleSwipeStart}
+								ontouchstart={handleSwipeStart}
+							>
+								<IconCheckmark class="mx-auto h-6 w-6" />
+							</button>
+							<div
+								class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-medium"
+								style="opacity: {1 - swipeProgress / 100}"
+							>
+								Swipe to claim →
+							</div>
+						</div>
 					</div>
 
 					<form
+						id="claimForm"
 						method="POST"
-						action="?/createInvite"
+						action="?/claimReservation"
 						use:enhance={() => {
-							inviteLoading = true;
+							claimLoading = true;
 							return async ({ update }) => {
 								await update();
-								inviteLoading = false;
+								claimLoading = false;
 							};
 						}}
-					>
-						<div class="modal-action">
-							<button
-								type="button"
-								onclick={() => (showInviteModal = false)}
-								class="btn btn-ghost"
-								disabled={inviteLoading}
-							>
-								Cancel
-							</button>
-							<button type="submit" class="btn btn-primary" disabled={inviteLoading}>
-								{#if inviteLoading}
-									<span class="loading loading-spinner"></span>
-								{/if}
-								Create Invite Link
-							</button>
+					></form>
+
+					{#if claimLoading}
+						<div class="mt-4 flex items-center justify-center gap-2 text-base-content/60">
+							<span class="loading loading-md loading-spinner"></span>
+							<span class="text-sm">Processing claim...</span>
 						</div>
-					</form>
-				{/if}
-			</div>
-			<div
-				class="modal-backdrop"
-				onclick={() => {
-					showInviteModal = false;
-					inviteLink = '';
-					linkCopied = false;
-				}}
-			></div>
-		</div>
-	{/if}
-
-	<!-- Claim Modal -->
-	{#if showClaimModal}
-		<div class="modal-open modal">
-			<div class="modal-box max-w-sm">
-				<button
-					onclick={() => (showClaimModal = false)}
-					class="btn absolute top-2 right-2 btn-circle btn-ghost btn-sm"
-				>
-					✕
-				</button>
-				<h3 class="mb-4 text-center text-xl font-bold">Claim Your Food</h3>
-
-				{#if form?.error && claimLoading === false}
-					<div class="mb-4 alert alert-error">
-						<IconDismiss class="size-5" />
-						<span>{form.error}</span>
-					</div>
-				{/if}
-
-				<!-- QR Code Display -->
-				<div class="mb-4 flex flex-col items-center">
-					<div class="rounded-lg border-2 border-base-300 bg-white p-6">
-						<IconQrCode class="h-32 w-32 text-gray-800" />
-					</div>
-					<div class="mt-3 w-full rounded-lg bg-base-200 p-3">
-						<p class="mb-1 text-center text-xs text-base-content/60">Claim Token</p>
-						<p class="text-center font-mono text-sm font-semibold break-all">
-							{data.reservation.claimToken}
-						</p>
-					</div>
+					{/if}
 				</div>
-
-				<div class="divider my-2 text-xs">OR</div>
-
-				<!-- Swipe to Claim -->
-				<div class="mb-4">
-					<p class="mb-3 text-center text-sm text-base-content/70">
-						Swipe right to confirm you've received your food
-					</p>
-					<div class="relative h-14 w-full overflow-hidden rounded-full bg-base-200">
-						<div
-							class="absolute top-0 left-0 h-full rounded-full bg-success transition-all duration-100"
-							style="width: {swipeProgress}%"
-						></div>
-						<button
-							type="button"
-							class="absolute top-0 left-0 h-14 w-14 cursor-grab rounded-full bg-success text-success-content transition-transform active:cursor-grabbing"
-							style="transform: translateX({(swipeProgress / 100) * (300 - 56)}px)"
-							onmousedown={handleSwipeStart}
-							ontouchstart={handleSwipeStart}
-						>
-							<IconCheckmark class="mx-auto h-6 w-6" />
-						</button>
-						<div
-							class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-semibold"
-							style="opacity: {1 - swipeProgress / 100}"
-						>
-							Swipe to claim →
-						</div>
-					</div>
-				</div>
-
-				<form
-					id="claimForm"
-					method="POST"
-					action="?/claimReservation"
-					use:enhance={() => {
-						claimLoading = true;
-						return async ({ update }) => {
-							await update();
-							claimLoading = false;
-						};
-					}}
-				></form>
-
-				{#if claimLoading}
-					<div class="mt-4 flex items-center justify-center gap-2">
-						<span class="loading loading-md loading-spinner"></span>
-						<span class="text-sm">Processing claim...</span>
-					</div>
-				{/if}
+				<div class="modal-backdrop" onclick={() => (showClaimModal = false)}></div>
 			</div>
-			<div class="modal-backdrop" onclick={() => (showClaimModal = false)}></div>
-		</div>
+		{/if}
 	{/if}
-{/if}
+</div>
