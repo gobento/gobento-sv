@@ -17,8 +17,7 @@ import { randomBytes } from 'crypto';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const session = locals.session;
-
+	const account = locals.account!;
 	const reservationId = params.id;
 
 	// Fetch reservation with all related data
@@ -48,7 +47,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	// Check if user has access (either owner or invited friend)
-	const isOwner = reservation.reservation.userAccountId === session!.accountId;
+	const isOwner = reservation.reservation.userAccountId === account.id;
 
 	const invites = await db
 		.select()
@@ -56,7 +55,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.where(eq(reservationInvites.reservationId, reservationId));
 
 	const userInvite = invites.find(
-		(inv) => inv.invitedAccountId === session!.accountId && inv.status === 'accepted'
+		(inv) => inv.invitedAccountId === account.id && inv.status === 'accepted'
 	);
 
 	if (!isOwner && !userInvite) {

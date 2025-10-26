@@ -10,6 +10,7 @@ import {
 } from '$lib/server/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze'; // ← Import this
+import { calculateDistance } from '$lib/util';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const lat = url.searchParams.get('lat');

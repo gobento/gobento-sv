@@ -1,9 +1,6 @@
 <!-- src/routes/(dock)/offers/[id]/+page.svelte -->
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { enhance } from '$app/forms';
 	import IconMapPin from '~icons/fluent/location-24-regular';
-	import IconEdit from '~icons/fluent/edit-24-regular';
 	import IconDelete from '~icons/fluent/delete-24-regular';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
@@ -12,15 +9,15 @@
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
-	import IconQr from '~icons/fluent/qr-code-24-regular';
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconGift from '~icons/fluent/gift-24-regular';
-	import { goto } from '$app/navigation';
+
+	import PaymentModal from '$lib/components/PaymentModal.svelte';
+	import { formatDate, formatTime } from '$lib/util.js';
 
 	let { data, form } = $props();
 
-	let isSubmitting = $state(false);
-	let showReservationDialog = $state(false);
+	let showPaymentModal = $state(false);
 	let pickupDate = $state('');
 	let minDate = $state('');
 	let maxDate = $state('');
@@ -47,35 +44,17 @@
 		}).format(price);
 	};
 
-	const formatDate = (date: Date | string | null) => {
-		if (!date) return null;
-		return new Intl.DateTimeFormat('de-DE', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		}).format(new Date(date));
-	};
-
-	const formatTime = (timeStr: string) => {
-		const [hours, minutes] = timeStr.split(':');
-		return `${hours}:${minutes}`;
-	};
-
 	const getGoogleMapsUrl = (lat: number, lng: number) => {
 		return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-	};
-
-	const getLogoUrl = (key: string) => {
-		return `/api/files/${key}`;
-	};
-
-	const handleEdit = () => {
-		goto(`/offers/${data.offer.id}/edit`);
 	};
 
 	const handleDelete = async () => {
 		if (!confirm('Are you sure you want to delete this offer?')) return;
 		alert('Delete functionality to be implemented');
+	};
+
+	const handleReserve = () => {
+		showPaymentModal = true;
 	};
 </script>
 
@@ -276,27 +255,55 @@
 			</div>
 		</div>
 	{:else}
-		<!-- Available to Reserve -->
-		<button
-			onclick={() => (showReservationDialog = true)}
-			class="btn w-full rounded-xl text-lg font-bold transition-all btn-lg btn-primary hover:scale-[1.02]"
-		>
-			<IconGift class="size-6" />
-			Reserve Surprise Bag
-		</button>
+		<!-- Pickup Date Selection -->
+		<div class="rounded-2xl bg-base-100 p-6 shadow-sm">
+			<div class="space-y-4">
+				<div class="form-control">
+					<label for="pickupDate" class="label">
+						<span class="label-text text-lg font-bold">Select Pickup Date</span>
+					</label>
+					<input
+						type="date"
+						id="pickupDate"
+						bind:value={pickupDate}
+						min={minDate}
+						max={maxDate}
+						required
+						class="input-bordered input rounded-lg font-medium"
+					/>
+					<label class="label">
+						<span class="label-text-alt flex items-center gap-1.5 font-medium text-base-content/70">
+							<IconClock class="size-4" />
+							Pickup: {formatTime(data.offer.pickupTimeFrom)} - {formatTime(
+								data.offer.pickupTimeUntil
+							)}
+						</span>
+					</label>
+				</div>
+
+				<!-- Reserve Button -->
+				<button
+					onclick={handleReserve}
+					disabled={!pickupDate}
+					class="btn w-full rounded-xl text-lg font-bold transition-all btn-lg btn-primary hover:scale-[1.02]"
+				>
+					<IconGift class="size-6" />
+					Proceed to Payment
+				</button>
+			</div>
+		</div>
 	{/if}
 {:else if data.isOwner}
 	<!-- Owner Controls -->
 	<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
 		{#if data.isReserved}
-			<div class="mt-4 rounded-xl border border-info bg-info/5 p-4">
+			<div class="rounded-xl border border-info bg-info/5 p-4">
 				<div class="flex items-center gap-2">
 					<IconClock class="size-5 text-info" />
 					<span class="font-semibold">Currently reserved by a user</span>
 				</div>
 			</div>
 		{:else}
-			<!-- todo: also make sure that an offer can only deleted if it's not reserved on the server side -->
 			<button onclick={handleDelete} class="btn rounded-xl font-semibold btn-outline btn-error">
 				<IconDelete class="size-5" />
 				Delete Offer
@@ -315,95 +322,15 @@
 	</div>
 {/if}
 
-<!-- Reservation Dialog -->
-{#if showReservationDialog}
-	<div class="modal-open modal">
-		<div class="modal-box max-w-md rounded-2xl">
-			<h3 class="mb-6 text-2xl font-bold">Choose Pickup Date</h3>
-
-			<form
-				method="POST"
-				action="?/reserve"
-				use:enhance={() => {
-					isSubmitting = true;
-					return async ({ update }) => {
-						await update();
-						isSubmitting = false;
-						showReservationDialog = false;
-					};
-				}}
-			>
-				<div class="space-y-4">
-					<div class="form-control">
-						<label for="pickupDate" class="label">
-							<span class="label-text font-semibold">Select Pickup Date</span>
-						</label>
-						<input
-							type="date"
-							id="pickupDate"
-							name="pickupDate"
-							bind:value={pickupDate}
-							min={minDate}
-							max={maxDate}
-							required
-							class="input-bordered input rounded-lg font-medium"
-						/>
-						<label class="label">
-							<span
-								class="label-text-alt flex items-center gap-1.5 font-medium text-base-content/70"
-							>
-								<IconClock class="size-4" />
-								Pickup: {formatTime(data.offer.pickupTimeFrom)} - {formatTime(
-									data.offer.pickupTimeUntil
-								)}
-							</span>
-						</label>
-					</div>
-
-					<div class="rounded-lg border border-info bg-info/5 p-4">
-						<div class="flex items-start gap-2">
-							<IconGift class="size-4 shrink-0 text-info" />
-							<div class="text-sm">
-								<p class="font-semibold">About Surprise Bags</p>
-								<p class="font-medium text-base-content/70">
-									Contents vary daily. Pick up during the selected time window.
-								</p>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<div class="modal-action">
-					<button
-						type="button"
-						onclick={() => (showReservationDialog = false)}
-						disabled={isSubmitting}
-						class="btn rounded-lg font-semibold btn-ghost"
-					>
-						Cancel
-					</button>
-					<button
-						type="submit"
-						disabled={isSubmitting}
-						class="btn rounded-lg font-semibold btn-primary"
-					>
-						{#if isSubmitting}
-							<span class="loading loading-sm loading-spinner"></span>
-							Processing...
-						{:else}
-							<IconCheckmark class="size-5" />
-							Confirm Reservation
-						{/if}
-					</button>
-				</div>
-			</form>
-		</div>
-		<button
-			class="modal-backdrop"
-			onclick={() => (showReservationDialog = false)}
-			disabled={isSubmitting}
-		>
-			Close
-		</button>
-	</div>
-{/if}
+<!-- Payment Modal -->
+<PaymentModal
+	show={showPaymentModal}
+	offer={{
+		id: data.offer.id,
+		name: data.offer.name,
+		price: data.offer.price,
+		currency: data.offer.currency
+	}}
+	{pickupDate}
+	onClose={() => (showPaymentModal = false)}
+/>

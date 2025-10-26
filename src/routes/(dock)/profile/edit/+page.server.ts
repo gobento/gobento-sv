@@ -10,9 +10,8 @@ import { randomUUID } from 'crypto';
 export const load: PageServerLoad = async ({ locals }) => {
 	const { id: accountId, accountType } = locals.account!;
 
-	// Only business and charity accounts can edit profiles
 	if (accountType !== 'business' && accountType !== 'charity') {
-		throw redirect(302, '/profile');
+		throw error(403, 'Only business and charity accounts can edit profiles');
 	}
 
 	// Load profile based on account type

@@ -13,9 +13,9 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	// Check if user is authenticated and is a regular user
-	if (!locals.account || locals.account.accountType !== 'user') {
-		throw error(401, 'Unauthorized');
+	const account = locals.account!;
+	if (account.accountType !== 'user') {
+		throw error(403, 'Only user accounts can access reservations');
 	}
 
 	// Fetch all reservations for the current user (active, claimed, completed)
@@ -63,7 +63,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.innerJoin(files, eq(businessProfiles.profilePictureId, files.id))
 		.where(
 			and(
-				eq(reservations.userAccountId, locals.account.id),
+				eq(reservations.userAccountId, account.id),
 				inArray(reservations.status, ['active', 'claimed', 'completed'])
 			)
 		)
