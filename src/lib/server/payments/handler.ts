@@ -39,6 +39,8 @@ export class PaymentHandler {
 		error?: string;
 	}> {
 		try {
+			console.log('createPayment:', params);
+
 			// Calculate fee split
 			const split =
 				params.paymentMethod === 'zarinpal'
@@ -92,6 +94,8 @@ export class PaymentHandler {
 		error?: string;
 	}> {
 		try {
+			console.log('completePayment:', params);
+
 			// Get payment record
 			const [payment] = await db
 				.select()

@@ -1,5 +1,4 @@
-// src/routes/payments/callback/+page.server.ts
-
+// src/routes/(authorized)/payments/callback/+page.server.ts
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
@@ -7,14 +6,10 @@ import { payments } from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
 import { ZarinpalService } from '$lib/server/payments/zarinpal';
 import { PaymentHandler } from '$lib/server/payments/handler';
+import { MOCK_PAYMENTS } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
-	const session = locals.session;
-	const account = locals.account;
-
-	if (!session || !account) {
-		throw error(401, 'Unauthorized');
-	}
+	const account = locals.account!;
 
 	// Get query parameters from Zarinpal callback
 	const authority = url.searchParams.get('Authority');
@@ -25,8 +20,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		throw error(400, 'Invalid callback parameters');
 	}
 
-	// Check if payment was cancelled
-	if (status === 'NOK') {
+	// Check if payment was cancelled (skip in mock mode)
+	if (status === 'NOK' && MOCK_PAYMENTS !== 'true') {
 		await PaymentHandler.failPayment(paymentId, 'Payment cancelled by user');
 		throw redirect(303, '/offers?error=payment_cancelled');
 	}
@@ -43,11 +38,21 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		throw error(403, 'Unauthorized');
 	}
 
-	// Verify payment with Zarinpal
-	const verifyResult = await ZarinpalService.verifyPayment({
-		authority,
-		amount: payment.amount
-	});
+	// Verify payment with Zarinpal (always succeeds in mock mode)
+	let verifyResult;
+
+	if (MOCK_PAYMENTS === 'true') {
+		// Mock verification always succeeds
+		verifyResult = {
+			success: true,
+			refId: Math.floor(Math.random() * 1000000)
+		};
+	} else {
+		verifyResult = await ZarinpalService.verifyPayment({
+			authority,
+			amount: payment.amount
+		});
+	}
 
 	if (!verifyResult.success) {
 		await PaymentHandler.failPayment(

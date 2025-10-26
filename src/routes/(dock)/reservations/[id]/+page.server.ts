@@ -18,6 +18,11 @@ import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
+
+	if (account.accountType !== 'user') {
+		throw error(403, 'Only users can access reservations');
+	}
+
 	const reservationId = params.id;
 
 	// Fetch reservation with all related data

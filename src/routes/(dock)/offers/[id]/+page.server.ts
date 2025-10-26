@@ -70,7 +70,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const logoUrl = await getSignedDownloadUrl(logo.key, 3600);
 
-	return {
+	const result = {
 		offer,
 		location,
 		business: {
@@ -97,6 +97,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				}
 			: null
 	};
+
+	console.log('Offer loaded:', result);
+	return result;
 };
 
 export const actions: Actions = {
