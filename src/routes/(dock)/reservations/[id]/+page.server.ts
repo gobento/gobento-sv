@@ -1,4 +1,4 @@
-// src/routes/reservations/[id]/+page.server.ts
+// src/routes/(dock)/reservations/[id]/+page.server.ts
 import { db } from '$lib/server/db';
 import {
 	reservations,
@@ -10,16 +10,21 @@ import {
 	accounts,
 	files
 } from '$lib/server/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { randomBytes } from 'crypto';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
-	const account = locals.account!;
+export const load: PageServerLoad = async ({ params, locals, url }) => {
+	const account = locals.account;
+	const inviteToken = url.searchParams.get('invite');
 
-	if (account.accountType !== 'user') {
+	if (!account || account.accountType !== 'user') {
+		// If there's an invite token but no user, redirect to login with return URL
+		if (inviteToken) {
+			throw redirect(302, `/login?redirect=/reservations/${params.id}?invite=${inviteToken}`);
+		}
 		throw error(403, 'Only users can access reservations');
 	}
 
@@ -34,7 +39,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			business: businessProfiles,
 			businessAccount: accounts,
 			claim: reservationClaims,
-			claimedByAccount: accounts,
 			logo: files
 		})
 		.from(reservations)
@@ -43,7 +47,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.innerJoin(accounts, eq(businessOffers.businessAccountId, accounts.id))
 		.innerJoin(businessProfiles, eq(accounts.id, businessProfiles.accountId))
 		.leftJoin(reservationClaims, eq(reservations.id, reservationClaims.reservationId))
-		//	.leftJoin(accounts.as('claimedByAccount'), eq(reservations.claimedBy, accounts.id))
 		.innerJoin(files, eq(businessProfiles.profilePictureId, files.id))
 		.where(eq(reservations.id, reservationId));
 
@@ -51,19 +54,65 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		error(404, 'Reservation not found');
 	}
 
-	// Check if user has access (either owner or invited friend)
+	// Check if user is the owner
 	const isOwner = reservation.reservation.userAccountId === account.id;
 
+	// Fetch all invites
 	const invites = await db
 		.select()
 		.from(reservationInvites)
 		.where(eq(reservationInvites.reservationId, reservationId));
 
+	// Check if user has an accepted invite
 	const userInvite = invites.find(
 		(inv) => inv.invitedAccountId === account.id && inv.status === 'accepted'
 	);
 
-	if (!isOwner && !userInvite) {
+	// Handle invite token in URL - just load the invite, don't auto-accept
+	let pendingInviteForUser = null;
+	if (inviteToken && !isOwner) {
+		const [foundInvite] = await db
+			.select()
+			.from(reservationInvites)
+			.where(
+				and(
+					eq(reservationInvites.reservationId, reservationId),
+					eq(reservationInvites.inviteToken, inviteToken)
+				)
+			);
+
+		if (foundInvite) {
+			// Check if invite hasn't expired
+			if (new Date() <= new Date(foundInvite.expiresAt)) {
+				if (foundInvite.status === 'pending') {
+					// Show the user the invite to accept
+					pendingInviteForUser = foundInvite;
+				} else if (
+					foundInvite.status === 'accepted' &&
+					foundInvite.invitedAccountId === account.id
+				) {
+					// User already accepted this invite
+					// Continue to show reservation normally
+				} else if (
+					foundInvite.status === 'accepted' &&
+					foundInvite.invitedAccountId !== account.id
+				) {
+					// Someone else already accepted this invite
+					error(403, 'This invite has already been accepted by another user');
+				}
+			} else {
+				// Mark as expired
+				await db
+					.update(reservationInvites)
+					.set({ status: 'expired' })
+					.where(eq(reservationInvites.id, foundInvite.id));
+				error(410, 'This invite has expired');
+			}
+		}
+	}
+
+	// Check if user has access
+	if (!isOwner && !userInvite && !pendingInviteForUser) {
 		error(403, 'You do not have access to this reservation');
 	}
 
@@ -71,7 +120,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const now = new Date();
 	const isExpired = now > new Date(reservation.reservation.pickupUntil);
 
-	// Update status if expired
 	if (isExpired && reservation.reservation.status === 'active') {
 		await db
 			.update(reservations)
@@ -81,7 +129,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		reservation.reservation.status = 'expired';
 	}
 
-	const logoUrl = await getSignedDownloadUrl(reservation.logo.key, 3600); // 1 hour expiry
+	const logoUrl = await getSignedDownloadUrl(reservation.logo.key, 3600);
 
 	return {
 		reservation: reservation.reservation,
@@ -89,16 +137,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		location: reservation.location,
 		business: {
 			...reservation.business,
-			logo: {
-				url: logoUrl
-			}
+			logo: { url: logoUrl }
 		},
 		businessAccount: reservation.businessAccount,
 		claim: reservation.claim,
-		claimedByAccount: reservation.claimedByAccount,
 		invites,
 		isOwner,
-		userInvite
+		userInvite,
+		pendingInviteForUser
 	};
 };
 
@@ -111,7 +157,6 @@ export const actions: Actions = {
 
 		const reservationId = params.id;
 
-		// Fetch reservation
 		const [reservation] = await db
 			.select()
 			.from(reservations)
@@ -121,22 +166,36 @@ export const actions: Actions = {
 			return fail(404, { error: 'Reservation not found' });
 		}
 
-		// Check if user owns this reservation
-		if (reservation.userAccountId !== session.accountId) {
-			return fail(403, { error: 'You do not own this reservation' });
+		// Check if user owns this reservation OR has accepted invite
+		const isOwner = reservation.userAccountId === session.accountId;
+
+		let hasAccess = isOwner;
+		if (!isOwner) {
+			const [userInvite] = await db
+				.select()
+				.from(reservationInvites)
+				.where(
+					and(
+						eq(reservationInvites.reservationId, reservationId),
+						eq(reservationInvites.invitedAccountId, session.accountId),
+						eq(reservationInvites.status, 'accepted')
+					)
+				);
+			hasAccess = !!userInvite;
 		}
 
-		// Check if already claimed
+		if (!hasAccess) {
+			return fail(403, { error: 'You do not have access to this reservation' });
+		}
+
 		if (reservation.status === 'claimed') {
 			return fail(400, { error: 'Reservation already claimed' });
 		}
 
-		// Check if expired
 		if (reservation.status === 'expired') {
 			return fail(400, { error: 'Reservation has expired' });
 		}
 
-		// Check if not active
 		if (reservation.status !== 'active') {
 			return fail(400, { error: 'Reservation is not active' });
 		}
@@ -154,21 +213,14 @@ export const actions: Actions = {
 		return { success: true, message: 'Reservation claimed successfully' };
 	},
 
-	inviteFriend: async ({ request, params, locals }) => {
+	createInvite: async ({ params, locals, url }) => {
 		const session = locals.session;
 		if (!session) {
 			return fail(401, { error: 'Not authenticated' });
 		}
 
 		const reservationId = params.id;
-		const formData = await request.formData();
-		const friendEmail = formData.get('friendEmail') as string;
 
-		if (!friendEmail) {
-			return fail(400, { error: 'Friend email is required' });
-		}
-
-		// Check if reservation exists and user owns it
 		const [reservation] = await db
 			.select()
 			.from(reservations)
@@ -183,53 +235,52 @@ export const actions: Actions = {
 		}
 
 		if (reservation.status !== 'active') {
-			return fail(400, { error: 'Cannot invite friends to non-active reservations' });
+			return fail(400, { error: 'Cannot create invite for non-active reservations' });
 		}
 
-		// Check if friend exists
-		const [friendAccount] = await db.select().from(accounts).where(eq(accounts.email, friendEmail));
-
-		if (!friendAccount) {
-			return fail(404, { error: 'Friend not found with that email' });
-		}
-
-		if (friendAccount.id === session.accountId) {
-			return fail(400, { error: 'Cannot invite yourself' });
-		}
-
-		// Check if already invited
-		const existingInvite = await db
+		// Check if there's already a pending or accepted invite
+		const existingInvites = await db
 			.select()
 			.from(reservationInvites)
 			.where(
 				and(
 					eq(reservationInvites.reservationId, reservationId),
-					eq(reservationInvites.invitedAccountId, friendAccount.id)
+					or(eq(reservationInvites.status, 'pending'), eq(reservationInvites.status, 'accepted'))
 				)
 			);
 
-		if (existingInvite.length > 0) {
-			return fail(400, { error: 'Friend already invited' });
+		if (existingInvites.length > 0) {
+			return fail(400, { error: 'An invite already exists for this reservation' });
 		}
 
-		// Create invite
+		// Create invite with shareable link
 		const inviteToken = randomBytes(32).toString('hex');
 		const expiresAt = new Date(reservation.pickupUntil);
 
-		await db.insert(reservationInvites).values({
-			id: crypto.randomUUID(),
-			reservationId,
-			invitedByAccountId: session.accountId,
-			invitedAccountId: friendAccount.id,
-			inviteToken,
-			status: 'pending',
-			expiresAt
-		});
+		const [newInvite] = await db
+			.insert(reservationInvites)
+			.values({
+				id: crypto.randomUUID(),
+				reservationId,
+				invitedByAccountId: session.accountId,
+				invitedAccountId: null, // Will be set when someone accepts
+				inviteToken,
+				status: 'pending',
+				expiresAt
+			})
+			.returning();
 
-		return { success: true, message: 'Friend invited successfully' };
+		const origin = url.origin;
+		const inviteLink = `${origin}/reservations/${reservationId}?invite=${inviteToken}`;
+
+		return {
+			success: true,
+			message: 'Invite created successfully',
+			inviteLink
+		};
 	},
 
-	acceptInvite: async ({ params, locals }) => {
+	cancelInvite: async ({ params, locals }) => {
 		const session = locals.session;
 		if (!session) {
 			return fail(401, { error: 'Not authenticated' });
@@ -237,20 +288,59 @@ export const actions: Actions = {
 
 		const reservationId = params.id;
 
-		// Find pending invite for this user
+		const [reservation] = await db
+			.select()
+			.from(reservations)
+			.where(eq(reservations.id, reservationId));
+
+		if (!reservation) {
+			return fail(404, { error: 'Reservation not found' });
+		}
+
+		if (reservation.userAccountId !== session.accountId) {
+			return fail(403, { error: 'You do not own this reservation' });
+		}
+
+		// Delete all pending invites
+		await db
+			.delete(reservationInvites)
+			.where(
+				and(
+					eq(reservationInvites.reservationId, reservationId),
+					eq(reservationInvites.status, 'pending')
+				)
+			);
+
+		return { success: true, message: 'Invite cancelled successfully' };
+	},
+
+	acceptInvite: async ({ params, locals, url }) => {
+		const session = locals.session;
+		if (!session) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const reservationId = params.id;
+		const inviteToken = url.searchParams.get('invite');
+
+		if (!inviteToken) {
+			return fail(400, { error: 'Invite token is required' });
+		}
+
+		// Find the invite by token
 		const [invite] = await db
 			.select()
 			.from(reservationInvites)
 			.where(
 				and(
 					eq(reservationInvites.reservationId, reservationId),
-					eq(reservationInvites.invitedAccountId, session.accountId),
+					eq(reservationInvites.inviteToken, inviteToken),
 					eq(reservationInvites.status, 'pending')
 				)
 			);
 
 		if (!invite) {
-			return fail(404, { error: 'Invite not found' });
+			return fail(404, { error: 'Invite not found or already used' });
 		}
 
 		if (new Date() > new Date(invite.expiresAt)) {
@@ -262,34 +352,50 @@ export const actions: Actions = {
 			return fail(400, { error: 'Invite has expired' });
 		}
 
-		// Accept invite
+		// Check if the user is the owner (can't accept your own invite)
+		const [reservation] = await db
+			.select()
+			.from(reservations)
+			.where(eq(reservations.id, reservationId));
+
+		if (reservation?.userAccountId === session.accountId) {
+			return fail(400, { error: 'You cannot accept your own invitation' });
+		}
+
+		// Accept the invite
 		await db
 			.update(reservationInvites)
 			.set({
 				status: 'accepted',
+				invitedAccountId: session.accountId,
 				acceptedAt: new Date()
 			})
 			.where(eq(reservationInvites.id, invite.id));
 
-		return { success: true, message: 'Invite accepted' };
+		return { success: true, message: 'Invite accepted successfully', inviteAccepted: true };
 	},
 
-	declineInvite: async ({ params, locals }) => {
+	declineInvite: async ({ params, locals, url }) => {
 		const session = locals.session;
 		if (!session) {
 			return fail(401, { error: 'Not authenticated' });
 		}
 
 		const reservationId = params.id;
+		const inviteToken = url.searchParams.get('invite');
 
-		// Find pending invite for this user
+		if (!inviteToken) {
+			return fail(400, { error: 'Invite token is required' });
+		}
+
+		// Find the invite by token
 		const [invite] = await db
 			.select()
 			.from(reservationInvites)
 			.where(
 				and(
 					eq(reservationInvites.reservationId, reservationId),
-					eq(reservationInvites.invitedAccountId, session.accountId),
+					eq(reservationInvites.inviteToken, inviteToken),
 					eq(reservationInvites.status, 'pending')
 				)
 			);
@@ -298,12 +404,12 @@ export const actions: Actions = {
 			return fail(404, { error: 'Invite not found' });
 		}
 
-		// Decline invite
+		// Decline the invite
 		await db
 			.update(reservationInvites)
 			.set({ status: 'declined' })
 			.where(eq(reservationInvites.id, invite.id));
 
-		return { success: true, message: 'Invite declined' };
+		return { success: true, message: 'Invite declined', inviteDeclined: true };
 	}
 };

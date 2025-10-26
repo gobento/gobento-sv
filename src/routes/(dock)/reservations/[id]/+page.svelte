@@ -2,7 +2,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
-	import IconTicket from '~icons/fluent/ticket-diagonal-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
@@ -13,18 +12,23 @@
 	import IconFood from '~icons/fluent/food-24-regular';
 	import IconPeople from '~icons/fluent/people-24-regular';
 	import IconBuilding from '~icons/fluent/building-24-regular';
+	import IconShare from '~icons/fluent/share-24-regular';
+	import IconCancel from '~icons/fluent/delete-24-regular';
+	import IconCopy from '~icons/fluent/copy-24-regular';
 	import { formatDate, formatTime } from '$lib/util.js';
 
 	let { data, form } = $props();
 
 	let showInviteModal = $state(false);
 	let showClaimModal = $state(false);
-	let friendEmail = $state('');
 	let inviteLoading = $state(false);
 	let claimLoading = $state(false);
+	let cancelLoading = $state(false);
 	let swipeProgress = $state(0);
 	let isDragging = $state(false);
 	let startX = $state(0);
+	let inviteLink = $state('');
+	let linkCopied = $state(false);
 
 	function handleSwipeStart(e: MouseEvent | TouchEvent) {
 		isDragging = true;
@@ -67,7 +71,6 @@
 		const maxWidth = 300;
 		const progress = Math.max(0, Math.min(100, (diff / maxWidth) * 100));
 
-		// Haptic feedback at milestones
 		if (progress >= 90 && swipeProgress < 90) {
 			hapticFeedback('heavy');
 		} else if (progress >= 50 && swipeProgress < 50) {
@@ -77,14 +80,58 @@
 		swipeProgress = progress;
 	}
 
+	async function copyInviteLink() {
+		if (inviteLink) {
+			try {
+				await navigator.clipboard.writeText(inviteLink);
+				linkCopied = true;
+				hapticFeedback('medium');
+				setTimeout(() => {
+					linkCopied = false;
+				}, 2000);
+			} catch (err) {
+				console.error('Failed to copy link:', err);
+			}
+		}
+	}
+
+	async function shareInviteLink() {
+		if (inviteLink && navigator.share) {
+			try {
+				await navigator.share({
+					title: `Collect ${data.offer.name}`,
+					text: `I've invited you to collect this food from ${data.business.name}!`,
+					url: inviteLink
+				});
+			} catch (err) {
+				// User cancelled or share not supported
+				console.log('Share cancelled or not supported');
+			}
+		}
+	}
+
 	$effect(() => {
-		if (form?.success && !claimLoading) {
-			showInviteModal = false;
-			showClaimModal = false;
-			friendEmail = '';
+		if (form?.success && form?.inviteLink) {
+			inviteLink = form.inviteLink;
+		}
+
+		if (form?.success && !claimLoading && !inviteLoading && !cancelLoading) {
+			if (form.message?.includes('cancelled')) {
+				showCancelModal = false;
+			} else if (!form.inviteLink && !form.inviteAccepted && !form.inviteDeclined) {
+				showInviteModal = false;
+				showClaimModal = false;
+			}
 			swipeProgress = 0;
 		}
 	});
+
+	// Check if there's a pending invite that can be cancelled
+	const hasPendingInvite = $derived(
+		data.isOwner && data.invites.some((inv) => inv.status === 'pending')
+	);
+
+	const canShare = $derived(data.isOwner && navigator.share !== undefined);
 </script>
 
 <svelte:window
@@ -93,6 +140,24 @@
 	ontouchmove={handleSwipeMove}
 	ontouchend={handleSwipeEnd}
 />
+
+<!-- Invite Accepted Banner -->
+{#if form?.inviteAccepted}
+	<div class="mb-4 border-4 border-success bg-success/10 p-6 text-center">
+		<IconCheckmark class="mx-auto mb-3 h-16 w-16 text-success" />
+		<h2 class="mb-2 text-2xl font-bold text-success">Invite Accepted!</h2>
+		<p class="text-sm text-base-content/70">You can now claim this food reservation</p>
+	</div>
+{/if}
+
+<!-- Invite Declined Banner -->
+{#if form?.inviteDeclined}
+	<div class="mb-4 border-4 border-base-300 bg-base-200 p-6 text-center">
+		<IconDismiss class="mx-auto mb-3 h-16 w-16 text-base-content/60" />
+		<h2 class="mb-2 text-2xl font-bold">Invite Declined</h2>
+		<p class="text-sm text-base-content/70">You've declined this invitation</p>
+	</div>
+{/if}
 
 <!-- Claimed Banner -->
 {#if data.reservation.status === 'claimed'}
@@ -117,6 +182,15 @@
 				</div>
 			{/if}
 		{/if}
+	</div>
+{/if}
+
+<!-- Cancelled Banner -->
+{#if data.reservation.status === 'cancelled'}
+	<div class="mb-4 border-4 border-error bg-error/10 p-6 text-center">
+		<IconCancel class="mx-auto mb-3 h-16 w-16 text-error" />
+		<h2 class="mb-2 text-2xl font-bold text-error">Reservation Cancelled</h2>
+		<p class="text-sm text-base-content/70">This reservation has been cancelled</p>
 	</div>
 {/if}
 
@@ -208,252 +282,348 @@
 	<p class="mt-3 text-sm text-base-content/70">{data.business.description}</p>
 </div>
 
-<!-- Friends Section -->
-{#if data.isOwner || data.invites.length > 0}
+<!-- Invite to Collection Section -->
+{#if data.isOwner && data.reservation.status === 'active'}
 	<div class="rounded-lg border border-base-300 bg-base-100 p-4">
 		<div class="mb-3 flex items-center justify-between">
 			<h2 class="flex items-center gap-2 text-lg font-bold">
-				<IconPeople class="h-5 w-5" />
-				Friends
+				<IconShare class="h-5 w-5" />
+				Pass to Friend
 			</h2>
-			{#if data.isOwner && data.reservation.status === 'active'}
-				<button onclick={() => (showInviteModal = true)} class="btn gap-2 btn-sm btn-primary">
-					<IconPersonAdd class="h-4 w-4" />
-					Invite
-				</button>
-			{/if}
 		</div>
 
-		{#if data.invites.length > 0}
-			<div class="space-y-2">
-				{#each data.invites as invite}
-					<div class="flex items-center justify-between rounded-lg bg-base-200 p-3">
-						<div class="flex items-center gap-2">
-							<div class="placeholder avatar">
-								<div class="w-8 rounded-full bg-primary/20 text-primary">
-									<span class="text-sm">👤</span>
-								</div>
-							</div>
-							<span class="text-sm font-medium">Friend</span>
-						</div>
-						<span
-							class="badge badge-sm {invite.status === 'accepted'
-								? 'badge-success'
-								: invite.status === 'pending'
-									? 'badge-warning'
-									: invite.status === 'declined'
-										? 'badge-error'
-										: 'badge-ghost'}"
-						>
-							{invite.status}
-						</span>
-					</div>
-				{/each}
+		{#if hasPendingInvite}
+			{@const pendingInvite = data.invites.find((inv) => inv.status === 'pending')}
+			<div class="mb-3 rounded-lg border-2 border-warning bg-warning/10 p-3">
+				<p class="mb-2 text-sm font-semibold text-warning">Invite Link Active</p>
+				<p class="mb-3 text-xs text-base-content/70">
+					Share this link with a friend to let them collect this food
+				</p>
+				<div class="mb-2 rounded bg-base-100 p-2 font-mono text-xs break-all">
+					{$page.url.origin}/reservations/{data.reservation.id}?invite={pendingInvite?.inviteToken}
+				</div>
+				<div class="flex gap-2">
+					<button onclick={() => copyInviteLink()} class="btn flex-1 gap-2 btn-sm">
+						<IconCopy class="h-4 w-4" />
+						{linkCopied ? 'Copied!' : 'Copy Link'}
+					</button>
+					{#if canShare}
+						<button onclick={() => shareInviteLink()} class="btn flex-1 gap-2 btn-sm btn-primary">
+							<IconShare class="h-4 w-4" />
+							Share
+						</button>
+					{/if}
+				</div>
 			</div>
-		{:else if data.reservation.status !== 'claimed'}
-			<div class="py-4 text-center text-base-content/60">
-				<IconPeople class="mx-auto mb-2 h-6 w-6 opacity-50" />
-				<p class="text-xs">No friends invited yet</p>
+			<form method="POST" action="?/cancelInvite" use:enhance>
+				<button type="submit" class="btn btn-block gap-2 btn-ghost btn-sm">
+					<IconDismiss class="h-4 w-4" />
+					Cancel Invite
+				</button>
+			</form>
+		{:else if data.invites.length > 0 && data.invites[0].status === 'accepted'}
+			<div class="rounded-lg bg-success/10 p-3">
+				<p class="text-sm font-semibold text-success">Invite Accepted</p>
+				<p class="mt-1 text-xs text-base-content/70">Your friend can now collect this food</p>
 			</div>
+		{:else}
+			<p class="mb-3 text-sm text-base-content/70">
+				Can't make it? Let a friend collect this food instead!
+			</p>
+			<button onclick={() => (showInviteModal = true)} class="btn btn-block gap-2 btn-primary">
+				<IconShare class="h-4 w-4" />
+				Create Invite Link
+			</button>
 		{/if}
 	</div>
 {/if}
 
-<!-- Pending Invite -->
-{#if !data.isOwner && data.userInvite && data.userInvite.status === 'pending'}
-	<div class="rounded-lg border-2 border-warning bg-base-100 p-4">
-		<h2 class="mb-2 flex items-center gap-2 text-lg font-bold text-warning">
-			<IconPersonAdd class="h-5 w-5" />
-			You've Been Invited!
-		</h2>
-		<p class="mb-3 text-sm text-base-content/70">
-			Accept this invitation to join the reservation and pick up food together.
-		</p>
+<!-- Pending Invite (for invited user via link) -->
+{#if data.pendingInviteForUser}
+	<div class="rounded-lg border-4 border-primary bg-primary/10 p-6">
+		<div class="mb-4 text-center">
+			<IconPersonAdd class="mx-auto mb-3 h-16 w-16 text-primary" />
+			<h2 class="mb-2 text-2xl font-bold text-primary">You've Been Invited!</h2>
+			<p class="text-sm text-base-content/70">Someone wants to pass this food collection to you</p>
+		</div>
+
+		<div class="mb-4 rounded-lg border border-base-300 bg-base-100 p-4">
+			<div class="mb-3">
+				<p class="mb-1 text-xs font-semibold text-base-content/60">Offer</p>
+				<p class="font-semibold">{data.offer.name}</p>
+			</div>
+			<div class="mb-3">
+				<p class="mb-1 text-xs font-semibold text-base-content/60">Pickup Time</p>
+				<p class="text-sm">
+					{formatDate(data.reservation.pickupFrom)} • {formatTime(data.reservation.pickupFrom)} - {formatTime(
+						data.reservation.pickupUntil
+					)}
+				</p>
+			</div>
+			<div>
+				<p class="mb-1 text-xs font-semibold text-base-content/60">Location</p>
+				<p class="text-sm">{data.business.name}</p>
+				{#if data.location}
+					<p class="text-xs text-base-content/60">{data.location.address}, {data.location.city}</p>
+				{/if}
+			</div>
+		</div>
+
+		{#if form?.error}
+			<div class="mb-4 alert alert-error">
+				<IconDismiss class="size-5" />
+				<span>{form.error}</span>
+			</div>
+		{/if}
+
 		<div class="flex gap-2">
-			<form method="POST" action="?/declineInvite" use:enhance class="flex-1">
-				<button type="submit" class="btn btn-block gap-2 btn-ghost btn-sm">
-					<IconDismiss class="h-4 w-4" />
+			<form
+				method="POST"
+				action="?/declineInvite&invite={$page.url.searchParams.get('invite')}"
+				use:enhance
+				class="flex-1"
+			>
+				<button type="submit" class="btn btn-block gap-2 btn-ghost">
+					<IconDismiss class="h-5 w-5" />
 					Decline
 				</button>
 			</form>
-			<form method="POST" action="?/acceptInvite" use:enhance class="flex-1">
-				<button type="submit" class="btn btn-block gap-2 btn-sm btn-success">
-					<IconCheckmark class="h-4 w-4" />
-					Accept
+			<form
+				method="POST"
+				action="?/acceptInvite&invite={$page.url.searchParams.get('invite')}"
+				use:enhance
+				class="flex-1"
+			>
+				<button type="submit" class="btn btn-block gap-2 btn-lg btn-primary">
+					<IconCheckmark class="h-5 w-5" />
+					Accept & Collect
 				</button>
 			</form>
 		</div>
 	</div>
-{/if}
+{:else}
+	<!-- Show normal reservation details only if not viewing pending invite -->
 
-{#if data.reservation.status === 'active' && (data.isOwner || data.userInvite?.status === 'accepted')}
-	<button onclick={() => (showClaimModal = true)} class="btn btn-block gap-2 btn-lg btn-success">
-		<IconCheckmark class="h-5 w-5" />
-		Claim Food
-	</button>
-{/if}
-
-<!-- Invite Friend Modal -->
-{#if showInviteModal}
-	<div class="modal-open modal">
-		<div class="modal-box">
+	<!-- Action Buttons -->
+	{#if data.reservation.status === 'active' && (data.isOwner || data.userInvite?.status === 'accepted')}
+		<div class="space-y-2">
 			<button
-				onclick={() => (showInviteModal = false)}
-				class="btn absolute top-2 right-2 btn-circle btn-ghost btn-sm"
+				onclick={() => (showClaimModal = true)}
+				class="btn btn-block gap-2 btn-lg btn-success"
 			>
-				✕
+				<IconCheckmark class="h-5 w-5" />
+				Claim Food
 			</button>
-			<h3 class="mb-4 text-xl font-bold">Invite a Friend</h3>
-
-			{#if form?.error}
-				<div class="mb-4 alert alert-error">
-					<IconDismiss class="size-5" />
-					<span>{form.error}</span>
-				</div>
-			{/if}
-
-			{#if form?.success && !claimLoading}
-				<div class="mb-4 alert alert-success">
-					<IconCheckmark class="size-5" />
-					<span>{form.message}</span>
-				</div>
-			{/if}
-
-			<form
-				method="POST"
-				action="?/inviteFriend"
-				use:enhance={() => {
-					inviteLoading = true;
-					return async ({ update }) => {
-						await update();
-						inviteLoading = false;
-					};
-				}}
-			>
-				<div class="form-control">
-					<label class="label" for="friendEmail">
-						<span class="label-text font-semibold">Friend's Email</span>
-					</label>
-					<input
-						id="friendEmail"
-						type="email"
-						name="friendEmail"
-						bind:value={friendEmail}
-						placeholder="friend@example.com"
-						class="input-bordered input"
-						required
-					/>
-					<label class="label">
-						<span class="label-text-alt text-base-content/60">
-							Your friend must have an account to receive the invitation
-						</span>
-					</label>
-				</div>
-
-				<div class="modal-action">
-					<button
-						type="button"
-						onclick={() => (showInviteModal = false)}
-						class="btn btn-ghost"
-						disabled={inviteLoading}
-					>
-						Cancel
-					</button>
-					<button type="submit" class="btn btn-primary" disabled={inviteLoading}>
-						{#if inviteLoading}
-							<span class="loading loading-spinner"></span>
-						{/if}
-						Send Invite
-					</button>
-				</div>
-			</form>
 		</div>
-		<div class="modal-backdrop" onclick={() => (showInviteModal = false)}></div>
-	</div>
-{/if}
+	{/if}
 
-<!-- Claim Modal -->
-{#if showClaimModal}
-	<div class="modal-open modal">
-		<div class="modal-box max-w-sm">
-			<button
-				onclick={() => (showClaimModal = false)}
-				class="btn absolute top-2 right-2 btn-circle btn-ghost btn-sm"
-			>
-				✕
-			</button>
-			<h3 class="mb-4 text-center text-xl font-bold">Claim Your Food</h3>
+	<!-- Create Invite Modal -->
+	{#if showInviteModal}
+		<div class="modal-open modal">
+			<div class="modal-box">
+				<button
+					onclick={() => {
+						showInviteModal = false;
+						inviteLink = '';
+						linkCopied = false;
+					}}
+					class="btn absolute top-2 right-2 btn-circle btn-ghost btn-sm"
+				>
+					✕
+				</button>
+				<h3 class="mb-4 text-xl font-bold">Invite to Collection</h3>
 
-			{#if form?.error && claimLoading === false}
-				<div class="mb-4 alert alert-error">
-					<IconDismiss class="size-5" />
-					<span>{form.error}</span>
-				</div>
-			{/if}
+				{#if form?.error}
+					<div class="mb-4 alert alert-error">
+						<IconDismiss class="size-5" />
+						<span>{form.error}</span>
+					</div>
+				{/if}
 
-			<!-- QR Code Display -->
-			<div class="mb-4 flex flex-col items-center">
-				<div class="rounded-lg border-2 border-base-300 bg-white p-6">
-					<IconQrCode class="h-32 w-32 text-gray-800" />
-				</div>
-				<div class="mt-3 w-full rounded-lg bg-base-200 p-3">
-					<p class="mb-1 text-center text-xs text-base-content/60">Claim Token</p>
-					<p class="text-center font-mono text-sm font-semibold break-all">
-						{data.reservation.claimToken}
+				{#if inviteLink}
+					<div class="mb-4 alert alert-success">
+						<IconCheckmark class="size-5" />
+						<span>Invite link created!</span>
+					</div>
+
+					<div class="mb-4">
+						<label class="label">
+							<span class="label-text font-semibold">Share this link</span>
+						</label>
+						<div class="flex gap-2">
+							<input
+								type="text"
+								value={inviteLink}
+								readonly
+								class="input-bordered input flex-1 font-mono text-xs"
+							/>
+							<button onclick={copyInviteLink} class="btn btn-square gap-2">
+								<IconCopy class="h-5 w-5" />
+							</button>
+						</div>
+						{#if linkCopied}
+							<label class="label">
+								<span class="label-text-alt text-success">Link copied to clipboard!</span>
+							</label>
+						{/if}
+					</div>
+
+					{#if navigator.share}
+						<button onclick={shareInviteLink} class="btn btn-block gap-2 btn-primary">
+							<IconShare class="h-5 w-5" />
+							Share via...
+						</button>
+					{/if}
+
+					<div class="modal-action">
+						<button
+							onclick={() => {
+								showInviteModal = false;
+								inviteLink = '';
+								linkCopied = false;
+							}}
+							class="btn"
+						>
+							Done
+						</button>
+					</div>
+				{:else}
+					<p class="mb-4 text-sm text-base-content/70">
+						Create a shareable link that allows one person to collect this food reservation on your
+						behalf.
 					</p>
-				</div>
+
+					<div class="mb-4 rounded-lg border border-warning bg-warning/10 p-3">
+						<p class="text-xs text-base-content/70">
+							⚠️ Only one person can use this invite. Once accepted, they'll be able to claim the
+							food.
+						</p>
+					</div>
+
+					<form
+						method="POST"
+						action="?/createInvite"
+						use:enhance={() => {
+							inviteLoading = true;
+							return async ({ update }) => {
+								await update();
+								inviteLoading = false;
+							};
+						}}
+					>
+						<div class="modal-action">
+							<button
+								type="button"
+								onclick={() => (showInviteModal = false)}
+								class="btn btn-ghost"
+								disabled={inviteLoading}
+							>
+								Cancel
+							</button>
+							<button type="submit" class="btn btn-primary" disabled={inviteLoading}>
+								{#if inviteLoading}
+									<span class="loading loading-spinner"></span>
+								{/if}
+								Create Invite Link
+							</button>
+						</div>
+					</form>
+				{/if}
 			</div>
+			<div
+				class="modal-backdrop"
+				onclick={() => {
+					showInviteModal = false;
+					inviteLink = '';
+					linkCopied = false;
+				}}
+			></div>
+		</div>
+	{/if}
 
-			<div class="divider my-2 text-xs">OR</div>
+	<!-- Claim Modal -->
+	{#if showClaimModal}
+		<div class="modal-open modal">
+			<div class="modal-box max-w-sm">
+				<button
+					onclick={() => (showClaimModal = false)}
+					class="btn absolute top-2 right-2 btn-circle btn-ghost btn-sm"
+				>
+					✕
+				</button>
+				<h3 class="mb-4 text-center text-xl font-bold">Claim Your Food</h3>
 
-			<!-- Swipe to Claim -->
-			<div class="mb-4">
-				<p class="mb-3 text-center text-sm text-base-content/70">
-					Swipe right to confirm you've received your food
-				</p>
-				<div class="relative h-14 w-full overflow-hidden rounded-full bg-base-200">
-					<div
-						class="absolute top-0 left-0 h-full rounded-full bg-success transition-all duration-100"
-						style="width: {swipeProgress}%"
-					></div>
-					<button
-						type="button"
-						class="absolute top-0 left-0 h-14 w-14 cursor-grab rounded-full bg-success text-success-content transition-transform active:cursor-grabbing"
-						style="transform: translateX({(swipeProgress / 100) * (300 - 56)}px)"
-						onmousedown={handleSwipeStart}
-						ontouchstart={handleSwipeStart}
-					>
-						<IconCheckmark class="mx-auto h-6 w-6" />
-					</button>
-					<div
-						class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-semibold"
-						style="opacity: {1 - swipeProgress / 100}"
-					>
-						Swipe to claim →
+				{#if form?.error && claimLoading === false}
+					<div class="mb-4 alert alert-error">
+						<IconDismiss class="size-5" />
+						<span>{form.error}</span>
+					</div>
+				{/if}
+
+				<!-- QR Code Display -->
+				<div class="mb-4 flex flex-col items-center">
+					<div class="rounded-lg border-2 border-base-300 bg-white p-6">
+						<IconQrCode class="h-32 w-32 text-gray-800" />
+					</div>
+					<div class="mt-3 w-full rounded-lg bg-base-200 p-3">
+						<p class="mb-1 text-center text-xs text-base-content/60">Claim Token</p>
+						<p class="text-center font-mono text-sm font-semibold break-all">
+							{data.reservation.claimToken}
+						</p>
 					</div>
 				</div>
-			</div>
 
-			<form
-				id="claimForm"
-				method="POST"
-				action="?/claimReservation"
-				use:enhance={() => {
-					claimLoading = true;
-					return async ({ update }) => {
-						await update();
-						claimLoading = false;
-					};
-				}}
-			></form>
+				<div class="divider my-2 text-xs">OR</div>
 
-			{#if claimLoading}
-				<div class="mt-4 flex items-center justify-center gap-2">
-					<span class="loading loading-md loading-spinner"></span>
-					<span class="text-sm">Processing claim...</span>
+				<!-- Swipe to Claim -->
+				<div class="mb-4">
+					<p class="mb-3 text-center text-sm text-base-content/70">
+						Swipe right to confirm you've received your food
+					</p>
+					<div class="relative h-14 w-full overflow-hidden rounded-full bg-base-200">
+						<div
+							class="absolute top-0 left-0 h-full rounded-full bg-success transition-all duration-100"
+							style="width: {swipeProgress}%"
+						></div>
+						<button
+							type="button"
+							class="absolute top-0 left-0 h-14 w-14 cursor-grab rounded-full bg-success text-success-content transition-transform active:cursor-grabbing"
+							style="transform: translateX({(swipeProgress / 100) * (300 - 56)}px)"
+							onmousedown={handleSwipeStart}
+							ontouchstart={handleSwipeStart}
+						>
+							<IconCheckmark class="mx-auto h-6 w-6" />
+						</button>
+						<div
+							class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-semibold"
+							style="opacity: {1 - swipeProgress / 100}"
+						>
+							Swipe to claim →
+						</div>
+					</div>
 				</div>
-			{/if}
+
+				<form
+					id="claimForm"
+					method="POST"
+					action="?/claimReservation"
+					use:enhance={() => {
+						claimLoading = true;
+						return async ({ update }) => {
+							await update();
+							claimLoading = false;
+						};
+					}}
+				></form>
+
+				{#if claimLoading}
+					<div class="mt-4 flex items-center justify-center gap-2">
+						<span class="loading loading-md loading-spinner"></span>
+						<span class="text-sm">Processing claim...</span>
+					</div>
+				{/if}
+			</div>
+			<div class="modal-backdrop" onclick={() => (showClaimModal = false)}></div>
 		</div>
-		<div class="modal-backdrop" onclick={() => (showClaimModal = false)}></div>
-	</div>
+	{/if}
 {/if}
