@@ -133,7 +133,9 @@ export const reservations = pgTable('reservations', {
 	userAccountId: text('user_account_id')
 		.notNull()
 		.references(() => accounts.id, { onDelete: 'cascade' }),
-	status: text('status', { enum: ['active', 'completed', 'expired', 'claimed'] })
+	status: text('status', {
+		enum: ['active', 'completed', 'expired', 'claimed']
+	})
 		.notNull()
 		.default('active'),
 	pickupFrom: timestamp('pickup_from', { withTimezone: true }).notNull(),
