@@ -10,12 +10,13 @@
 	import IconDismiss from '~icons/fluent/dismiss-circle-24-regular';
 	import IconQrCode from '~icons/fluent/qr-code-24-regular';
 	import IconFood from '~icons/fluent/food-24-regular';
-	import IconPeople from '~icons/fluent/people-24-regular';
 	import IconBuilding from '~icons/fluent/building-24-regular';
 	import IconShare from '~icons/fluent/share-24-regular';
 	import IconCancel from '~icons/fluent/delete-24-regular';
 	import IconCopy from '~icons/fluent/copy-24-regular';
+	import IconTimer from '~icons/fluent/timer-24-regular';
 	import { formatDate, formatTime } from '$lib/util.js';
+	import { onMount, onDestroy } from 'svelte';
 
 	let { data, form } = $props();
 
@@ -23,12 +24,98 @@
 	let showClaimModal = $state(false);
 	let inviteLoading = $state(false);
 	let claimLoading = $state(false);
-	let cancelLoading = $state(false);
 	let swipeProgress = $state(0);
 	let isDragging = $state(false);
 	let startX = $state(0);
 	let inviteLink = $state('');
 	let linkCopied = $state(false);
+
+	// Countdown state
+	let timeRemaining = $state({
+		days: 0,
+		hours: 0,
+		minutes: 0,
+		seconds: 0,
+		isPickupTime: false,
+		hasStarted: false
+	});
+	let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
+	function calculateTimeRemaining() {
+		const now = new Date();
+		const pickupStart = new Date(data.reservation.pickupFrom);
+		const pickupEnd = new Date(data.reservation.pickupUntil);
+
+		// Check if we're in the pickup window
+		if (now >= pickupStart && now <= pickupEnd) {
+			timeRemaining.isPickupTime = true;
+			timeRemaining.hasStarted = true;
+			return;
+		}
+
+		// Check if pickup has passed
+		if (now > pickupEnd) {
+			timeRemaining.hasStarted = true;
+			timeRemaining.isPickupTime = false;
+			return;
+		}
+
+		// Calculate time until pickup starts
+		const diff = pickupStart.getTime() - now.getTime();
+
+		timeRemaining.days = Math.floor(diff / (1000 * 60 * 60 * 24));
+		timeRemaining.hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+		timeRemaining.minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+		timeRemaining.seconds = Math.floor((diff % (1000 * 60)) / 1000);
+		timeRemaining.hasStarted = false;
+		timeRemaining.isPickupTime = false;
+	}
+
+	onMount(() => {
+		// Initial calculation
+		calculateTimeRemaining();
+
+		// Update every second
+		countdownInterval = setInterval(() => {
+			const wasPickupTime = timeRemaining.isPickupTime;
+			calculateTimeRemaining();
+
+			// If pickup time just started, trigger notification
+			if (!wasPickupTime && timeRemaining.isPickupTime) {
+				sendPickupNotification();
+			}
+		}, 1000);
+	});
+
+	onDestroy(() => {
+		if (countdownInterval) {
+			clearInterval(countdownInterval);
+		}
+	});
+
+	async function sendPickupNotification() {
+		// Send browser notification if permitted
+		if ('Notification' in window && Notification.permission === 'granted') {
+			new Notification('Pickup Time!', {
+				body: `Your food is ready to pick up at ${data.business.name}`,
+				icon: data.business.logo.url,
+				badge: data.business.logo.url,
+				tag: `pickup-${data.reservation.id}`,
+				requireInteraction: true
+			});
+		}
+
+		// Vibrate if supported
+		if ('vibrate' in navigator) {
+			navigator.vibrate([200, 100, 200, 100, 200]);
+		}
+	}
+
+	function requestNotificationPermission() {
+		if ('Notification' in window && Notification.permission === 'default') {
+			Notification.requestPermission();
+		}
+	}
 
 	function handleSwipeStart(e: MouseEvent | TouchEvent) {
 		isDragging = true;
@@ -104,7 +191,6 @@
 					url: inviteLink
 				});
 			} catch (err) {
-				// User cancelled or share not supported
 				console.log('Share cancelled or not supported');
 			}
 		}
@@ -115,10 +201,8 @@
 			inviteLink = form.inviteLink;
 		}
 
-		if (form?.success && !claimLoading && !inviteLoading && !cancelLoading) {
-			if (form.message?.includes('cancelled')) {
-				showCancelModal = false;
-			} else if (!form.inviteLink && !form.inviteAccepted && !form.inviteDeclined) {
+		if (form?.success && !claimLoading && !inviteLoading) {
+			if (!form.inviteLink && !form.inviteAccepted && !form.inviteDeclined) {
 				showInviteModal = false;
 				showClaimModal = false;
 			}
@@ -126,7 +210,6 @@
 		}
 	});
 
-	// Check if there's a pending invite that can be cancelled
 	const hasPendingInvite = $derived(
 		data.isOwner && data.invites.some((inv) => inv.status === 'pending')
 	);
@@ -156,6 +239,53 @@
 		<IconDismiss class="mx-auto mb-3 h-16 w-16 text-base-content/60" />
 		<h2 class="mb-2 text-2xl font-bold">Invite Declined</h2>
 		<p class="text-sm text-base-content/70">You've declined this invitation</p>
+	</div>
+{/if}
+
+<!-- Countdown Timer -->
+{#if data.reservation.status === 'active' && !timeRemaining.hasStarted && !data.pendingInviteForUser}
+	<div class="mb-4 rounded-lg border-2 border-primary bg-primary/10 p-6">
+		<div class="mb-3 flex items-center justify-center gap-2">
+			<IconTimer class="h-6 w-6 text-primary" />
+			<h2 class="text-xl font-bold text-primary">Time Until Pickup</h2>
+		</div>
+		<div class="flex justify-center gap-2">
+			{#if timeRemaining.days > 0}
+				<div class="flex min-w-[70px] flex-col items-center rounded-lg bg-base-100 p-3">
+					<span class="text-3xl font-bold text-primary">{timeRemaining.days}</span>
+					<span class="text-xs text-base-content/60">Days</span>
+				</div>
+			{/if}
+			<div class="flex min-w-[70px] flex-col items-center rounded-lg bg-base-100 p-3">
+				<span class="text-3xl font-bold text-primary">{timeRemaining.hours}</span>
+				<span class="text-xs text-base-content/60">Hours</span>
+			</div>
+			<div class="flex min-w-[70px] flex-col items-center rounded-lg bg-base-100 p-3">
+				<span class="text-3xl font-bold text-primary">{timeRemaining.minutes}</span>
+				<span class="text-xs text-base-content/60">Mins</span>
+			</div>
+			<div class="flex min-w-[70px] flex-col items-center rounded-lg bg-base-100 p-3">
+				<span class="text-3xl font-bold text-primary">{timeRemaining.seconds}</span>
+				<span class="text-xs text-base-content/60">Secs</span>
+			</div>
+		</div>
+		{#if 'Notification' in window && Notification.permission === 'default'}
+			<button
+				onclick={requestNotificationPermission}
+				class="btn mt-3 w-full btn-outline btn-sm btn-primary"
+			>
+				Enable Notifications
+			</button>
+		{/if}
+	</div>
+{/if}
+
+<!-- Pickup Ready Banner -->
+{#if data.reservation.status === 'active' && timeRemaining.isPickupTime && !data.pendingInviteForUser}
+	<div class="mb-4 animate-pulse border-4 border-warning bg-warning/10 p-6 text-center">
+		<IconCheckmark class="mx-auto mb-3 h-16 w-16 text-warning" />
+		<h2 class="mb-2 text-2xl font-bold text-warning">Pickup Time!</h2>
+		<p class="text-sm text-base-content/70">Your food is ready to be picked up now</p>
 	</div>
 {/if}
 
@@ -303,12 +433,24 @@
 					{$page.url.origin}/reservations/{data.reservation.id}?invite={pendingInvite?.inviteToken}
 				</div>
 				<div class="flex gap-2">
-					<button onclick={() => copyInviteLink()} class="btn flex-1 gap-2 btn-sm">
+					<button
+						onclick={() => {
+							inviteLink = `${$page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
+							copyInviteLink();
+						}}
+						class="btn flex-1 gap-2 btn-sm"
+					>
 						<IconCopy class="h-4 w-4" />
 						{linkCopied ? 'Copied!' : 'Copy Link'}
 					</button>
 					{#if canShare}
-						<button onclick={() => shareInviteLink()} class="btn flex-1 gap-2 btn-sm btn-primary">
+						<button
+							onclick={() => {
+								inviteLink = `${$page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
+								shareInviteLink();
+							}}
+							class="btn flex-1 gap-2 btn-sm btn-primary"
+						>
 							<IconShare class="h-4 w-4" />
 							Share
 						</button>
@@ -402,8 +544,6 @@
 		</div>
 	</div>
 {:else}
-	<!-- Show normal reservation details only if not viewing pending invite -->
-
 	<!-- Action Buttons -->
 	{#if data.reservation.status === 'active' && (data.isOwner || data.userInvite?.status === 'accepted')}
 		<div class="space-y-2">
