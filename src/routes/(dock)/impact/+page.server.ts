@@ -3,7 +3,7 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { reservations, businessOffers, accounts } from '$lib/server/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 
 // Environmental impact calculations (approximate values per meal)
 const CO2_PER_MEAL = 1.25; // kg
@@ -68,7 +68,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			})
 			.from(accounts)
 			.innerJoin(sql`business_profiles`, sql`business_profiles.account_id = accounts.id`)
-			.where(sql`accounts.id = ANY(${businessIds})`);
+			.where(inArray(accounts.id, businessIds));
 	}
 
 	// Count by business type
