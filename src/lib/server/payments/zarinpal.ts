@@ -3,10 +3,10 @@
 import {
 	ZARINPAL_MERCHANT_ID,
 	ZARINPAL_SANDBOX,
-	PUBLIC_APP_URL,
 	FEE_ZARINPAL_MERCHANT_ID,
 	MOCK_PAYMENTS
 } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 interface ZarinpalRequestResponse {
 	data: {
@@ -60,7 +60,7 @@ export class ZarinpalService {
 			return {
 				success: true,
 				authority: mockAuthority,
-				paymentUrl: `${PUBLIC_APP_URL}/payments/mock?authority=${mockAuthority}`
+				paymentUrl: `${env.PUBLIC_APP_URL}/payments/mock?authority=${mockAuthority}`
 			};
 		}
 

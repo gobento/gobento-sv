@@ -17,7 +17,7 @@ import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { PaymentHandler } from '$lib/server/payments/handler';
 import { ZarinpalService } from '$lib/server/payments/zarinpal';
 import { TetherService } from '$lib/server/payments/tether';
-import { PUBLIC_APP_URL } from '$env/static/public';
+import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
@@ -173,7 +173,7 @@ export const actions: Actions = {
 		// Handle based on payment method
 		if (paymentMethod === 'zarinpal') {
 			// Request Zarinpal payment
-			const callbackUrl = `${PUBLIC_APP_URL}/payments/callback?paymentId=${paymentResult.paymentId}`;
+			const callbackUrl = `${env.PUBLIC_APP_URL}/payments/callback?paymentId=${paymentResult.paymentId}`;
 
 			const zarinpalResult = await ZarinpalService.requestPayment({
 				amount: offer.price,
