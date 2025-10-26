@@ -1,4 +1,4 @@
-// src/routes/payments/mock/+page.server.ts
+// src/routes/(authorized)/payments/mock/+page.server.ts
 
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';

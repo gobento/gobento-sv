@@ -55,6 +55,8 @@ export class TetherService {
 		amountWei?: string;
 		error?: string;
 	}> {
+		console.log('TetherService.generatePaymentRequest:', params);
+
 		if (MOCK_PAYMENTS === 'true') {
 			return {
 				success: true,
@@ -104,6 +106,8 @@ export class TetherService {
 		confirmations?: number;
 		error?: string;
 	}> {
+		console.log('TetherService.verifyPayment:', params);
+
 		if (MOCK_PAYMENTS === 'true') {
 			if (params.txHash.startsWith('0xMOCK')) {
 				return {
@@ -204,6 +208,8 @@ export class TetherService {
 		txHash?: string;
 		error?: string;
 	}> {
+		console.log('TetherService.transferFee:', params);
+
 		if (MOCK_PAYMENTS === 'true') {
 			console.log(`[MOCK] Would transfer fee: ${params.amount} USDT to platform`);
 			return {

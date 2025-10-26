@@ -1,4 +1,4 @@
-<!-- src/routes/payments/mock/+page.svelte -->
+<!-- src/routes/(authorized)/payments/callback/+page.svelte -->
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -37,7 +37,7 @@
 	<title>Mock Payment Gateway</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
+<div class="min-h-screen bg-linear-to-br from-primary/10 to-secondary/10 p-4">
 	<div class="mx-auto max-w-2xl">
 		<!-- Mock Payment Gateway Header -->
 		<div class="mb-8 text-center">

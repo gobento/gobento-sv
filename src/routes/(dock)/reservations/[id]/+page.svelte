@@ -13,58 +13,22 @@
 	import IconFood from '~icons/fluent/food-24-regular';
 	import IconPeople from '~icons/fluent/people-24-regular';
 	import IconBuilding from '~icons/fluent/building-24-regular';
+	import { formatDate, formatTime } from '$lib/util.js';
 
 	let { data, form } = $props();
 
 	let showInviteModal = $state(false);
 	let showClaimModal = $state(false);
 	let friendEmail = $state('');
-	let qrCodeDataUrl = $state('');
 	let inviteLoading = $state(false);
 	let claimLoading = $state(false);
 	let swipeProgress = $state(0);
 	let isDragging = $state(false);
 	let startX = $state(0);
 
-	function formatDate(date: Date) {
-		return new Date(date).toLocaleDateString('en-US', {
-			weekday: 'long',
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
-	}
-
-	function formatTime(date: Date) {
-		return new Date(date).toLocaleTimeString('en-US', {
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
-
-	function getStatusBadge(status: string) {
-		const badges = {
-			active: 'badge-success',
-			completed: 'badge-info',
-			expired: 'badge-error',
-			claimed: 'badge-primary'
-		};
-		return badges[status as keyof typeof badges] || 'badge-ghost';
-	}
-
 	function handleSwipeStart(e: MouseEvent | TouchEvent) {
 		isDragging = true;
 		startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-	}
-
-	function handleSwipeMove(e: MouseEvent | TouchEvent) {
-		if (!isDragging) return;
-
-		const currentX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-		const diff = currentX - startX;
-		const maxWidth = 300;
-		const progress = Math.max(0, Math.min(100, (diff / maxWidth) * 100));
-		swipeProgress = progress;
 	}
 
 	function handleSwipeEnd() {
@@ -82,6 +46,35 @@
 		if (formEl) {
 			formEl.requestSubmit();
 		}
+	}
+
+	function hapticFeedback(intensity: 'light' | 'medium' | 'heavy' = 'medium') {
+		if ('vibrate' in navigator) {
+			const patterns = {
+				light: 10,
+				medium: 20,
+				heavy: [30, 10, 30]
+			};
+			navigator.vibrate(patterns[intensity]);
+		}
+	}
+
+	function handleSwipeMove(e: MouseEvent | TouchEvent) {
+		if (!isDragging) return;
+
+		const currentX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+		const diff = currentX - startX;
+		const maxWidth = 300;
+		const progress = Math.max(0, Math.min(100, (diff / maxWidth) * 100));
+
+		// Haptic feedback at milestones
+		if (progress >= 90 && swipeProgress < 90) {
+			hapticFeedback('heavy');
+		} else if (progress >= 50 && swipeProgress < 50) {
+			hapticFeedback('light');
+		}
+
+		swipeProgress = progress;
 	}
 
 	$effect(() => {

@@ -1,6 +1,13 @@
-export function formatTime(timeString: string | null) {
-	if (!timeString) return '';
-	const [hours, minutes] = timeString.split(':');
+export function formatTime(time: Date | string | null) {
+	if (!time) return '';
+
+	if (typeof time === 'string') {
+		const [hours, minutes] = time.split(':');
+		return `${hours}:${minutes}`;
+	}
+
+	const hours = time.getHours().toString().padStart(2, '0');
+	const minutes = time.getMinutes().toString().padStart(2, '0');
 	return `${hours}:${minutes}`;
 }
 
@@ -28,3 +35,13 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
 function toRad(degrees: number): number {
 	return degrees * (Math.PI / 180);
 }
+
+export const formatPrice = (price: number, currency: string) => {
+	if (currency === 'IRR') {
+		return new Intl.NumberFormat('fa-IR', {
+			style: 'currency',
+			currency: 'IRR'
+		}).format(price);
+	}
+	return `${price.toFixed(2)} USDT`;
+};
