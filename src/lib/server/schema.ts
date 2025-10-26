@@ -225,6 +225,83 @@ export const notificationLog = pgTable('notification_log', {
 	status: text('status', { enum: ['sent', 'failed'] }).notNull()
 });
 
+// Payment transactions
+export const payments = pgTable('payments', {
+	id: text('id').primaryKey(), // UUID
+	offerId: text('offer_id')
+		.notNull()
+		.references(() => businessOffers.id, { onDelete: 'cascade' }),
+	userAccountId: text('user_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	businessAccountId: text('business_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+
+	// Payment details
+	amount: doublePrecision('amount').notNull(),
+	currency: text('currency').notNull(), // 'IRR' or 'USDT'
+	paymentMethod: text('payment_method', {
+		enum: ['zarinpal', 'tether']
+	}).notNull(),
+
+	// Fee information
+	feeAmount: doublePrecision('fee_amount').notNull(), // 10% fee
+	businessAmount: doublePrecision('business_amount').notNull(), // 90% to business
+
+	// Payment status
+	status: text('status', {
+		enum: ['pending', 'processing', 'completed', 'failed', 'refunded']
+	})
+		.notNull()
+		.default('pending'),
+
+	// Provider-specific data
+	zarinpalAuthority: text('zarinpal_authority'), // For Zarinpal
+	zarinpalRefId: text('zarinpal_ref_id'),
+	tetherTxHash: text('tether_tx_hash'), // For Tether
+	tetherFromAddress: text('tether_from_address'),
+
+	// Mock mode flag
+	isMock: boolean('is_mock').notNull().default(false),
+
+	// Reservation created after successful payment
+	reservationId: text('reservation_id').references(() => reservations.id, {
+		onDelete: 'set null'
+	}),
+
+	// Metadata
+	metadata: text('metadata'), // JSON string for additional data
+	errorMessage: text('error_message'),
+
+	// Timestamps
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	completedAt: timestamp('completed_at', { withTimezone: true }),
+	expiresAt: timestamp('expires_at', { withTimezone: true })
+});
+
+// Payment wallet configurations for businesses
+export const businessWallets = pgTable('business_wallets', {
+	accountId: text('account_id')
+		.primaryKey()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+
+	// Zarinpal configuration
+	zarinpalMerchantId: text('zarinpal_merchant_id'),
+	zarinpalEnabled: boolean('zarinpal_enabled').notNull().default(false),
+
+	// Tether (USDT) configuration
+	tetherAddress: text('tether_address'), // ERC-20 USDT address
+	tetherEnabled: boolean('tether_enabled').notNull().default(false),
+
+	// Timestamps
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+// Export types
+export type Payment = typeof payments.$inferSelect;
+export type BusinessWallet = typeof businessWallets.$inferSelect;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NotificationLog = typeof notificationLog.$inferSelect;
 export type Account = typeof accounts.$inferSelect;

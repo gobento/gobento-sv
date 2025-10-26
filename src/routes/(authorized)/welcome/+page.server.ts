@@ -4,17 +4,20 @@ import type { Actions, PageServerLoad } from './$types';
 import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { db } from '$lib/server/db';
-import { accounts, businessProfiles, charityProfiles, files } from '$lib/server/schema';
+import {
+	accounts,
+	businessProfiles,
+	charityProfiles,
+	files,
+	businessWallets,
+	userProfiles
+} from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { welcomeSchema } from './schema';
 import { uploadFileFromForm } from '$lib/server/backblaze';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.account) {
-		redirect(303, '/auth/login');
-	}
-	// Initialize form with empty values
+export const load: PageServerLoad = async () => {
 	const form = await superValidate(valibot(welcomeSchema));
 	return {
 		form
@@ -23,9 +26,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions = {
 	setup: async ({ request, locals }) => {
-		if (!locals.account) {
-			return fail(401, { error: 'Not authenticated' });
-		}
+		const account = locals.account!;
 
 		const formData = await request.formData();
 		const form = await superValidate(formData, valibot(welcomeSchema));
@@ -34,109 +35,230 @@ export const actions = {
 			return fail(400, { form });
 		}
 
-		const { accountType } = form.data;
+		const { accountType, paymentMethod, zarinpalMerchantId, tetherAddress } = form.data;
 
 		try {
 			// Update account type if needed
-			if (locals.account.accountType !== accountType) {
-				await db.update(accounts).set({ accountType }).where(eq(accounts.id, locals.account.id));
+			if (account.accountType !== accountType) {
+				await db.update(accounts).set({ accountType }).where(eq(accounts.id, account.id));
 			}
 
-			// Handle user account (no additional data needed)
+			// Validate payment configuration
+			if (paymentMethod === 'zarinpal' && !zarinpalMerchantId) {
+				return fail(400, {
+					form,
+					message: 'Zarinpal Merchant ID is required'
+				});
+			}
+
+			if (paymentMethod === 'tether' && !tetherAddress) {
+				return fail(400, {
+					form,
+					message: 'Tether wallet address is required'
+				});
+			}
+
+			// Validate Tether address format (basic validation)
+			if (paymentMethod === 'tether' && tetherAddress) {
+				if (!tetherAddress.startsWith('0x') || tetherAddress.length !== 42) {
+					return fail(400, {
+						form,
+						message: 'Invalid Tether wallet address format'
+					});
+				}
+			}
+
+			// Handle user account
 			if (accountType === 'user') {
-				/*  await db.insert(userProfiles).values({
-                    accountId: locals.account.id
-                }); */
-			} else {
-				// Handle business/charity accounts - require profile picture
-				const pictureFile = formData.get('picture') as File;
-				if (!pictureFile || pictureFile.size === 0) {
+				// Create user profile if it doesn't exist
+				await db
+					.insert(userProfiles)
+					.values({
+						accountId: account.id
+					})
+					.onConflictDoNothing();
+
+				// Create/update user wallet configuration
+				await db
+					.insert(businessWallets)
+					.values({
+						accountId: account.id,
+						zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
+						zarinpalEnabled: paymentMethod === 'zarinpal',
+						tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
+						tetherEnabled: paymentMethod === 'tether'
+					})
+					.onConflictDoUpdate({
+						target: [businessWallets.accountId],
+						set: {
+							zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
+							zarinpalEnabled: paymentMethod === 'zarinpal',
+							tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
+							tetherEnabled: paymentMethod === 'tether',
+							updatedAt: new Date()
+						}
+					});
+
+				// Redirect to home (throws redirect error)
+				throw redirect(303, '/');
+			}
+
+			// Handle business/charity accounts - require profile picture and additional fields
+			const pictureFile = formData.get('picture') as File;
+			if (!pictureFile || pictureFile.size === 0) {
+				return fail(400, {
+					form,
+					message: 'Profile picture is required'
+				});
+			}
+
+			// Validate file
+			if (!pictureFile.type.startsWith('image/')) {
+				return fail(400, {
+					form,
+					message: 'File must be an image'
+				});
+			}
+
+			if (pictureFile.size > 5 * 1024 * 1024) {
+				return fail(400, {
+					form,
+					message: 'File size must be less than 5MB'
+				});
+			}
+
+			// Validate required fields for business/charity
+			if (!('name' in form.data) || !form.data.name) {
+				return fail(400, {
+					form,
+					message: 'Name is required'
+				});
+			}
+
+			if (!('description' in form.data) || !form.data.description) {
+				return fail(400, {
+					form,
+					message: 'Description is required'
+				});
+			}
+
+			if (!('country' in form.data) || !form.data.country) {
+				return fail(400, {
+					form,
+					message: 'Country is required'
+				});
+			}
+
+			// Upload to Backblaze
+			const uploadResult = await uploadFileFromForm(pictureFile);
+
+			if (!uploadResult.success) {
+				return fail(500, {
+					form,
+					message: uploadResult.error || 'Failed to upload file'
+				});
+			}
+
+			// Generate file ID and use the storage key from upload
+			const fileId = randomUUID();
+			const storageKey = uploadResult.key;
+
+			// Save file record
+			await db.insert(files).values({
+				id: fileId,
+				key: storageKey,
+				fileName: pictureFile.name,
+				contentType: pictureFile.type,
+				sizeBytes: pictureFile.size,
+				uploadedBy: account.id
+			});
+
+			// Create profile based on type
+			if (accountType === 'business') {
+				// Validate business type
+				if (!('businessType' in form.data) || !form.data.businessType) {
 					return fail(400, {
 						form,
-						error: 'Profile picture is required'
+						message: 'Business type is required'
 					});
 				}
 
-				// Validate file
-				if (!pictureFile.type.startsWith('image/')) {
-					return fail(400, {
-						form,
-						error: 'File must be an image'
-					});
-				}
-
-				if (pictureFile.size > 5 * 1024 * 1024) {
-					return fail(400, {
-						form,
-						error: 'File size must be less than 5MB'
-					});
-				}
-
-				// Upload to Backblaze using the correct function
-				const uploadResult = await uploadFileFromForm(pictureFile);
-
-				if (!uploadResult.success) {
-					return fail(500, {
-						form,
-						error: uploadResult.error || 'Failed to upload file'
-					});
-				}
-
-				// Generate file ID and use the storage key from upload
-				const fileId = randomUUID();
-				const storageKey = uploadResult.key;
-
-				// Save file record
-				await db.insert(files).values({
-					id: fileId,
-					key: storageKey,
-					fileName: pictureFile.name,
-					contentType: pictureFile.type,
-					sizeBytes: pictureFile.size,
-					uploadedBy: locals.account.id
+				await db.insert(businessProfiles).values({
+					accountId: account.id,
+					name: form.data.name,
+					description: form.data.description,
+					country: form.data.country,
+					businessType: form.data.businessType,
+					profilePictureId: fileId
 				});
 
-				// Create profile based on type
-				if (accountType === 'business') {
-					await db.insert(businessProfiles).values({
-						accountId: locals.account.id,
-						name: form.data.name,
-						description: form.data.description,
-						country: form.data.country,
-						businessType: form.data.businessType,
-						profilePictureId: fileId
+				// Create business wallet configuration
+				await db
+					.insert(businessWallets)
+					.values({
+						accountId: account.id,
+						zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
+						zarinpalEnabled: paymentMethod === 'zarinpal',
+						tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
+						tetherEnabled: paymentMethod === 'tether'
+					})
+					.onConflictDoUpdate({
+						target: [businessWallets.accountId],
+						set: {
+							zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
+							zarinpalEnabled: paymentMethod === 'zarinpal',
+							tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
+							tetherEnabled: paymentMethod === 'tether',
+							updatedAt: new Date()
+						}
 					});
-				} else if (accountType === 'charity') {
-					await db.insert(charityProfiles).values({
-						accountId: locals.account.id,
-						name: form.data.name,
-						description: form.data.description,
-						country: form.data.country,
-						profilePictureId: fileId
+
+				// Redirect to locations (throws redirect error)
+				throw redirect(303, '/locations');
+			} else if (accountType === 'charity') {
+				await db.insert(charityProfiles).values({
+					accountId: account.id,
+					name: form.data.name,
+					description: form.data.description,
+					country: form.data.country,
+					profilePictureId: fileId
+				});
+
+				// Create charity wallet configuration
+				await db
+					.insert(businessWallets)
+					.values({
+						accountId: account.id,
+						zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
+						zarinpalEnabled: paymentMethod === 'zarinpal',
+						tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
+						tetherEnabled: paymentMethod === 'tether'
+					})
+					.onConflictDoUpdate({
+						target: [businessWallets.accountId],
+						set: {
+							zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
+							zarinpalEnabled: paymentMethod === 'zarinpal',
+							tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
+							tetherEnabled: paymentMethod === 'tether',
+							updatedAt: new Date()
+						}
 					});
-				}
+
+				// Redirect to dashboard (throws redirect error)
+				throw redirect(303, '/dashboard');
 			}
 		} catch (error) {
+			// SvelteKit redirects throw an error - we need to re-throw them
+			if (error instanceof Response || (error as any)?.status) {
+				throw error;
+			}
+
 			console.error('Setup error:', error);
 			return fail(500, {
 				form,
-				error: 'An unexpected error occurred. Please try again.'
+				message: 'An unexpected error occurred. Please try again.'
 			});
 		}
-
-		// Redirect after successful setup (outside try-catch)
-		if (accountType === 'user') {
-			redirect(303, '/dashboard');
-		} else if (accountType === 'business') {
-			redirect(303, '/locations');
-		} else if (accountType === 'charity') {
-			redirect(303, '/dashboard');
-		}
-
-		// Fallback (should never reach here)
-		return fail(500, {
-			form,
-			error: 'An unexpected error occurred'
-		});
 	}
 } satisfies Actions;

@@ -5,8 +5,7 @@ import {
 	businessLocations,
 	businessProfiles,
 	businessOffers,
-	files,
-	accounts
+	files
 } from '$lib/server/schema';
 import { eq, and, count } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
@@ -14,16 +13,9 @@ import type { PageServerLoad, Actions } from './$types';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const session = locals.session!;
+	const account = locals.account!;
 
-	// Verify account is a user
-	const account = await db
-		.select()
-		.from(accounts)
-		.where(eq(accounts.id, session.accountId))
-		.limit(1);
-
-	if (account.length === 0 || account[0].accountType !== 'user') {
+	if (account.accountType !== 'user') {
 		throw error(403, 'Only users can view favorites');
 	}
 
@@ -37,7 +29,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			businessLogo: files
 		})
 		.from(favoriteLocations)
-		.where(eq(favoriteLocations.accountId, session.accountId))
+		.where(eq(favoriteLocations.accountId, account.id))
 		.innerJoin(businessLocations, eq(favoriteLocations.locationId, businessLocations.id))
 		.innerJoin(
 			businessProfiles,
@@ -99,9 +91,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
 	removeFavorite: async ({ request, locals }) => {
-		const session = locals.session;
-		if (!session) {
-			return fail(401, { error: 'Unauthorized' });
+		const account = locals.account!;
+		if (account.accountType !== 'user') {
+			return fail(403, { error: 'Only users can remove favorites' });
 		}
 
 		const formData = await request.formData();
@@ -116,7 +108,7 @@ export const actions: Actions = {
 				.delete(favoriteLocations)
 				.where(
 					and(
-						eq(favoriteLocations.accountId, session.accountId),
+						eq(favoriteLocations.accountId, account.id),
 						eq(favoriteLocations.locationId, locationId)
 					)
 				);

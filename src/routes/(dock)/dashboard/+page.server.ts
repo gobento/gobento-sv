@@ -5,27 +5,17 @@ import {
 	reservations,
 	businessOffers,
 	businessLocations,
-	favoriteLocations,
-	accounts
+	favoriteLocations
 } from '$lib/server/schema';
 import { eq, and, gte, sql, desc } from 'drizzle-orm';
+import { error, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	// Ensure user is a business account
-	const session = locals.session;
-	if (!session) {
-		throw redirect(302, '/login');
+	const account = locals.account!;
+
+	if (account.accountType !== 'business') {
+		throw error(403, 'This page is only accessible by business accounts');
 	}
-
-	const account = await db.query.accounts.findFirst({
-		where: eq(accounts.id, session.accountId)
-	});
-
-	if (!account || account.accountType !== 'business') {
-		throw error(403, 'Access denied');
-	}
-
-	const businessAccountId = account.id;
 
 	// Calculate date ranges
 	const now = new Date();
@@ -43,7 +33,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
 		.where(
 			and(
-				eq(businessOffers.businessAccountId, businessAccountId),
+				eq(businessOffers.businessAccountId, account.id),
 				gte(reservations.reservedAt, thirtyDaysAgo)
 			)
 		)
@@ -61,12 +51,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		})
 		.from(businessOffers)
 		.leftJoin(reservations, eq(reservations.offerId, businessOffers.id))
-		.where(
-			and(
-				eq(businessOffers.businessAccountId, businessAccountId),
-				eq(businessOffers.isActive, true)
-			)
-		)
+		.where(and(eq(businessOffers.businessAccountId, account.id), eq(businessOffers.isActive, true)))
 		.groupBy(businessOffers.id)
 		.orderBy(desc(sql`COUNT(${reservations.id})`))
 		.limit(5);
@@ -81,7 +66,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
 		.where(
 			and(
-				eq(businessOffers.businessAccountId, businessAccountId),
+				eq(businessOffers.businessAccountId, account.id),
 				gte(reservations.reservedAt, thirtyDaysAgo)
 			)
 		)
@@ -105,7 +90,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.leftJoin(businessOffers, eq(businessOffers.locationId, businessLocations.id))
 		.leftJoin(reservations, eq(reservations.offerId, businessOffers.id))
 		.leftJoin(favoriteLocations, eq(favoriteLocations.locationId, businessLocations.id))
-		.where(eq(businessLocations.businessAccountId, businessAccountId))
+		.where(eq(businessLocations.businessAccountId, account.id))
 		.groupBy(businessLocations.id)
 		.orderBy(desc(sql`COUNT(${reservations.id})`));
 
@@ -120,7 +105,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
 		.where(
 			and(
-				eq(businessOffers.businessAccountId, businessAccountId),
+				eq(businessOffers.businessAccountId, account.id),
 				gte(reservations.reservedAt, thirtyDaysAgo)
 			)
 		)
@@ -129,19 +114,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const activeOffersCount = await db
 		.select({ count: sql<number>`COUNT(*)::int` })
 		.from(businessOffers)
-		.where(
-			and(
-				eq(businessOffers.businessAccountId, businessAccountId),
-				eq(businessOffers.isActive, true)
-			)
-		)
+		.where(and(eq(businessOffers.businessAccountId, account.id), eq(businessOffers.isActive, true)))
 		.then((rows) => rows[0].count);
 
 	const totalFavoritesCount = await db
 		.select({ count: sql<number>`COUNT(DISTINCT ${favoriteLocations.accountId})::int` })
 		.from(favoriteLocations)
 		.innerJoin(businessLocations, eq(favoriteLocations.locationId, businessLocations.id))
-		.where(eq(businessLocations.businessAccountId, businessAccountId))
+		.where(eq(businessLocations.businessAccountId, account.id))
 		.then((rows) => rows[0].count);
 
 	return {

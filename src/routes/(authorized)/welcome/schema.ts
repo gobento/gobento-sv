@@ -1,65 +1,113 @@
 // src/routes/welcome/schema.ts
 import * as v from 'valibot';
 
-// Validation schemas
-const userSetupSchema = v.object({
-	accountType: v.literal('user')
-});
+const businessSchema = v.pipe(
+	v.object({
+		accountType: v.literal('business'),
+		name: v.pipe(
+			v.string('Name is required'),
+			v.minLength(2, 'Name must be at least 2 characters'),
+			v.maxLength(100, 'Name must be less than 100 characters')
+		),
+		description: v.pipe(
+			v.string('Description is required'),
+			v.minLength(10, 'Description must be at least 10 characters'),
+			v.maxLength(500, 'Description must be less than 500 characters')
+		),
+		country: v.pipe(v.string('Country is required'), v.minLength(1, 'Please select a country')),
+		businessType: v.picklist(
+			['bakery', 'restaurant', 'cafe', 'grocery', 'supermarket', 'hotel', 'catering', 'other'],
+			'Please select a valid business type'
+		),
+		paymentMethod: v.picklist(['zarinpal', 'tether'], 'Please select a payment method'),
+		zarinpalMerchantId: v.optional(
+			v.pipe(v.string(), v.minLength(1, 'Zarinpal Merchant ID is required'))
+		),
+		tetherAddress: v.optional(
+			v.pipe(
+				v.string(),
+				v.minLength(42, 'Invalid Tether address'),
+				v.maxLength(42, 'Invalid Tether address'),
+				v.startsWith('0x', 'Tether address must start with 0x')
+			)
+		)
+	}),
+	v.check((data) => {
+		if (data.paymentMethod === 'zarinpal' && !data.zarinpalMerchantId) {
+			return false;
+		}
+		if (data.paymentMethod === 'tether' && !data.tetherAddress) {
+			return false;
+		}
+		return true;
+	}, 'Please provide valid payment credentials for the selected method')
+);
 
-const businessSetupSchema = v.object({
-	accountType: v.literal('business'),
-	name: v.pipe(
-		v.string(),
-		v.minLength(1, 'Name is required'),
-		v.maxLength(100, 'Name must be less than 100 characters')
-	),
-	description: v.pipe(
-		v.string(),
-		v.minLength(1, 'Description is required'),
-		v.maxLength(500, 'Description must be less than 500 characters')
-	),
-	country: v.pipe(
-		v.string(),
-		v.minLength(1, 'Country is required'),
-		v.maxLength(100, 'Country must be less than 100 characters')
-	),
-	businessType: v.pipe(
-		v.picklist([
-			'bakery',
-			'restaurant',
-			'cafe',
-			'grocery',
-			'supermarket',
-			'hotel',
-			'catering',
-			'other'
-		]),
-		v.minLength(1, 'Business type is required')
-	)
-});
+const charitySchema = v.pipe(
+	v.object({
+		accountType: v.literal('charity'),
+		name: v.pipe(
+			v.string('Name is required'),
+			v.minLength(2, 'Name must be at least 2 characters'),
+			v.maxLength(100, 'Name must be less than 100 characters')
+		),
+		description: v.pipe(
+			v.string('Description is required'),
+			v.minLength(10, 'Description must be at least 10 characters'),
+			v.maxLength(500, 'Description must be less than 500 characters')
+		),
+		country: v.pipe(v.string('Country is required'), v.minLength(1, 'Please select a country')),
+		paymentMethod: v.picklist(['zarinpal', 'tether'], 'Please select a payment method'),
+		zarinpalMerchantId: v.optional(
+			v.pipe(v.string(), v.minLength(1, 'Zarinpal Merchant ID is required'))
+		),
+		tetherAddress: v.optional(
+			v.pipe(
+				v.string(),
+				v.minLength(42, 'Invalid Tether address'),
+				v.maxLength(42, 'Invalid Tether address'),
+				v.startsWith('0x', 'Tether address must start with 0x')
+			)
+		)
+	}),
+	v.check((data) => {
+		if (data.paymentMethod === 'zarinpal' && !data.zarinpalMerchantId) {
+			return false;
+		}
+		if (data.paymentMethod === 'tether' && !data.tetherAddress) {
+			return false;
+		}
+		return true;
+	}, 'Please provide valid payment credentials for the selected method')
+);
 
-const charitySetupSchema = v.object({
-	accountType: v.literal('charity'),
-	name: v.pipe(
-		v.string(),
-		v.minLength(1, 'Name is required'),
-		v.maxLength(100, 'Name must be less than 100 characters')
-	),
-	description: v.pipe(
-		v.string(),
-		v.minLength(1, 'Description is required'),
-		v.maxLength(500, 'Description must be less than 500 characters')
-	),
-	country: v.pipe(
-		v.string(),
-		v.minLength(1, 'Country is required'),
-		v.maxLength(100, 'Country must be less than 100 characters')
-	)
-});
+const userSchema = v.pipe(
+	v.object({
+		accountType: v.literal('user'),
+		paymentMethod: v.picklist(['zarinpal', 'tether'], 'Please select a payment method'),
+		zarinpalMerchantId: v.optional(
+			v.pipe(v.string(), v.minLength(1, 'Zarinpal Merchant ID is required'))
+		),
+		tetherAddress: v.optional(
+			v.pipe(
+				v.string(),
+				v.minLength(42, 'Invalid Tether address'),
+				v.maxLength(42, 'Invalid Tether address'),
+				v.startsWith('0x', 'Tether address must start with 0x')
+			)
+		)
+	}),
+	v.check((data) => {
+		if (data.paymentMethod === 'zarinpal' && !data.zarinpalMerchantId) {
+			return false;
+		}
+		if (data.paymentMethod === 'tether' && !data.tetherAddress) {
+			return false;
+		}
+		return true;
+	}, 'Please provide valid payment credentials for the selected method')
+);
 
-// Union schema for all account types
-export const welcomeSchema = v.variant('accountType', [
-	userSetupSchema,
-	businessSetupSchema,
-	charitySetupSchema
-]);
+export const welcomeSchema = v.union([userSchema, businessSchema, charitySchema]);
+
+export type WelcomeSchema = v.InferOutput<typeof welcomeSchema>;

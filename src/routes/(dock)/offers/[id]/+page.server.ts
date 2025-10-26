@@ -1,5 +1,5 @@
 // src/routes/(dock)/offers/[id]/+page.server.ts
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import {
@@ -8,14 +8,19 @@ import {
 	businessProfiles,
 	files,
 	accounts,
-	reservations
+	reservations,
+	businessWallets,
+	payments
 } from '$lib/server/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { PaymentHandler } from '$lib/server/payments/handler';
+import { ZarinpalService } from '$lib/server/payments/zarinpal';
+import { TetherService } from '$lib/server/payments/tether';
+import { PUBLIC_APP_URL } from '$env/static/public';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const session = locals.session;
-	const account = locals.account;
+	const account = locals.account!;
 
 	// Fetch offer with location and business details
 	const offerData = await db
@@ -54,19 +59,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		if (activeReservations.length > 0) {
 			existingReservation = activeReservations[0];
 
-			// Check if the current user made this reservation
-			if (account && existingReservation.userAccountId === account.id) {
+			if (existingReservation.userAccountId === account.id) {
 				userReservation = existingReservation;
 			}
 		}
 	}
 
-	// Check if current user owns this offer
-	const isOwner = account && account.id === offer.businessAccountId;
-	const isUser = account && account.accountType === 'user';
-	const isLoggedIn = !!session && !!account;
+	const isOwner = account.id === offer.businessAccountId;
+	const isUser = account.accountType === 'user';
 
-	const logoUrl = await getSignedDownloadUrl(logo.key, 3600); // 1 hour expiry
+	const logoUrl = await getSignedDownloadUrl(logo.key, 3600);
 
 	return {
 		offer,
@@ -82,7 +84,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		},
 		isOwner,
 		isUser,
-		isLoggedIn,
+
 		accountType: account?.accountType || null,
 		isReserved: !!existingReservation,
 		userReservation: userReservation
@@ -97,63 +99,48 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	};
 };
 
-/**
- * Generates a secure random claim token for staff scanning
- */
-function generateClaimToken(): string {
-	// Generate a random 8-character alphanumeric token
-	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-	let token = '';
-	const array = new Uint8Array(8);
-	crypto.getRandomValues(array);
-	for (let i = 0; i < 8; i++) {
-		token += chars[array[i] % chars.length];
-	}
-	return token;
-}
-
-/**
- * Parse time string (HH:MM:SS or HH:MM) to hours and minutes
- */
-function parseTimeString(timeStr: string): { hours: number; minutes: number } {
-	const parts = timeStr.split(':');
-	return {
-		hours: parseInt(parts[0], 10),
-		minutes: parseInt(parts[1], 10)
-	};
-}
-
 export const actions: Actions = {
-	reserve: async ({ params, locals, request }) => {
-		const session = locals.session;
-		const account = locals.account;
-
-		if (!session || !account) {
-			throw error(401, 'Unauthorized');
-		}
+	/**
+	 * Initialize payment (creates payment record and redirects/returns address)
+	 */
+	initPayment: async ({ params, locals, request, url }) => {
+		const account = locals.account!;
 
 		if (account.accountType !== 'user') {
-			throw error(403, 'Only user accounts can reserve offers');
+			throw error(403, 'Only user accounts can make payments');
 		}
 
-		// Check if offer exists and is active
-		const offerResult = await db
+		// Get form data
+		const formData = await request.formData();
+		const paymentMethod = formData.get('paymentMethod') as 'zarinpal' | 'tether';
+		const pickupDateStr = formData.get('pickupDate') as string;
+
+		if (!paymentMethod || !pickupDateStr) {
+			return fail(400, { error: 'Missing required fields' });
+		}
+
+		// Validate pickup date
+		const pickupDate = new Date(pickupDateStr);
+		if (isNaN(pickupDate.getTime())) {
+			return fail(400, { error: 'Invalid pickup date' });
+		}
+
+		// Get offer
+		const [offer] = await db
 			.select()
 			.from(businessOffers)
 			.where(eq(businessOffers.id, params.id))
 			.limit(1);
 
-		if (!offerResult.length) {
+		if (!offer) {
 			throw error(404, 'Offer not found');
 		}
 
-		const offer = offerResult[0];
-
 		if (!offer.isActive) {
-			return fail(400, { error: 'This offer is not active' });
+			return fail(400, { error: 'Offer is not active' });
 		}
 
-		// Check if offer is already reserved
+		// Check if already reserved
 		const existingReservation = await db
 			.select()
 			.from(reservations)
@@ -161,67 +148,147 @@ export const actions: Actions = {
 			.limit(1);
 
 		if (existingReservation.length > 0) {
-			return fail(400, { error: 'This offer is already reserved by another user' });
+			return fail(400, { error: 'Offer is already reserved' });
 		}
 
-		// Get form data
-		const formData = await request.formData();
-		const pickupDateStr = formData.get('pickupDate');
-
-		if (!pickupDateStr) {
-			return fail(400, { error: 'Pickup date is required' });
-		}
-
-		const pickupDate = new Date(pickupDateStr as string);
-
-		if (isNaN(pickupDate.getTime())) {
-			return fail(400, { error: 'Invalid pickup date' });
-		}
-
-		// Validate that pickup date is not in the past
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
-		pickupDate.setHours(0, 0, 0, 0);
-
-		if (pickupDate < today) {
-			return fail(400, { error: 'Pickup date cannot be in the past' });
-		}
-
-		// Validate that pickup date is not after validUntil (if set)
-		if (offer.validUntil) {
-			const validUntilDate = new Date(offer.validUntil);
-			validUntilDate.setHours(23, 59, 59, 999); // End of day
-
-			if (pickupDate > validUntilDate) {
-				return fail(400, { error: 'Pickup date cannot be after the offer expiration date' });
-			}
-		}
-
-		// Parse the offer's pickup time range
-		const timeFrom = parseTimeString(offer.pickupTimeFrom);
-		const timeUntil = parseTimeString(offer.pickupTimeUntil);
-
-		// Create pickup window using the selected date and offer's time range
-		const pickupFrom = new Date(pickupDate);
-		pickupFrom.setHours(timeFrom.hours, timeFrom.minutes, 0, 0);
-
-		const pickupUntil = new Date(pickupDate);
-		pickupUntil.setHours(timeUntil.hours, timeUntil.minutes, 0, 0);
-
-		// Generate unique claim token for staff scanning
-		const claimToken = generateClaimToken();
-
-		// Create reservation
-		await db.insert(reservations).values({
-			id: crypto.randomUUID(),
+		// Create payment record
+		const paymentResult = await PaymentHandler.createPayment({
 			offerId: params.id,
 			userAccountId: account.id,
-			status: 'active',
-			pickupFrom,
-			pickupUntil,
-			claimToken
+			businessAccountId: offer.businessAccountId,
+			amount: offer.price,
+			currency: offer.currency === 'EUR' ? 'USDT' : (offer.currency as 'IRR' | 'USDT'),
+			paymentMethod,
+			pickupDate,
+			metadata: { pickupDate: pickupDateStr }
 		});
 
-		return { success: true };
+		if (!paymentResult.success || !paymentResult.paymentId) {
+			return fail(500, { error: paymentResult.error || 'Failed to create payment' });
+		}
+
+		// Handle based on payment method
+		if (paymentMethod === 'zarinpal') {
+			// Request Zarinpal payment
+			const callbackUrl = `${PUBLIC_APP_URL}/payments/callback?paymentId=${paymentResult.paymentId}`;
+
+			const zarinpalResult = await ZarinpalService.requestPayment({
+				amount: offer.price,
+				description: `Payment for ${offer.name}`,
+				email: account.email,
+				callbackUrl,
+				metadata: {
+					paymentId: paymentResult.paymentId,
+					offerId: params.id
+				}
+			});
+
+			if (!zarinpalResult.success || !zarinpalResult.paymentUrl) {
+				await PaymentHandler.failPayment(
+					paymentResult.paymentId,
+					zarinpalResult.error || 'Failed to initialize Zarinpal payment'
+				);
+				return fail(500, { error: zarinpalResult.error || 'Payment initialization failed' });
+			}
+
+			// Redirect to Zarinpal
+			throw redirect(303, zarinpalResult.paymentUrl);
+		} else if (paymentMethod === 'tether') {
+			// Get business wallet
+			const [wallet] = await db
+				.select()
+				.from(businessWallets)
+				.where(eq(businessWallets.accountId, offer.businessAccountId))
+				.limit(1);
+
+			if (!wallet || !wallet.tetherAddress || !wallet.tetherEnabled) {
+				await PaymentHandler.failPayment(
+					paymentResult.paymentId,
+					'Business does not accept Tether'
+				);
+				return fail(400, { error: 'Business does not accept Tether payments' });
+			}
+
+			// Return wallet address for user to send payment
+			return {
+				success: true,
+				paymentId: paymentResult.paymentId,
+				tetherAddress: wallet.tetherAddress,
+				amount: offer.price
+			};
+		}
+
+		return fail(400, { error: 'Invalid payment method' });
+	},
+
+	/**
+	 * Verify Tether transaction
+	 */
+	verifyTether: async ({ params, locals, request }) => {
+		const account = locals.account!;
+
+		const formData = await request.formData();
+		const txHash = formData.get('txHash') as string;
+		const tetherAddress = formData.get('tetherAddress') as string;
+		const pickupDateStr = formData.get('pickupDate') as string;
+
+		if (!txHash || !tetherAddress) {
+			return fail(400, { error: 'Transaction hash is required' });
+		}
+
+		// Get offer
+		const [offer] = await db
+			.select()
+			.from(businessOffers)
+			.where(eq(businessOffers.id, params.id))
+			.limit(1);
+
+		if (!offer) {
+			throw error(404, 'Offer not found');
+		}
+
+		// Find payment record
+		const [payment] = await db
+			.select()
+			.from(payments)
+			.where(
+				and(
+					eq(payments.offerId, params.id),
+					eq(payments.userAccountId, account.id),
+					eq(payments.status, 'pending')
+				)
+			)
+			.orderBy(desc(payments.createdAt))
+			.limit(1);
+
+		if (!payment) {
+			return fail(400, { error: 'Payment not found' });
+		}
+
+		// Verify transaction on blockchain
+		const tetherService = new TetherService();
+		const verifyResult = await tetherService.verifyPayment({
+			txHash,
+			expectedAmount: offer.price,
+			recipientAddress: tetherAddress
+		});
+
+		if (!verifyResult.success) {
+			return fail(400, { error: verifyResult.error || 'Transaction verification failed' });
+		}
+
+		// Complete payment and create reservation
+		const completeResult = await PaymentHandler.completePayment({
+			paymentId: payment.id,
+			tetherTxHash: txHash,
+			tetherFromAddress: verifyResult.from
+		});
+
+		if (!completeResult.success) {
+			return fail(500, { error: completeResult.error || 'Failed to complete payment' });
+		}
+
+		// Redirect to reservation
+		throw redirect(303, `/reservations/${completeResult.reservationId}`);
 	}
 };

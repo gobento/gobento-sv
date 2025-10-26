@@ -7,7 +7,6 @@
 	import IconPerson from '~icons/fluent/person-24-regular';
 	import IconHeart from '~icons/fluent/heart-24-regular';
 	import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
-
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
 	import IconImage from '~icons/fluent/image-24-regular';
@@ -26,7 +25,7 @@
 
 	let { data }: Props = $props();
 
-	const { form, errors, enhance, submitting, delayed, message } = superForm(data.form, {
+	const { form, errors, enhance, submitting, message } = superForm(data.form, {
 		validators: valibotClient(welcomeSchema),
 		resetForm: false,
 		invalidateAll: false
@@ -96,16 +95,13 @@
 	function selectType(id: 'user' | 'business' | 'charity') {
 		$form.accountType = id;
 		// Reset form fields when switching types
-		if (id === 'user') {
-			// @ts-ignore - these properties exist on business/charity types
-			$form.name = '';
-			// @ts-ignore
-			$form.description = '';
-			// @ts-ignore
-			$form.country = '';
-			// @ts-ignore
-			$form.businessType = '';
-		}
+		if ('name' in $form) $form.name = '';
+		if ('description' in $form) $form.description = '';
+		if ('country' in $form) $form.country = '';
+		if ('businessType' in $form) $form.businessType = undefined;
+		if ('paymentMethod' in $form) $form.paymentMethod = undefined;
+		if ('zarinpalMerchantId' in $form) $form.zarinpalMerchantId = undefined;
+		if ('tetherAddress' in $form) $form.tetherAddress = undefined;
 	}
 
 	function handleContinue() {
@@ -126,13 +122,11 @@
 		if (file) {
 			fileError = null;
 
-			// Validate file size (5MB max)
 			if (file.size > 5 * 1024 * 1024) {
 				fileError = 'File size must be less than 5MB';
 				return;
 			}
 
-			// Validate file type
 			if (!file.type.startsWith('image/')) {
 				fileError = 'Please select an image file';
 				return;
@@ -164,37 +158,47 @@
 	}
 
 	function canSubmit() {
+		const paymentMethod = 'paymentMethod' in $form ? $form.paymentMethod : undefined;
+		const zarinpalMerchantId = 'zarinpalMerchantId' in $form ? $form.zarinpalMerchantId : undefined;
+		const tetherAddress = 'tetherAddress' in $form ? $form.tetherAddress : undefined;
+
+		const hasPaymentMethod =
+			paymentMethod &&
+			((paymentMethod === 'zarinpal' && zarinpalMerchantId) ||
+				(paymentMethod === 'tether' && tetherAddress));
+
 		if ($form.accountType === 'business') {
-			// @ts-ignore
-			return (
-				$form.name &&
-				$form.description &&
-				$form.country &&
-				$form.businessType &&
+			const name = 'name' in $form ? $form.name : '';
+			const description = 'description' in $form ? $form.description : '';
+			const country = 'country' in $form ? $form.country : '';
+			const businessType = 'businessType' in $form ? $form.businessType : undefined;
+			return !!(
+				name &&
+				description &&
+				country &&
+				businessType &&
 				selectedFile &&
-				!fileError
+				!fileError &&
+				hasPaymentMethod
 			);
 		} else if ($form.accountType === 'charity') {
-			// @ts-ignore
-			return $form.name && $form.description && $form.country && selectedFile && !fileError;
+			const name = 'name' in $form ? $form.name : '';
+			const description = 'description' in $form ? $form.description : '';
+			const country = 'country' in $form ? $form.country : '';
+			return !!(name && description && country && selectedFile && !fileError && hasPaymentMethod);
 		}
-		return true; // User accounts don't need additional data
+		return !!hasPaymentMethod;
 	}
 
-	// Type guard for accessing business/charity fields
-	function getFormValue(field: 'name' | 'description' | 'country' | 'businessType'): string {
-		// @ts-ignore
-		return $form[field] || '';
+	function getFormValue(field: string): string {
+		const value = $form[field as keyof typeof $form];
+		return typeof value === 'string' ? value : '';
 	}
 
-	function getFormError(
-		field: 'name' | 'description' | 'country' | 'businessType'
-	): string[] | undefined {
-		// @ts-ignore
-		return $errors[field];
+	function getFormError(field: string): string[] | undefined {
+		return $errors[field as keyof typeof $errors];
 	}
 
-	// Cleanup on unmount
 	$effect(() => {
 		return () => {
 			if (previewUrl) {
@@ -206,15 +210,12 @@
 
 {#if step === 1}
 	<div class="space-y-6">
-		<!-- Header -->
 		<div class="justify-center text-center">
 			<FluentEmojiFlatBentoBox class="size-7" />
-
 			<h1 class="mb-2 text-3xl font-bold">Welcome to Go Bento!</h1>
 			<p class="text-base-content/70">Join the fight against food waste and help save our planet</p>
 		</div>
 
-		<!-- Account Type Cards -->
 		<div class="card bg-base-200">
 			<div class="card-body">
 				<h2 class="mb-1 text-lg font-semibold">Choose your account type</h2>
@@ -233,20 +234,15 @@
 							class:hover:bg-base-200={$form.accountType !== type.id}
 							onclick={() => selectType(type.id)}
 						>
-							<!-- Icon -->
 							<div
 								class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
 							>
 								<type.icon class="h-6 w-6" />
 							</div>
-
-							<!-- Text content -->
 							<div class="flex-1">
 								<h3 class="font-semibold">{type.title}</h3>
 								<p class="text-sm text-base-content/60">{type.description}</p>
 							</div>
-
-							<!-- Selected indicator -->
 							{#if $form.accountType === type.id}
 								<div
 									class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-content"
@@ -260,7 +256,6 @@
 			</div>
 		</div>
 
-		<!-- Continue Button -->
 		{#if $form.accountType}
 			<div class="flex justify-end">
 				<button type="button" class="btn gap-2 btn-primary" onclick={handleContinue}>
@@ -272,7 +267,6 @@
 	</div>
 {:else if step === 2}
 	<div class="space-y-6">
-		<!-- Header -->
 		<div class="text-center">
 			<div
 				class="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-content"
@@ -280,16 +274,15 @@
 				<IconCheckCircle class="size-7" />
 			</div>
 			<h1 class="mb-2 text-3xl font-bold">
-				{needsProfileData() ? 'Tell us about yourself' : 'All Set!'}
+				{needsProfileData() ? 'Tell us about yourself' : 'Complete Your Setup'}
 			</h1>
 			<p class="text-base-content/70">
 				{needsProfileData()
 					? 'Help users discover and trust your food-saving offerings'
-					: 'Start saving food and money today!'}
+					: 'Set up your payment method to start saving food'}
 			</p>
 		</div>
 
-		<!-- Form -->
 		<form
 			method="POST"
 			action="?/setup"
@@ -300,7 +293,6 @@
 			<div class="card-body">
 				<input type="hidden" name="accountType" value={$form.accountType} />
 
-				<!-- Global Error Message -->
 				{#if $message}
 					<div class="alert alert-error">
 						<IconErrorCircle class="size-5" />
@@ -329,8 +321,9 @@
 								class:input-error={getFormError('name')}
 								value={getFormValue('name')}
 								oninput={(e) => {
-									// @ts-ignore
-									$form.name = e.currentTarget.value;
+									if ('name' in $form) {
+										$form.name = e.currentTarget.value;
+									}
 								}}
 								disabled={$submitting}
 							/>
@@ -344,7 +337,6 @@
 							{/if}
 						</div>
 
-						<!-- Business Type (only for business accounts) -->
 						{#if $form.accountType === 'business'}
 							<div class="form-control">
 								<label class="label" for="businessType">
@@ -358,16 +350,15 @@
 									class:select-error={getFormError('businessType')}
 									value={getFormValue('businessType')}
 									onchange={(e) => {
-										// @ts-ignore
-										$form.businessType = e.currentTarget.value;
+										if ('businessType' in $form) {
+											$form.businessType = e.currentTarget.value as any;
+										}
 									}}
 									disabled={$submitting}
 								>
 									<option value="" disabled selected>Select your business type</option>
 									{#each businessTypes as type}
-										<option value={type.value}>
-											{type.label}
-										</option>
+										<option value={type.value}>{type.label}</option>
 									{/each}
 								</select>
 								{#if getFormError('businessType')}
@@ -398,8 +389,9 @@
 								rows="4"
 								value={getFormValue('description')}
 								oninput={(e) => {
-									// @ts-ignore
-									$form.description = e.currentTarget.value;
+									if ('description' in $form) {
+										$form.description = e.currentTarget.value;
+									}
 								}}
 								disabled={$submitting}
 							></textarea>
@@ -419,7 +411,7 @@
 							{/if}
 						</div>
 
-						<!-- Country Select -->
+						<!-- Country -->
 						<div class="form-control">
 							<label class="label" for="country">
 								<span class="label-text font-medium">Country</span>
@@ -432,16 +424,15 @@
 								class:select-error={getFormError('country')}
 								value={getFormValue('country')}
 								onchange={(e) => {
-									// @ts-ignore
-									$form.country = e.currentTarget.value;
+									if ('country' in $form) {
+										$form.country = e.currentTarget.value;
+									}
 								}}
 								disabled={$submitting}
 							>
 								<option value="" disabled selected>Select your country</option>
 								{#each countries as country}
-									<option value={country.code}>
-										{country.name}
-									</option>
+									<option value={country.code}>{country.name}</option>
 								{/each}
 							</select>
 							{#if getFormError('country')}
@@ -460,7 +451,6 @@
 								<span class="label-text font-medium">Profile Picture</span>
 								<span class="label-text-alt text-error">Required</span>
 							</label>
-
 							<input
 								bind:this={fileInput}
 								id="picture"
@@ -471,7 +461,6 @@
 								onchange={handleFileSelect}
 								disabled={$submitting}
 							/>
-
 							<button
 								type="button"
 								onclick={() => fileInput?.click()}
@@ -516,7 +505,6 @@
 									</div>
 								{/if}
 							</button>
-
 							{#if fileError}
 								<label class="label">
 									<span class="label-text-alt flex items-center gap-1 text-error">
@@ -527,19 +515,127 @@
 							{/if}
 						</div>
 					</div>
-				{:else}
-					<div class="py-8 text-center">
-						<div
-							class="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10 text-success"
-						>
-							<IconCheckCircle class="h-8 w-8" />
-						</div>
-						<p class="mb-2 font-semibold text-base-content">You're ready to start saving!</p>
-						<p class="text-sm text-base-content/60">
-							Browse nearby businesses offering surplus food at great prices.
-						</p>
-					</div>
 				{/if}
+
+				<!-- Payment Configuration (for all account types) -->
+				<div class="space-y-4">
+					<!-- Payment Method Selection -->
+					<div class="form-control">
+						<label class="label" for="paymentMethod">
+							<span class="label-text font-medium">Payment Method</span>
+							<span class="label-text-alt text-error">Required</span>
+						</label>
+						<select
+							id="paymentMethod"
+							name="paymentMethod"
+							class="select-bordered select w-full"
+							class:select-error={getFormError('paymentMethod')}
+							value={getFormValue('paymentMethod')}
+							onchange={(e) => {
+								if ('paymentMethod' in $form) {
+									$form.paymentMethod = e.currentTarget.value as any;
+								}
+								if ('zarinpalMerchantId' in $form) {
+									$form.zarinpalMerchantId = undefined;
+								}
+								if ('tetherAddress' in $form) {
+									$form.tetherAddress = undefined;
+								}
+							}}
+							disabled={$submitting}
+						>
+							<option value="" disabled selected>Select payment method</option>
+							<option value="zarinpal">💳 Zarinpal (Iranian Rials)</option>
+							<option value="tether">₮ Tether (USDT)</option>
+						</select>
+						{#if getFormError('paymentMethod')}
+							<label class="label">
+								<span class="label-text-alt flex items-center gap-1 text-error">
+									<IconWarning class="size-3" />
+									{getFormError('paymentMethod')}
+								</span>
+							</label>
+						{/if}
+					</div>
+
+					<!-- Zarinpal Merchant ID -->
+					{#if getFormValue('paymentMethod') === 'zarinpal'}
+						<div class="form-control">
+							<label class="label" for="zarinpalMerchantId">
+								<span class="label-text font-medium">Zarinpal Merchant ID</span>
+								<span class="label-text-alt text-error">Required</span>
+							</label>
+							<input
+								id="zarinpalMerchantId"
+								name="zarinpalMerchantId"
+								type="text"
+								placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+								class="input-bordered input w-full font-mono"
+								class:input-error={getFormError('zarinpalMerchantId')}
+								value={getFormValue('zarinpalMerchantId')}
+								oninput={(e) => {
+									if ('zarinpalMerchantId' in $form) {
+										$form.zarinpalMerchantId = e.currentTarget.value;
+									}
+								}}
+								disabled={$submitting}
+							/>
+							{#if getFormError('zarinpalMerchantId')}
+								<label class="label">
+									<span class="label-text-alt flex items-center gap-1 text-error">
+										<IconWarning class="size-3" />
+										{getFormError('zarinpalMerchantId')}
+									</span>
+								</label>
+							{:else}
+								<label class="label">
+									<span class="label-text-alt text-base-content/50">
+										Find this in your Zarinpal dashboard
+									</span>
+								</label>
+							{/if}
+						</div>
+					{/if}
+
+					<!-- Tether Address -->
+					{#if getFormValue('paymentMethod') === 'tether'}
+						<div class="form-control">
+							<label class="label" for="tetherAddress">
+								<span class="label-text font-medium">Tether (USDT) Wallet Address</span>
+								<span class="label-text-alt text-error">Required</span>
+							</label>
+							<input
+								id="tetherAddress"
+								name="tetherAddress"
+								type="text"
+								placeholder="0x..."
+								class="input-bordered input w-full font-mono"
+								class:input-error={getFormError('tetherAddress')}
+								value={getFormValue('tetherAddress')}
+								oninput={(e) => {
+									if ('tetherAddress' in $form) {
+										$form.tetherAddress = e.currentTarget.value;
+									}
+								}}
+								disabled={$submitting}
+							/>
+							{#if getFormError('tetherAddress')}
+								<label class="label">
+									<span class="label-text-alt flex items-center gap-1 text-error">
+										<IconWarning class="size-3" />
+										{getFormError('tetherAddress')}
+									</span>
+								</label>
+							{:else}
+								<label class="label">
+									<span class="label-text-alt text-base-content/50">
+										ERC-20 USDT address on Ethereum network
+									</span>
+								</label>
+							{/if}
+						</div>
+					{/if}
+				</div>
 			</div>
 
 			<!-- Navigation -->
@@ -554,7 +650,6 @@
 						<IconArrowLeft class="size-5" />
 						Back
 					</button>
-
 					<button
 						type="submit"
 						class="btn gap-2 btn-primary"
@@ -565,7 +660,7 @@
 							Setting up...
 						{:else}
 							<IconCloudArrowUp class="size-5" />
-							{needsProfileData() ? 'Complete Setup' : 'Start Saving Food'}
+							Complete Setup
 						{/if}
 					</button>
 				</div>
