@@ -37,7 +37,18 @@ export const files = pgTable('files', {
 export const userProfiles = pgTable('user_profiles', {
 	accountId: text('account_id')
 		.primaryKey()
-		.references(() => accounts.id, { onDelete: 'cascade' })
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+
+	// Payment preferences
+	preferredPaymentMethod: text('preferred_payment_method', {
+		enum: ['zarinpal', 'tether']
+	}),
+	zarinpalMerchantId: text('zarinpal_merchant_id'),
+	tetherAddress: text('tether_address'),
+
+	// Timestamps
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
 // Business-specific data

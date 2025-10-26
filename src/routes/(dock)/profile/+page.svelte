@@ -10,7 +10,10 @@
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconMail from '~icons/fluent/mail-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
+	import IconWallet from '~icons/fluent/wallet-24-regular';
+	import IconLock from '~icons/fluent/lock-closed-24-regular';
 	import FluentBuildingShop24Regular from '~icons/fluent/building-shop-24-regular';
+	import { formatDate } from '$lib/util';
 
 	interface Props {
 		data: PageData;
@@ -19,10 +22,16 @@
 	let { data }: Props = $props();
 
 	const canEdit = $derived(
-		data.account.accountType === 'business' || data.account.accountType === 'charity'
+		data.account.accountType === 'business' ||
+			data.account.accountType === 'charity' ||
+			data.account.accountType === 'user'
 	);
 
 	const hasProfile = $derived(data.profile !== null);
+	const isBusiness = $derived(data.account.accountType === 'business');
+	const isCharity = $derived(data.account.accountType === 'charity');
+	const isUser = $derived(data.account.accountType === 'user');
+	const isAdmin = $derived(data.account.accountType === 'admin');
 
 	const businessTypeLabels: Record<string, string> = {
 		bakery: 'Bakery',
@@ -65,19 +74,26 @@
 	}
 
 	const config = $derived(getAccountTypeConfig(data.account.accountType));
+
+	// Format wallet address for display (show first 6 and last 4 characters)
+	function formatWalletAddress(address: string): string {
+		if (!address) return '';
+		if (address.length <= 10) return address;
+		return `${address.slice(0, 6)}...${address.slice(-4)}`;
+	}
 </script>
 
-<div class="mx-auto max-w-4xl px-4 py-8">
-	<div class="overflow-hidden rounded-2xl bg-base-100">
+<div class="container mx-auto max-w-4xl p-4">
+	<div class="card border border-base-300 bg-base-100">
 		<!-- Header Section -->
-		<div class="flex flex-col items-center px-6 py-16">
+		<div class="card-body items-center border-b border-base-300 text-center">
 			<!-- Profile Picture -->
-			<div class="avatar mb-8">
-				<div class="w-32 rounded-full bg-base-200/50">
-					{#if data.profilePictureUrl}
+			<div class="avatar mb-6">
+				<div class="w-32 rounded-full ring ring-base-300 ring-offset-4 ring-offset-base-100">
+					{#if data.profilePictureUrl && !isUser}
 						<img src={data.profilePictureUrl} alt="Profile" />
 					{:else}
-						<div class="flex h-full w-full items-center justify-center">
+						<div class="flex h-full w-full items-center justify-center bg-base-200">
 							<config.icon class="h-16 w-16 text-base-content/20" />
 						</div>
 					{/if}
@@ -85,141 +101,252 @@
 			</div>
 
 			<!-- Name/Title -->
-			{#if hasProfile && data.profile}
-				<h1 class="mb-3 text-4xl font-bold tracking-tight">{data.profile.name}</h1>
-				<p class="mb-6 max-w-2xl text-center text-lg text-base-content/60">
+			{#if hasProfile && data.profile && (isBusiness || isCharity)}
+				<h1 class="mb-2 card-title justify-center text-4xl">{data.profile.name}</h1>
+				<p class="mb-4 max-w-2xl text-base text-base-content/70">
 					{data.profile.description}
 				</p>
-			{:else if canEdit}
-				<h1 class="mb-3 text-4xl font-bold tracking-tight text-base-content/40">
+			{:else if isUser}
+				<h1 class="mb-2 card-title justify-center text-4xl">My Profile</h1>
+			{:else if isAdmin}
+				<h1 class="mb-2 card-title justify-center text-4xl">Administrator</h1>
+			{:else if canEdit && (isBusiness || isCharity)}
+				<h1 class="mb-2 card-title justify-center text-4xl text-base-content/40">
 					Profile Incomplete
 				</h1>
-				<p class="mb-6 text-base text-base-content/50">{config.emptyMessage}</p>
-			{:else}
-				<h1 class="mb-3 text-4xl font-bold tracking-tight">
-					{data.account.accountType === 'admin' ? 'Administrator' : 'My Profile'}
-				</h1>
+				<p class="mb-4 text-base text-base-content/60">{config.emptyMessage}</p>
 			{/if}
 
 			<!-- Account Type Badge -->
-			<div
-				class="mb-5 inline-flex items-center gap-2 rounded-full bg-base-200/50 px-4 py-2 text-sm font-medium text-base-content/70"
-			>
+			<div class="badge gap-2 badge-outline badge-lg">
 				<config.icon class="size-4" />
 				<span>{config.label}</span>
 			</div>
 
+			<div class="divider my-2"></div>
+
 			<!-- Email -->
-			<p class="text-sm text-base-content/40">{data.account.email}</p>
+			<div class="flex items-center gap-2 text-sm text-base-content/60">
+				<IconMail class="size-4" />
+				<span>{data.account.email}</span>
+			</div>
 		</div>
 
 		<!-- Info Section -->
-		<div class="px-6 pb-8">
-			<div class="mx-auto max-w-2xl space-y-3">
-				<!-- Saving food since -->
-				<div class="flex items-center gap-4 rounded-xl bg-base-200/30 px-5 py-4">
-					<div class="flex h-12 w-12 items-center justify-center rounded-full bg-base-200/50">
-						<IconCalendar class="h-5 w-5 text-base-content/50" />
-					</div>
-					<div class="flex-1">
-						<p class="text-xs font-medium tracking-wide text-base-content/40 uppercase">
-							Saving food since
-						</p>
-						<p class="mt-1 text-base font-semibold">
-							{new Date(data.account.createdAt).toLocaleDateString('en-US', {
-								month: 'long',
-								year: 'numeric'
-							})}
-						</p>
-					</div>
-				</div>
+		<div class="card-body">
+			<div class="space-y-3">
+				{#if isUser}
+					<!-- User-specific minimal view -->
 
-				{#if data.account.accountType === 'business' && data.profile}
-					<!-- Business Type -->
-					<div class="flex items-center gap-4 rounded-xl bg-base-200/30 px-5 py-4">
-						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-base-200/50">
-							<FluentBuildingShop24Regular class="h-5 w-5 text-base-content/50" />
+					<!-- Member Since -->
+					<div class="flex items-center gap-4 rounded-lg border border-base-300 bg-base-200 p-4">
+						<div
+							class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-base-300 bg-base-100"
+						>
+							<IconCalendar class="h-5 w-5" />
 						</div>
-						<div class="flex-1">
-							<p class="text-xs font-medium tracking-wide text-base-content/40 uppercase">
-								Business Type
+						<div class="min-w-0 flex-1">
+							<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
+								Member Since
 							</p>
-							<p class="mt-1 text-base font-semibold">
-								{businessTypeLabels[data.profile.businessType] || data.profile.businessType || ''}
+							<p class="text-base font-semibold">
+								{formatDate(data.account.createdAt)}
 							</p>
 						</div>
 					</div>
 
-					<!-- Country -->
-					<div class="flex items-center gap-4 rounded-xl bg-base-200/30 px-5 py-4">
-						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-base-200/50">
-							<IconLocation class="h-5 w-5 text-base-content/50" />
+					<!-- Payment Preferences (if set) -->
+					{#if data.profile?.preferredPaymentMethod}
+						<div class="flex items-center gap-4 rounded-lg border border-base-300 bg-base-200 p-4">
+							<div
+								class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-base-300 bg-base-100"
+							>
+								<IconWallet class="h-5 w-5" />
+							</div>
+							<div class="min-w-0 flex-1">
+								<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
+									Payment Method
+								</p>
+								<div class="mt-1">
+									{#if data.profile.preferredPaymentMethod === 'zarinpal'}
+										<p class="text-base font-semibold">Zarinpal (IRR)</p>
+										{#if data.profile.zarinpalMerchantId}
+											<p class="mt-1 font-mono text-xs text-base-content/60">
+												ID: {data.profile.zarinpalMerchantId.slice(0, 8)}••••
+											</p>
+										{/if}
+									{:else if data.profile.preferredPaymentMethod === 'tether'}
+										<p class="text-base font-semibold">USDT (ERC-20)</p>
+										{#if data.profile.tetherAddress}
+											<p class="mt-1 font-mono text-xs text-base-content/60">
+												{formatWalletAddress(data.profile.tetherAddress)}
+											</p>
+										{/if}
+									{/if}
+								</div>
+							</div>
+							<div class="tooltip" data-tip="Private information - only visible to you">
+								<IconLock class="size-4 text-base-content/40" />
+							</div>
 						</div>
-						<div class="flex-1">
-							<p class="text-xs font-medium tracking-wide text-base-content/40 uppercase">
-								Country
-							</p>
-							<p class="mt-1 text-base font-semibold">{data.profile.country}</p>
-						</div>
-					</div>
-				{/if}
+					{/if}
+				{:else}
+					<!-- Business/Charity/Admin view -->
 
-				{#if data.account.accountType === 'charity' && data.profile}
-					<!-- Country -->
-					<div class="flex items-center gap-4 rounded-xl bg-base-200/30 px-5 py-4">
-						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-base-200/50">
-							<IconLocation class="h-5 w-5 text-base-content/50" />
+					<!-- Saving food since / Member Since / Admin Since -->
+					<div class="flex items-center gap-4 rounded-lg border border-base-300 bg-base-200 p-4">
+						<div
+							class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-base-300 bg-base-100"
+						>
+							<IconCalendar class="h-5 w-5" />
 						</div>
-						<div class="flex-1">
-							<p class="text-xs font-medium tracking-wide text-base-content/40 uppercase">
-								Country
+						<div class="min-w-0 flex-1">
+							<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
+								{isAdmin ? 'Admin Since' : 'Saving food since'}
 							</p>
-							<p class="mt-1 text-base font-semibold">{data.profile.country}</p>
+							<p class="text-base font-semibold">
+								{formatDate(data.account.createdAt)}
+							</p>
 						</div>
 					</div>
-				{/if}
 
-				{#if data.account.accountType === 'admin'}
-					<div class="flex items-center gap-4 rounded-xl bg-base-200/30 px-5 py-4">
-						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-base-200/50">
-							<IconShield class="h-5 w-5 text-base-content/50" />
+					{#if isBusiness && data.profile}
+						<!-- Business Type -->
+						<div class="flex items-center gap-4 rounded-lg border border-base-300 bg-base-200 p-4">
+							<div
+								class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-base-300 bg-base-100"
+							>
+								<FluentBuildingShop24Regular class="h-5 w-5" />
+							</div>
+							<div class="min-w-0 flex-1">
+								<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
+									Business Type
+								</p>
+								<p class="text-base font-semibold">
+									{businessTypeLabels[data.profile.businessType] || data.profile.businessType || ''}
+								</p>
+							</div>
 						</div>
-						<div class="flex-1">
-							<p class="text-xs font-medium tracking-wide text-base-content/40 uppercase">
-								Access Level
-							</p>
-							<p class="mt-1 text-base font-semibold">Full Access</p>
+
+						<!-- Country -->
+						<div class="flex items-center gap-4 rounded-lg border border-base-300 bg-base-200 p-4">
+							<div
+								class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-base-300 bg-base-100"
+							>
+								<IconLocation class="h-5 w-5" />
+							</div>
+							<div class="min-w-0 flex-1">
+								<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
+									Country
+								</p>
+								<p class="text-base font-semibold">{data.profile.country}</p>
+							</div>
 						</div>
-					</div>
+
+						<!-- Payment Provider (Business Only) -->
+						{#if data.wallet && (data.wallet.zarinpalEnabled || data.wallet.tetherEnabled)}
+							<div
+								class="flex items-center gap-4 rounded-lg border border-base-300 bg-base-200 p-4"
+							>
+								<div
+									class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-base-300 bg-base-100"
+								>
+									<IconWallet class="h-5 w-5" />
+								</div>
+								<div class="min-w-0 flex-1">
+									<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
+										Payment Provider
+									</p>
+									<div class="mt-1">
+										{#if data.wallet.zarinpalEnabled}
+											<p class="text-base font-semibold">Zarinpal (IRR)</p>
+											<p class="mt-1 font-mono text-xs text-base-content/60">
+												ID: {data.wallet.zarinpalMerchantId?.slice(0, 8)}••••
+											</p>
+										{:else if data.wallet.tetherEnabled}
+											<p class="text-base font-semibold">USDT (ERC-20)</p>
+											<p class="mt-1 font-mono text-xs text-base-content/60">
+												{formatWalletAddress(data.wallet.tetherAddress || '')}
+											</p>
+										{/if}
+									</div>
+								</div>
+								<div class="tooltip" data-tip="Private information - only visible to you">
+									<IconLock class="size-4 text-base-content/40" />
+								</div>
+							</div>
+						{/if}
+					{/if}
+
+					{#if isCharity && data.profile}
+						<!-- Country -->
+						<div class="flex items-center gap-4 rounded-lg border border-base-300 bg-base-200 p-4">
+							<div
+								class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-base-300 bg-base-100"
+							>
+								<IconLocation class="h-5 w-5" />
+							</div>
+							<div class="min-w-0 flex-1">
+								<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
+									Country
+								</p>
+								<p class="text-base font-semibold">{data.profile.country}</p>
+							</div>
+						</div>
+					{/if}
+
+					{#if isAdmin}
+						<div class="flex items-center gap-4 rounded-lg border border-base-300 bg-base-200 p-4">
+							<div
+								class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-base-300 bg-base-100"
+							>
+								<IconShield class="h-5 w-5" />
+							</div>
+							<div class="min-w-0 flex-1">
+								<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
+									Access Level
+								</p>
+								<p class="text-base font-semibold">Full Access</p>
+							</div>
+						</div>
+					{/if}
 				{/if}
 			</div>
 		</div>
 
 		<!-- Action Buttons -->
-		<div class="flex gap-3 px-6 py-6">
-			{#if canEdit}
-				<a href="/profile/edit" class="btn flex-1 btn-primary">
-					<IconEdit class="h-5 w-5" />
-					{hasProfile ? 'Edit Profile' : 'Complete Profile'}
-				</a>
-			{/if}
+		<div class="card-body border-t border-base-300 pt-6">
+			<div class="flex flex-col gap-3 sm:flex-row">
+				{#if canEdit}
+					<a href="/profile/edit" class="btn flex-1 gap-2 btn-primary">
+						<IconEdit class="h-5 w-5" />
+						{#if isUser}
+							Edit Payment Settings
+						{:else if hasProfile}
+							Edit Profile
+						{:else}
+							Complete Profile
+						{/if}
+					</a>
+				{/if}
 
-			<a href="/auth/logout" class="btn flex-1 btn-secondary">Logout</a>
+				<a href="/auth/logout" class="btn flex-1 btn-outline"> Logout </a>
+			</div>
 		</div>
 
 		<!-- Footer Links -->
-		<div class="px-6 py-6">
-			<div class="flex flex-wrap justify-center gap-8 text-sm">
+		<div class="card-body border-t border-base-300 pt-6">
+			<div class="flex flex-wrap justify-center gap-6">
 				<a
 					href="/about"
-					class="flex items-center gap-2 text-base-content/50 transition-colors hover:text-base-content/80"
+					class="flex items-center gap-2 text-sm text-base-content/60 transition-colors hover:text-base-content"
 				>
 					<IconInfo class="size-4" />
 					<span>About & Legal</span>
 				</a>
 				<a
 					href="/contact"
-					class="flex items-center gap-2 text-base-content/50 transition-colors hover:text-base-content/80"
+					class="flex items-center gap-2 text-sm text-base-content/60 transition-colors hover:text-base-content"
 				>
 					<IconMail class="size-4" />
 					<span>Contact</span>
