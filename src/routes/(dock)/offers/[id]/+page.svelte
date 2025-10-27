@@ -14,6 +14,7 @@
 
 	import PaymentModal from '$lib/components/PaymentModal.svelte';
 	import { formatDate, formatTime } from '$lib/util.js';
+	import LocationCard from '$lib/components/LocationCard.svelte';
 
 	let { data, form } = $props();
 
@@ -44,10 +45,6 @@
 		}).format(price);
 	};
 
-	const getGoogleMapsUrl = (lat: number, lng: number) => {
-		return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-	};
-
 	const handleDelete = async () => {
 		if (!confirm('Are you sure you want to delete this offer?')) return;
 		alert('Delete functionality to be implemented');
@@ -59,9 +56,9 @@
 </script>
 
 <!-- Business Header -->
-<div class="rounded-2xl bg-base-100 p-6 shadow-sm">
+<div>
 	<div class="flex items-center gap-4">
-		<div class="h-16 w-16 overflow-hidden rounded-xl border border-base-300 bg-base-200">
+		<div class="size-16 overflow-hidden rounded-xl border border-base-300 bg-base-200">
 			<img src={data.logo.url} alt={data.business.name} class="h-full w-full object-cover" />
 		</div>
 		<div class="flex-1">
@@ -86,8 +83,8 @@
 </div>
 
 <!-- Hero Section -->
-<div class="rounded-2xl bg-base-100 p-6 shadow-sm">
-	<div class="flex flex-wrap items-start justify-between gap-6">
+<div>
+	<div class="flex flex-wrap items-start justify-between gap-4">
 		<div class="flex-1 space-y-3">
 			<div class="flex flex-wrap items-center gap-2">
 				<div class="badge gap-1.5 px-3 py-3 font-semibold badge-primary">
@@ -128,52 +125,42 @@
 <div class="grid gap-4 lg:grid-cols-2">
 	<!-- Location -->
 	{#if data.location}
-		<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
-			<div class="mb-4 flex items-center gap-2">
-				<div class="rounded-lg bg-primary/10 p-2">
-					<IconMapPin class="size-5 text-primary" />
+		<!-- Pickup Details -->
+		<div class="grid gap-4 lg:grid-cols-2">
+			<!-- Location -->
+			{#if data.location}
+				<LocationCard
+					name={data.location.name}
+					address={data.location.address}
+					city={data.location.city}
+					province={data.location.province}
+					zipCode={data.location.zipCode}
+					country={data.location.country}
+					latitude={data.location.latitude}
+					longitude={data.location.longitude}
+				/>
+			{:else}
+				<div class="rounded-2xl bg-base-100 p-4">
+					<div class="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+						<div class="rounded-lg bg-primary/20 p-2">
+							<IconStore class="size-5 text-primary" />
+						</div>
+						<div>
+							<h3 class="font-semibold">All Locations</h3>
+							<p class="text-xs font-medium text-base-content/70">
+								Can be picked up at any location
+							</p>
+						</div>
+					</div>
 				</div>
-				<h3 class="text-lg font-bold text-base-content">Pickup Location</h3>
-			</div>
+			{/if}
 
-			<a
-				href={getGoogleMapsUrl(data.location.latitude, data.location.longitude)}
-				target="_blank"
-				rel="noopener noreferrer"
-				class="group block rounded-xl bg-base-200 p-4 transition-all hover:bg-base-300"
-			>
-				<div class="flex items-start justify-between gap-3">
-					<div class="flex-1 space-y-0.5">
-						<p class="font-semibold text-base-content">{data.location.address}</p>
-						<p class="text-sm font-medium text-base-content/70">
-							{data.location.zipCode}
-							{data.location.city}
-						</p>
-					</div>
-					<div
-						class="rounded-full bg-primary/10 p-1.5 transition-all group-hover:bg-primary group-hover:text-primary-content"
-					>
-						<IconArrowRight class="size-4" />
-					</div>
-				</div>
-			</a>
-		</div>
-	{:else}
-		<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
-			<div class="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
-				<div class="rounded-lg bg-primary/20 p-2">
-					<IconStore class="size-5 text-primary" />
-				</div>
-				<div>
-					<h3 class="font-semibold">All Locations</h3>
-					<p class="text-xs font-medium text-base-content/70">Can be picked up at any location</p>
-				</div>
-			</div>
+			<!-- Rest of your pickup details... -->
 		</div>
 	{/if}
 
 	<!-- Pickup Time -->
-	<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
+	<div>
 		<div class="mb-4 flex items-center gap-2">
 			<div class="rounded-lg bg-primary/10 p-2">
 				<IconClock class="size-5 text-primary" />
@@ -256,7 +243,7 @@
 		</div>
 	{:else}
 		<!-- Pickup Date Selection -->
-		<div class="rounded-2xl bg-base-100 p-6 shadow-sm">
+		<div class="rounded-2xl bg-base-100 p-6">
 			<div class="space-y-4">
 				<div class="form-control">
 					<label for="pickupDate" class="label">
@@ -295,7 +282,7 @@
 	{/if}
 {:else if data.isOwner}
 	<!-- Owner Controls -->
-	<div class="rounded-2xl bg-base-100 p-5 shadow-sm">
+	<div class="rounded-2xl bg-base-100 p-5">
 		{#if data.isReserved}
 			<div class="rounded-xl border border-info bg-info/5 p-4">
 				<div class="flex items-center gap-2">

@@ -163,7 +163,11 @@ export const actions: Actions = {
 			currency: offer.currency === 'EUR' ? 'USDT' : (offer.currency as 'IRR' | 'USDT'),
 			paymentMethod,
 			pickupDate,
-			metadata: { pickupDate: pickupDateStr }
+			metadata: {
+				pickupDate: pickupDateStr,
+				offerName: offer.name,
+				scheduleNotification: true // Flag to schedule notification on completion
+			}
 		});
 
 		if (!paymentResult.success || !paymentResult.paymentId) {
@@ -212,12 +216,14 @@ export const actions: Actions = {
 				return fail(400, { error: 'Business does not accept Tether payments' });
 			}
 
-			// Return wallet address for user to send payment
+			// Return wallet address and pickup info for user to send payment
 			return {
 				success: true,
 				paymentId: paymentResult.paymentId,
 				tetherAddress: wallet.tetherAddress,
-				amount: offer.price
+				amount: offer.price,
+				pickupDate: pickupDateStr,
+				offerName: offer.name
 			};
 		}
 
@@ -291,7 +297,13 @@ export const actions: Actions = {
 			return fail(500, { error: completeResult.error || 'Failed to complete payment' });
 		}
 
-		// Redirect to reservation
-		throw redirect(303, `/reservations/${completeResult.reservationId}`);
+		// Return reservation data including pickup time for notification scheduling
+		return {
+			success: true,
+			reservationId: completeResult.reservationId,
+			pickupDate: pickupDateStr,
+			offerName: offer.name,
+			shouldScheduleNotification: true
+		};
 	}
 };
