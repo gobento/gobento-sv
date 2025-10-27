@@ -177,8 +177,8 @@
 </nav>
 
 <!-- Main Content (with padding for sidebar on desktop) -->
-<main class="min-h-screen p-4 md:ps-56">
-	<div class=" mb-16 w-full md:mb-0">
+<main class="min-h-screen w-full max-w-full overflow-x-hidden p-6 md:ps-56">
+	<div class="mb-16 w-full max-w-full md:mb-0">
 		{@render children()}
 	</div>
 </main>
