@@ -405,7 +405,7 @@
 			{#if data.location}
 				<a
 					href="/locations/{data.location.id}"
-					class="flex items-start gap-3 rounded-xl bg-base-200 p-4 transition-colors hover:bg-base-300"
+					class="flex items-start gap-3 rounded-xl bg-base-200 p-4 transition-colors hover:bg-base-200"
 				>
 					<IconLocation class="mt-0.5 size-5 shrink-0 text-base-content/60" />
 					<div class="min-w-0 flex-1">

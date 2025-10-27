@@ -1,20 +1,16 @@
 <!-- src/routes/(dock)/offers/[id]/+page.svelte -->
 <script lang="ts">
-	import IconMapPin from '~icons/fluent/location-24-regular';
-	import IconDelete from '~icons/fluent/delete-24-regular';
-	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
 	import IconStore from '~icons/fluent/building-retail-24-regular';
-	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
-	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconGift from '~icons/fluent/gift-24-regular';
 
 	import PaymentModal from '$lib/components/PaymentModal.svelte';
 	import { formatDate, formatTime } from '$lib/util.js';
 	import LocationCard from '$lib/components/LocationCard.svelte';
+	import OfferStatusCard from './OfferStatusCard.svelte';
 
 	let { data, form } = $props();
 
@@ -125,37 +121,27 @@
 <div class="grid gap-4 lg:grid-cols-2">
 	<!-- Location -->
 	{#if data.location}
-		<!-- Pickup Details -->
-		<div class="grid gap-4 lg:grid-cols-2">
-			<!-- Location -->
-			{#if data.location}
-				<LocationCard
-					name={data.location.name}
-					address={data.location.address}
-					city={data.location.city}
-					province={data.location.province}
-					zipCode={data.location.zipCode}
-					country={data.location.country}
-					latitude={data.location.latitude}
-					longitude={data.location.longitude}
-				/>
-			{:else}
-				<div class="rounded-2xl bg-base-100 p-4">
-					<div class="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
-						<div class="rounded-lg bg-primary/20 p-2">
-							<IconStore class="size-5 text-primary" />
-						</div>
-						<div>
-							<h3 class="font-semibold">All Locations</h3>
-							<p class="text-xs font-medium text-base-content/70">
-								Can be picked up at any location
-							</p>
-						</div>
-					</div>
+		<LocationCard
+			name={data.location.name}
+			address={data.location.address}
+			city={data.location.city}
+			province={data.location.province}
+			zipCode={data.location.zipCode}
+			country={data.location.country}
+			latitude={data.location.latitude}
+			longitude={data.location.longitude}
+		/>
+	{:else}
+		<div class="rounded-2xl bg-base-100 p-4">
+			<div class="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+				<div class="rounded-lg bg-primary/20 p-2">
+					<IconStore class="size-5 text-primary" />
 				</div>
-			{/if}
-
-			<!-- Rest of your pickup details... -->
+				<div>
+					<h3 class="font-semibold">All Locations</h3>
+					<p class="text-xs font-medium text-base-content/70">Can be picked up at any location</p>
+				</div>
+			</div>
 		</div>
 	{/if}
 
@@ -205,109 +191,16 @@
 	</div>
 {/if}
 
-<!-- Reservation Status / Actions -->
-{#if data.userReservation}
-	<!-- User's Active Reservation -->
-	<a
-		href="/reservations/{data.userReservation.id}"
-		class="block rounded-xl border-2 border-success bg-success/5 p-5 transition-all hover:border-success/70"
-	>
-		<div class="flex items-center justify-between gap-4">
-			<div class="flex items-center gap-3">
-				<div class="rounded-lg bg-success p-2">
-					<IconCheckmark class="size-6 text-success-content" />
-				</div>
-				<div>
-					<h3 class="text-lg font-bold text-base-content">You've Reserved This Surprise Bag!</h3>
-					<p class="text-sm font-medium text-base-content/70">View your reservation details</p>
-				</div>
-			</div>
-			<IconArrowRight class="size-5 text-base-content/40" />
-		</div>
-	</a>
-{:else if data.isUser && data.offer.isActive}
-	{#if data.isReserved}
-		<!-- Reserved by Another User -->
-		<div class="rounded-xl border border-warning bg-warning/5 p-5">
-			<div class="flex items-center gap-3">
-				<div class="rounded-lg bg-warning/20 p-2">
-					<IconClock class="size-6 text-warning" />
-				</div>
-				<div>
-					<h3 class="text-lg font-semibold">Currently Reserved</h3>
-					<p class="text-sm font-medium text-base-content/70">
-						This surprise bag is reserved. Check back later!
-					</p>
-				</div>
-			</div>
-		</div>
-	{:else}
-		<!-- Pickup Date Selection -->
-		<div class="rounded-2xl bg-base-100 p-6">
-			<div class="space-y-4">
-				<div class="form-control">
-					<label for="pickupDate" class="label">
-						<span class="label-text text-lg font-bold">Select Pickup Date</span>
-					</label>
-					<input
-						type="date"
-						id="pickupDate"
-						bind:value={pickupDate}
-						min={minDate}
-						max={maxDate}
-						required
-						class="input-bordered input rounded-lg font-medium"
-					/>
-					<label class="label">
-						<span class="label-text-alt flex items-center gap-1.5 font-medium text-base-content/70">
-							<IconClock class="size-4" />
-							Pickup: {formatTime(data.offer.pickupTimeFrom)} - {formatTime(
-								data.offer.pickupTimeUntil
-							)}
-						</span>
-					</label>
-				</div>
-
-				<!-- Reserve Button -->
-				<button
-					onclick={handleReserve}
-					disabled={!pickupDate}
-					class="btn w-full rounded-xl text-lg font-bold transition-all btn-lg btn-primary hover:scale-[1.02]"
-				>
-					<IconGift class="size-6" />
-					Proceed to Payment
-				</button>
-			</div>
-		</div>
-	{/if}
-{:else if data.isOwner}
-	<!-- Owner Controls -->
-	<div class="rounded-2xl bg-base-100 p-5">
-		{#if data.isReserved}
-			<div class="rounded-xl border border-info bg-info/5 p-4">
-				<div class="flex items-center gap-2">
-					<IconClock class="size-5 text-info" />
-					<span class="font-semibold">Currently reserved by a user</span>
-				</div>
-			</div>
-		{:else}
-			<button onclick={handleDelete} class="btn rounded-xl font-semibold btn-outline btn-error">
-				<IconDelete class="size-5" />
-				Delete Offer
-			</button>
-		{/if}
-	</div>
-{:else if !data.offer.isActive}
-	<!-- Inactive Offer -->
-	<div class="rounded-xl border border-warning bg-warning/5 p-5">
-		<div class="flex items-center gap-3">
-			<div class="rounded-lg bg-warning/20 p-2">
-				<IconInfo class="size-6 text-warning" />
-			</div>
-			<span class="font-semibold">This offer is currently inactive</span>
-		</div>
-	</div>
-{/if}
+<!-- Status Card -->
+<OfferStatusCard
+	isUser={data.isUser}
+	isOwner={data.isOwner}
+	offer={data.offer}
+	userReservation={data.userReservation}
+	isReserved={data.isReserved}
+	onReserve={handleReserve}
+	onDelete={handleDelete}
+/>
 
 <!-- Payment Modal -->
 <PaymentModal
