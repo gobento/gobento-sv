@@ -40,7 +40,7 @@
 <!-- Page Header -->
 <div class="mb-8">
 	<div class="mb-3 flex items-center gap-3">
-		<IconHeart class="h-8 w-8 text-error" />
+		<IconHeart class="size-8 text-error" />
 		<h1 class="text-4xl font-bold tracking-tight">My Favorite Locations</h1>
 	</div>
 	<p class="text-lg text-base-content/70">
@@ -51,10 +51,10 @@
 
 {#if data.favorites.length === 0}
 	<!-- Empty State -->
-	<div class="card border-2 border-base-300 bg-base-100">
+	<div class="card rounded-lg bg-base-200">
 		<div class="card-body items-center py-20 text-center">
-			<div class="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-error/10">
-				<IconHeartBroken class="h-12 w-12 text-error/60" />
+			<div class="mb-6 flex size-24 items-center justify-center rounded-full bg-error/10">
+				<IconHeartBroken class="size-12 text-error/60" />
 			</div>
 			<h2 class="mb-3 text-3xl font-bold">No favorites yet</h2>
 			<p class="mb-8 max-w-lg text-lg text-base-content/60">
@@ -73,7 +73,7 @@
 			{@const isRemoving = removingIds.has(favorite.locationId)}
 			<a
 				href="/locations/{favorite.locationId}"
-				class="group card relative overflow-hidden border-2 border-base-300 bg-base-100 transition-all duration-200 hover:border-primary/50 hover:shadow-xl"
+				class="group card relative overflow-hidden bg-base-100 transition-all duration-200 hover:border-primary/50 hover:shadow-xl"
 				class:opacity-50={isRemoving}
 				class:pointer-events-none={isRemoving}
 			>

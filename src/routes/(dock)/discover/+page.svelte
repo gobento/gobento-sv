@@ -259,7 +259,7 @@
 	</div>
 
 	<!-- Location Search -->
-	<div class="mb-8 rounded-xl border border-base-300 bg-base-100 p-6">
+	<div class="mb-8 rounded-lg bg-base-200 p-4">
 		<div class="flex flex-col gap-6">
 			<div class="flex flex-col gap-4 md:flex-row">
 				<div class="relative flex-1">
@@ -311,7 +311,7 @@
 
 					{#if selectedLocation}
 						<div class="mt-3 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2">
-							<IconFluentLocation24Regular class="h-4 w-4 text-success" />
+							<IconFluentLocation24Regular class="size-4 text-success" />
 							<span class="flex-1 text-sm text-base-content/80">{selectedLocation.name}</span>
 							<button type="button" class="btn btn-ghost btn-xs" onclick={clearLocation}>
 								Clear
@@ -322,7 +322,7 @@
 			</div>
 
 			<div class="flex-1">
-				<label class="mb-2 block text-sm font-medium">Business Type</label>
+				<label class="mb-2 block font-medium">Business Type</label>
 				<div class="flex flex-wrap gap-2">
 					{#each businessTypes as type}
 						<button
@@ -371,13 +371,13 @@
 						<h2 class="mb-2 text-lg leading-tight font-semibold">{offer.name}</h2>
 
 						<div class="mb-2 flex items-center gap-2 text-sm text-base-content/60">
-							<IconFluentTag24Regular class="h-4 w-4" />
+							<IconFluentTag24Regular class="size-4" />
 							<span class="truncate">{offer.business.name}</span>
 						</div>
 
 						{#if offer.location}
 							<div class="mb-3 flex items-center gap-2 text-sm text-base-content/60">
-								<IconFluentLocation24Regular class="h-4 w-4" />
+								<IconFluentLocation24Regular class="size-4" />
 								<span class="truncate">{offer.location.city}</span>
 								{#if offer.distance !== null}
 									<span class="bg-base-200 px-2 py-0.5 text-xs font-medium">
@@ -389,7 +389,7 @@
 
 						<div class="mb-4 flex flex-wrap gap-2">
 							<div class="flex items-center gap-2 text-sm text-base-content/60">
-								<IconFluentClock24Regular class="h-4 w-4" />
+								<IconFluentClock24Regular class="size-4" />
 								<span>{offer.pickupTimeFrom.slice(0, 5)} - {offer.pickupTimeUntil.slice(0, 5)}</span
 								>
 							</div>

@@ -91,7 +91,7 @@
 							center: [latitude, longitude],
 							zoom: 15,
 							minZoom: 1,
-							maxZoom: 20
+							maxZoom: 18
 						}}
 						class="h-full w-full"
 					>
@@ -99,17 +99,11 @@
 							url={'https://tile.openstreetmap.org/{z}/{x}/{y}.png'}
 							attribution={"&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}
 						/>
-						<Marker latLng={[latitude, longitude]} width={40} height={40} html={customMarkerHtml}>
-							<Popup>
-								<div class="p-2">
-									<p class="font-bold text-base-content">{name}</p>
-									<p class="text-sm text-base-content/80">{address}</p>
-									<p class="text-sm text-base-content/70">{zipCode} {city}</p>
-								</div>
-							</Popup>
-						</Marker>
+						<Marker latLng={[latitude, longitude]} width={40} height={40} html={customMarkerHtml}
+						></Marker>
 					</Map>
 				</div>
 			</div>
-		{/if}{/if}
+		{/if}
+	{/if}
 </div>
