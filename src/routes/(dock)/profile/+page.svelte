@@ -88,17 +88,19 @@
 	<!-- Header Section -->
 	<div class="card-body items-center border-b border-base-300 text-center">
 		<!-- Profile Picture -->
-		<div class="avatar mb-6">
-			<div class="w-32 rounded-full border-2 border-base-300">
-				{#if data.profilePictureUrl && !isUser}
-					<img src={data.profilePictureUrl} alt="Profile" />
-				{:else}
-					<div class="flex h-full w-full items-center justify-center bg-base-200">
-						<config.icon class="h-16 w-16 text-base-content/20" />
-					</div>
-				{/if}
+		{#if isBusiness || isCharity}
+			<div class="avatar mb-6">
+				<div class="w-32 rounded-full border-2 border-base-300">
+					{#if data.profilePictureUrl && !isUser}
+						<img src={data.profilePictureUrl} alt="Profile" />
+					{:else}
+						<div class="flex h-full w-full items-center justify-center bg-base-200">
+							<config.icon class="h-16 w-16 text-base-content/20" />
+						</div>
+					{/if}
+				</div>
 			</div>
-		</div>
+		{/if}
 
 		<!-- Name/Title -->
 		{#if hasProfile && data.profile && (isBusiness || isCharity)}
@@ -121,14 +123,6 @@
 		<div class="badge gap-2 badge-outline badge-lg">
 			<config.icon class="size-4" />
 			<span>{config.label}</span>
-		</div>
-
-		<div class="divider my-2"></div>
-
-		<!-- Email -->
-		<div class="flex items-center gap-2 text-sm text-base-content/60">
-			<IconMail class="size-4" />
-			<span>{data.account.email}</span>
 		</div>
 	</div>
 

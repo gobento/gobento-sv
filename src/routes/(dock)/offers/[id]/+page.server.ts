@@ -79,19 +79,18 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const logoUrl = await getSignedDownloadUrl(logo.key, 3600);
 
-	const displayCurrency = wallet.preferredPaymentMethod === 'tether' ? 'USDT' : 'EUR';
-
 	return {
 		offer: {
 			...offer,
-			displayCurrency,
 			displayPrice: offer.price,
 			displayOriginalValue: offer.originalValue
 		},
 		location,
 		business: {
 			name: business.name,
-			description: business.description
+			description: business.description,
+			businessType: business.businessType,
+			country: business.country
 		},
 		logo: {
 			id: logo.id,
