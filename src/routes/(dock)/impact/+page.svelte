@@ -97,26 +97,24 @@
 <!-- Header -->
 <div class="space-y-3 text-center">
 	<div
-		class="mb-2 inline-flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-success to-accent"
+		class="mb-2 inline-flex size-16 items-center justify-center rounded-full bg-linear-to-br from-success to-accent"
 	>
-		<IconLeaf class="h-8 w-8 text-white" />
+		<IconLeaf class="size-8 text-white" />
 	</div>
-	<h1 class="text-4xl font-bold">Your Impact Story</h1>
+	<h1 class="text-3xl font-bold">Your Impact Story</h1>
 	<p class="text-lg opacity-70">Every Food rescue makes a difference. One Bento at a time.</p>
 </div>
 
 <!-- Main Impact Cards -->
 <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 	{#each impactCards as card}
-		<div
-			class="card bg-base-100 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
-		>
+		<div class="card bg-base-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
 			<div class="card-body">
 				<div class="inline-flex rounded-xl p-3 {card.bgColor} w-fit">
-					<card.icon class="h-6 w-6 {card.color}" />
+					<card.icon class="size-6 {card.color}" />
 				</div>
 				<h3 class="text-sm font-medium opacity-70">{card.title}</h3>
-				<p class="text-3xl font-bold">{card.value}</p>
+				<p class="text-lg font-bold">{card.value}</p>
 				<p class="text-xs opacity-60">{card.subtitle}</p>
 			</div>
 		</div>
@@ -124,17 +122,17 @@
 </div>
 
 <!-- Secondary Metrics -->
-<div class="card bg-base-100 shadow-xl">
+<div class="card bg-base-100">
 	<div class="card-body">
 		<h2 class="card-title flex items-center gap-2 text-2xl">
-			<IconSparkle class="h-6 w-6 text-accent" />
+			<IconSparkle class="size-6 text-accent" />
 			Additional Impact
 		</h2>
 		<div class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-3">
 			{#each additionalMetrics as metric}
 				<div class="flex items-start gap-4">
 					<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent/10">
-						<metric.icon class="h-6 w-6 text-accent" />
+						<metric.icon class="size-6 text-accent" />
 					</div>
 					<div>
 						<p class="text-sm font-medium opacity-70">{metric.label}</p>
@@ -148,10 +146,10 @@
 </div>
 
 <!-- Community Impact -->
-<div class="card bg-linear-to-br from-success to-accent text-white shadow-xl">
+<div class="card bg-linear-to-br from-success to-accent text-white">
 	<div class="card-body">
 		<div class="mb-2 flex items-center gap-3">
-			<IconPeople class="h-8 w-8" />
+			<IconPeople class="size-8" />
 			<h2 class="card-title text-2xl">Community Impact</h2>
 		</div>
 		<p class="mb-4 opacity-90">
@@ -161,12 +159,12 @@
 		<div class="grid grid-cols-2 gap-4">
 			<div class="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
 				<p class="mb-1 text-sm text-white/70">Your Rank</p>
-				<p class="text-3xl font-bold">Top {data.stats.rankPercentile}%</p>
+				<p class="text-lg font-bold">Top {data.stats.rankPercentile}%</p>
 				<p class="mt-1 text-xs text-white/70">Of all rescuers</p>
 			</div>
 			<div class="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
 				<p class="mb-1 text-sm text-white/70">Total Reservations</p>
-				<p class="text-3xl font-bold">{data.stats.totalReservations}</p>
+				<p class="text-lg font-bold">{data.stats.totalReservations}</p>
 				<p class="mt-1 text-xs text-white/70">And counting!</p>
 			</div>
 		</div>
@@ -174,10 +172,10 @@
 </div>
 
 <!-- Achievement Badges -->
-<div class="card bg-base-100 shadow-xl">
+<div class="card bg-base-100">
 	<div class="card-body">
 		<h2 class="card-title flex items-center gap-2 text-2xl">
-			<IconTrophy class="h-6 w-6 text-warning" />
+			<IconTrophy class="size-6 text-warning" />
 			Achievements Unlocked
 		</h2>
 		<div class="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -187,7 +185,7 @@
 						? 'border-2 border-warning bg-warning/10'
 						: 'border-2 border-base-300 bg-base-200 opacity-50'}"
 				>
-					<div class="mb-2 text-4xl">{badge.emoji}</div>
+					<div class="mb-2 text-3xl">{badge.emoji}</div>
 					<p class="text-sm font-medium">{badge.name}</p>
 				</div>
 			{/each}
@@ -197,17 +195,17 @@
 
 <!-- Recent Activity -->
 {#if data.recentActivity.length > 0}
-	<div class="card bg-base-100 shadow-xl">
+	<div class="card bg-base-100">
 		<div class="card-body">
 			<h2 class="card-title flex items-center gap-2 text-2xl">
-				<IconHeart class="h-6 w-6 text-error" />
+				<IconHeart class="size-6 text-error" />
 				Recent Rescues
 			</h2>
 			<div class="mt-4 space-y-3">
 				{#each data.recentActivity as activity}
 					<div class="flex items-center justify-between rounded-lg bg-base-200 p-3">
 						<div class="flex items-center gap-3">
-							<IconFood class="h-5 w-5 text-primary" />
+							<IconFood class="size-5 text-primary" />
 							<div>
 								<p class="font-medium">{activity.name}</p>
 								<p class="text-xs opacity-60">
@@ -228,8 +226,8 @@
 <!-- Call to Action -->
 <div class="py-8 text-center">
 	<p class="mb-4 opacity-70">Keep up the amazing work!</p>
-	<a href="/offers" class="btn btn-lg btn-primary">
-		<IconFood class="h-5 w-5" />
+	<a href="/offers" class="btn btn-primary">
+		<IconFood class="size-5" />
 		Find More Offers
 	</a>
 </div>

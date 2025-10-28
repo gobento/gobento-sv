@@ -76,7 +76,7 @@
 <!-- Hero Section with Price -->
 <div class="flex flex-wrap items-start justify-between gap-6">
 	<div class="flex-1 space-y-4">
-		<h1 class="text-4xl leading-tight font-bold lg:text-5xl">
+		<h1 class="text-3xl leading-tight font-bold lg:text-3xl">
 			{data.offer.name}
 		</h1>
 
@@ -89,7 +89,7 @@
 		<div class="text-base text-base-content/50 line-through">
 			{formatPrice(data.offer.displayOriginalValue, data.business.country)}
 		</div>
-		<div class="text-5xl font-bold text-primary lg:text-6xl">
+		<div class="text-3xl font-bold text-primary lg:text-3xl">
 			{formatPrice(data.offer.displayPrice, data.business.country)}
 		</div>
 	</div>

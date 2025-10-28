@@ -158,15 +158,15 @@ DISCOVER
 <a href="/test">Test upload</a>
 
 <div class="min-h-screen bg-base-200 px-4 py-8">
-	<div class="mx-auto max-w-4xl">
+	<div class="mx-auto max-w-3xl">
 		<!-- Header -->
 		<div class="mb-8 text-center">
-			<h1 class="mb-2 text-5xl font-bold">🔔 Self-Hosted Push Notifications</h1>
+			<h1 class="mb-2 text-3xl font-bold">🔔 Self-Hosted Push Notifications</h1>
 			<p class="text-base-content/70">Real-time notifications with your own ntfy server</p>
 		</div>
 
 		<!-- Server Status Card -->
-		<div class="card mb-6 bg-base-100 shadow-xl">
+		<div class="card mb-6 bg-base-100">
 			<div class="card-body">
 				<h2 class="card-title">
 					<svg
@@ -216,7 +216,7 @@ DISCOVER
 		</div>
 
 		<!-- Notification Permission Card -->
-		<div class="card mb-6 bg-base-100 shadow-xl">
+		<div class="card mb-6 bg-base-100">
 			<div class="card-body">
 				<h2 class="card-title">
 					<svg
@@ -270,7 +270,7 @@ DISCOVER
 		</div>
 
 		<!-- Subscribe to Topic Card -->
-		<div class="card mb-6 bg-base-100 shadow-xl">
+		<div class="card mb-6 bg-base-100">
 			<div class="card-body">
 				<h2 class="card-title">
 					<svg
@@ -357,7 +357,7 @@ DISCOVER
 
 		{#if isSubscribed}
 			<!-- Send Test Notification Card -->
-			<div class="card mb-6 bg-base-100 shadow-xl">
+			<div class="card mb-6 bg-base-100">
 				<div class="card-body">
 					<h2 class="card-title">
 						<svg
@@ -451,7 +451,7 @@ DISCOVER
 		{/if}
 
 		<!-- Architecture Info Card -->
-		<div class="card bg-base-100 shadow-xl">
+		<div class="card bg-base-100">
 			<div class="card-body">
 				<h2 class="card-title">
 					<svg

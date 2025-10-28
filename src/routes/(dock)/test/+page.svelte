@@ -80,12 +80,12 @@
 			<div class="mb-3 inline-flex items-center justify-center rounded-2xl bg-primary/10 p-3">
 				<IconCloudArrowUp class="h-8 w-8 text-primary sm:h-10 sm:w-10" />
 			</div>
-			<h1 class="mb-2 text-2xl font-bold sm:text-4xl">File Upload</h1>
+			<h1 class="mb-2 text-2xl font-bold sm:text-3xl">File Upload</h1>
 			<p class="text-sm text-base-content/70 sm:text-base">Test your Backblaze B2 configuration</p>
 		</div>
 
 		<!-- Upload Form -->
-		<div class="card mb-4 bg-base-100 shadow-xl sm:mb-6">
+		<div class="card mb-4 bg-base-100 sm:mb-6">
 			<div class="card-body p-4 sm:p-6">
 				<FileUpload
 					action="?/upload"
@@ -100,7 +100,7 @@
 
 		<!-- Success Alert -->
 		{#if form?.success}
-			<div class="mb-4 alert alert-success shadow-lg sm:mb-6">
+			<div class="mb-4 alert alert-success sm:mb-6">
 				<IconCheckmarkCircle class="h-6 w-6 shrink-0" />
 				<div class="flex-1">
 					<h3 class="text-sm font-bold sm:text-base">Upload Successful!</h3>
@@ -109,7 +109,7 @@
 			</div>
 
 			<!-- Uploaded Image Card -->
-			<div class="card mb-4 bg-base-100 shadow-xl sm:mb-6">
+			<div class="card mb-4 bg-base-100 sm:mb-6">
 				<figure class="px-4 pt-4">
 					<img
 						src={form.url}
@@ -143,7 +143,7 @@
 
 		<!-- Error Alert -->
 		{#if form?.error}
-			<div class="mb-4 alert alert-error shadow-lg sm:mb-6">
+			<div class="mb-4 alert alert-error sm:mb-6">
 				<IconDismissCircle class="h-6 w-6 shrink-0" />
 				<div>
 					<h3 class="text-sm font-bold sm:text-base">Upload Failed</h3>
@@ -154,7 +154,7 @@
 
 		<!-- Upload History -->
 		{#if uploadHistory.length > 0}
-			<div class="card bg-base-100 shadow-xl">
+			<div class="card bg-base-100">
 				<div class="card-body p-4 sm:p-6">
 					<div class="mb-4 flex items-center justify-between">
 						<h2 class="text-lg font-bold sm:text-xl">Recent Uploads</h2>

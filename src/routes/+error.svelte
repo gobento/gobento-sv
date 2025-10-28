@@ -70,11 +70,11 @@
 
 		<!-- Error Status -->
 		<div class="mb-4">
-			<p class="text-6xl font-bold text-white/90">{status}</p>
+			<p class="text-3xl font-bold text-white/90">{status}</p>
 		</div>
 
 		<!-- Error Title -->
-		<h1 class="mb-4 text-3xl font-bold text-white">{errorTitle}</h1>
+		<h1 class="mb-4 text-lg font-bold text-white">{errorTitle}</h1>
 
 		<!-- Error Message -->
 		<p class="mb-2 text-lg text-white/80">{errorMessage}</p>

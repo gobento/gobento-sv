@@ -39,7 +39,7 @@
 	// Custom marker using Tailwind/DaisyUI classes
 	const customMarkerHtml = `
 		<div class="relative w-10 h-10">
-			<div class="absolute top-1/2 left-1/2 w-10 h-10 bg-primary rounded-full -translate-x-1/2 -translate-y-1/2 rotate-[-45deg] border-[3px] border-white shadow-lg" style="border-radius: 50% 50% 50% 0;"></div>
+			<div class="absolute top-1/2 left-1/2 w-10 h-10 bg-primary rounded-full -translate-x-1/2 -translate-y-1/2 rotate-[-45deg] border-[3px] border-white " style="border-radius: 50% 50% 50% 0;"></div>
 			<div class="absolute top-1/2 left-1/2 w-4 h-4 bg-white rounded-full -translate-x-1/2 -translate-y-1/2"></div>
 		</div>
 	`;
@@ -84,7 +84,7 @@
 		</button>
 
 		{#if isExpanded}
-			<div class="mt-3 overflow-hidden rounded-xl border border-base-300 shadow-lg">
+			<div class="mt-3 overflow-hidden rounded-xl border border-base-300">
 				<div class="h-[300px] w-full">
 					<Map
 						options={{

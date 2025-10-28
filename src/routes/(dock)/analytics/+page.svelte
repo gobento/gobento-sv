@@ -49,7 +49,7 @@
 <!-- Header -->
 <div class="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
 	<div>
-		<h1 class="text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">Analytics</h1>
+		<h1 class="text-xl font-semibold tracking-tight sm:text-2xl lg:text-lg">Analytics</h1>
 		<p class="mt-0.5 text-xs text-base-content/60 sm:text-sm">Track performance and insights</p>
 	</div>
 	<select class="select-bordered select w-full bg-base-200 select-sm font-medium sm:w-auto">
@@ -71,7 +71,7 @@
 				Reservations
 			</p>
 		</div>
-		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-3xl">
+		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-lg">
 			{data.stats.totalReservations}
 		</p>
 		<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">
@@ -88,7 +88,7 @@
 				Revenue
 			</p>
 		</div>
-		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-3xl">
+		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-lg">
 			€{data.stats.totalRevenue.toLocaleString('de-DE', {
 				minimumFractionDigits: 0,
 				maximumFractionDigits: 0
@@ -106,7 +106,7 @@
 				Completion
 			</p>
 		</div>
-		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-3xl">
+		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-lg">
 			{data.stats.completionRate}%
 		</p>
 		<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">
@@ -123,7 +123,7 @@
 				Favorites
 			</p>
 		</div>
-		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-3xl">
+		<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-lg">
 			{data.stats.favoriteCount}
 		</p>
 		<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">Total users</p>

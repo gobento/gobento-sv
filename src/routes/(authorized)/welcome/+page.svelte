@@ -212,7 +212,7 @@
 	<div class="space-y-6">
 		<div class="justify-center text-center">
 			<FluentEmojiFlatBentoBox class="size-7" />
-			<h1 class="mb-2 text-3xl font-bold">Welcome to Go Bento!</h1>
+			<h1 class="mb-2 text-lg font-bold">Welcome to Go Bento!</h1>
 			<p class="text-base-content/70">Join the fight against food waste and help save our planet</p>
 		</div>
 
@@ -273,7 +273,7 @@
 			>
 				<IconCheckCircle class="size-7" />
 			</div>
-			<h1 class="mb-2 text-3xl font-bold">
+			<h1 class="mb-2 text-lg font-bold">
 				{needsProfileData() ? 'Tell us about yourself' : 'Complete Your Setup'}
 			</h1>
 			<p class="text-base-content/70">

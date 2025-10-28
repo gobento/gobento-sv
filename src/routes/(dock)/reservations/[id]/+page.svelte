@@ -225,7 +225,7 @@
 <div class="mx-auto max-w-2xl space-y-6 p-4">
 	<!-- Invite Accepted Banner -->
 	{#if form?.inviteAccepted}
-		<div class="rounded-2xl border-l-4 border-success bg-base-100 p-6 shadow-sm">
+		<div class="rounded-2xl border-l-4 border-success bg-base-100 p-6">
 			<div class="flex items-center gap-4">
 				<IconCheckmark class="h-12 w-12 text-success" />
 				<div>
@@ -238,7 +238,7 @@
 
 	<!-- Invite Declined Banner -->
 	{#if form?.inviteDeclined}
-		<div class="rounded-2xl border-l-4 border-base-300 bg-base-100 p-6 shadow-sm">
+		<div class="rounded-2xl border-l-4 border-base-300 bg-base-100 p-6">
 			<div class="flex items-center gap-4">
 				<IconDismiss class="h-12 w-12 text-base-content/40" />
 				<div>
@@ -251,7 +251,7 @@
 
 	<!-- Countdown Timer -->
 	{#if data.reservation.status === 'active' && !timeRemaining.hasStarted && !data.pendingInviteForUser}
-		<div class="rounded-2xl border-l-4 border-primary bg-base-100 p-6 shadow-sm">
+		<div class="rounded-2xl border-l-4 border-primary bg-base-100 p-6">
 			<div class="mb-4 flex items-center gap-2">
 				<IconTimer class="size-5 text-primary" />
 				<h2 class="text-lg font-bold">Time Until Pickup</h2>
@@ -259,20 +259,20 @@
 			<div class="flex gap-3">
 				{#if timeRemaining.days > 0}
 					<div class="flex flex-1 flex-col items-center rounded-xl bg-base-200 p-4">
-						<span class="text-3xl font-bold text-primary tabular-nums">{timeRemaining.days}</span>
+						<span class="text-lg font-bold text-primary tabular-nums">{timeRemaining.days}</span>
 						<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Days</span>
 					</div>
 				{/if}
 				<div class="flex flex-1 flex-col items-center rounded-xl bg-base-200 p-4">
-					<span class="text-3xl font-bold text-primary tabular-nums">{timeRemaining.hours}</span>
+					<span class="text-lg font-bold text-primary tabular-nums">{timeRemaining.hours}</span>
 					<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Hours</span>
 				</div>
 				<div class="flex flex-1 flex-col items-center rounded-xl bg-base-200 p-4">
-					<span class="text-3xl font-bold text-primary tabular-nums">{timeRemaining.minutes}</span>
+					<span class="text-lg font-bold text-primary tabular-nums">{timeRemaining.minutes}</span>
 					<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Mins</span>
 				</div>
 				<div class="flex flex-1 flex-col items-center rounded-xl bg-base-200 p-4">
-					<span class="text-3xl font-bold text-primary tabular-nums">{timeRemaining.seconds}</span>
+					<span class="text-lg font-bold text-primary tabular-nums">{timeRemaining.seconds}</span>
 					<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Secs</span>
 				</div>
 			</div>
@@ -289,7 +289,7 @@
 
 	<!-- Pickup Ready Banner -->
 	{#if data.reservation.status === 'active' && timeRemaining.isPickupTime && !data.pendingInviteForUser}
-		<div class="animate-pulse rounded-2xl border-l-4 border-warning bg-base-100 p-6 shadow-sm">
+		<div class="animate-pulse rounded-2xl border-l-4 border-warning bg-base-100 p-6">
 			<div class="flex items-center gap-4">
 				<IconCheckmark class="h-12 w-12 text-warning" />
 				<div>
@@ -302,7 +302,7 @@
 
 	<!-- Collected Banner -->
 	{#if data.reservation.status === 'claimed'}
-		<div class="rounded-2xl border-l-4 border-success bg-base-100 p-6 shadow-sm">
+		<div class="rounded-2xl border-l-4 border-success bg-base-100 p-6">
 			<div class="flex items-center gap-4">
 				<IconCheckmark class="h-12 w-12 text-success" />
 				<div class="flex-1">
@@ -333,7 +333,7 @@
 	<!-- Business Info -->
 	<a
 		href="/businesses/{data.business.accountId}"
-		class="block rounded-2xl bg-base-100 p-6 shadow-sm transition-all hover:shadow-md"
+		class="block rounded-2xl bg-base-100 p-6 transition-all hover:shadow-md"
 	>
 		<div class="flex items-start gap-4">
 			<div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl">
@@ -355,7 +355,7 @@
 	</a>
 
 	<!-- Header Section -->
-	<div class="rounded-2xl bg-base-100 p-6 shadow-sm">
+	<div class="rounded-2xl bg-base-100 p-6">
 		<div class="flex items-start gap-3">
 			<IconFood class="mt-1 size-5 shrink-0 text-base-content/40" />
 			<div class="min-w-0 flex-1">
@@ -372,7 +372,7 @@
 	</div>
 
 	<!-- Pickup Information -->
-	<div class="rounded-2xl bg-base-100 p-6 shadow-sm">
+	<div class="rounded-2xl bg-base-100 p-6">
 		<div class="mb-6 flex items-center gap-2">
 			<IconCalendar class="size-5 text-base-content/60" />
 			<h2 class="text-lg font-bold">Pickup Details</h2>
@@ -436,7 +436,7 @@
 
 	<!-- Invite to Collection Section -->
 	{#if data.isOwner && data.reservation.status === 'active'}
-		<div class="rounded-2xl bg-base-100 p-6 shadow-sm">
+		<div class="rounded-2xl bg-base-100 p-6">
 			<div class="mb-4 flex items-center gap-2">
 				<IconShare class="size-5 text-base-content/60" />
 				<h2 class="text-lg font-bold">Pass to Friend</h2>
@@ -506,7 +506,7 @@
 
 	<!-- Pending Invite (for invited user via link) -->
 	{#if data.pendingInviteForUser}
-		<div class="rounded-2xl border-l-4 border-primary bg-base-100 p-6 shadow-sm">
+		<div class="rounded-2xl border-l-4 border-primary bg-base-100 p-6">
 			<div class="mb-6 text-center">
 				<IconPersonAdd class="mx-auto mb-4 h-16 w-16 text-primary" />
 				<h2 class="text-2xl font-bold text-primary">You've Been Invited</h2>
@@ -566,7 +566,7 @@
 					use:enhance
 					class="flex-1"
 				>
-					<button type="submit" class="btn btn-block gap-2 rounded-full btn-lg btn-primary">
+					<button type="submit" class="btn btn-block gap-2 rounded-full btn-primary">
 						<IconCheckmark class="size-5" />
 						Accept
 					</button>
@@ -578,7 +578,7 @@
 		{#if data.reservation.status === 'active' && (data.isOwner || data.userInvite?.status === 'accepted')}
 			<button
 				onclick={() => (showCollectModal = true)}
-				class="btn btn-block gap-2 rounded-full shadow-lg btn-lg btn-success"
+				class="btn btn-block gap-2 rounded-full btn-success"
 			>
 				<IconCheckmark class="size-5" />
 				Collect Food
@@ -588,7 +588,7 @@
 		<!-- Create Invite Modal -->
 		{#if showInviteModal}
 			<div class="modal-open modal">
-				<div class="modal-box rounded-3xl">
+				<div class="modal-box rounded-lg">
 					<button
 						onclick={() => {
 							showInviteModal = false;

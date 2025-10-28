@@ -10,12 +10,14 @@
 	import IconFluentArrowRight24Regular from '~icons/fluent/arrow-right-24-regular';
 	import IconFluentMap24Regular from '~icons/fluent/map-24-regular';
 	import IconFluentGrid24Regular from '~icons/fluent/grid-24-regular';
+	import CompassIcon from '~icons/fluent/compass-northwest-24-regular';
 
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 	import { Map, TileLayer, Marker, Popup } from 'sveaflet';
+	import BaseLayout from '$lib/components/BaseLayout.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -291,23 +293,23 @@
 				mapOffers.reduce((sum, o) => sum + (o.location?.longitude || 0), 0) / mapOffers.length;
 			return [avgLat, avgLon];
 		}
+		// todo: this function should return LatLngExpression
 		return [51.1657, 10.4515]; // Germany center
 	});
 
 	const customMarkerHtml = (color: string) => `
-		<div class="relative w-10 h-10">
-			<div class="absolute top-1/2 left-1/2 w-10 h-10 rounded-full -translate-x-1/2 -translate-y-1/2 rotate-[-45deg] border-[3px] border-white shadow-lg" style="background-color: ${color}; border-radius: 50% 50% 50% 0;"></div>
-			<div class="absolute top-1/2 left-1/2 w-4 h-4 bg-white rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+		<div class="relative size-10">
+			<div class="absolute top-1/2 left-1/2 size-10 rounded-full -translate-x-1/2 -translate-y-1/2 rotate-[-45deg] border-[3px] border-white " style="background-color: ${color}; border-radius: 50% 50% 50% 0;"></div>
+			<div class="absolute top-1/2 left-1/2size-4 bg-white rounded-full -translate-x-1/2 -translate-y-1/2"></div>
 		</div>
 	`;
 </script>
 
-<div class="container mx-auto max-w-7xl px-4 py-8">
-	<div class="mb-10">
-		<h1 class="mb-2 text-4xl font-bold tracking-tight">Discover Offers</h1>
-		<p class="text-base-content/60">Find great deals from businesses near you</p>
-	</div>
-
+<BaseLayout
+	title="Discover Offers"
+	description="Find great deals from businesses near you"
+	icon={CompassIcon}
+>
 	<!-- Location Search -->
 	<div class="mb-8 rounded-lg bg-base-200 p-4">
 		<div class="flex flex-col gap-6">
@@ -422,14 +424,14 @@
 	{#if data.offers.length === 0}
 		<div class="rounded-xl bg-info/5 p-6">
 			<div class="flex items-center gap-3">
-				<IconFluentTag24Regular class="h-6 w-6 text-info" />
+				<IconFluentTag24Regular class="size-6 text-info" />
 				<span class="text-base-content/80">No offers available at the moment. Check back soon!</span
 				>
 			</div>
 		</div>
 	{:else if viewMode === 'map' && browser && mapOffers.length > 0}
 		<!-- Map View -->
-		<div class="overflow-hidden rounded-xl border border-base-300 shadow-lg">
+		<div class="overflow-hidden rounded-xl border border-base-300">
 			<div class="h-[600px] w-full">
 				<Map
 					options={{
@@ -476,7 +478,7 @@
 										<img
 											src={offer.business.logo.url}
 											alt={offer.business.name}
-											class="h-12 w-12 rounded-full object-cover"
+											class="size-12 rounded-full object-cover"
 										/>
 										<div class="flex-1">
 											<h3 class="font-bold text-base-content">{offer.name}</h3>
@@ -508,7 +510,7 @@
 
 									{#if timeRemaining.diff > 0 && timeRemaining.totalMinutes <= 30}
 										<div class="mb-3 bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
-											<IconFluentTimer24Regular class="mr-1 inline h-3 w-3" />
+											<IconFluentTimer24Regular class="mr-1 inline size-3" />
 											{timeRemaining.totalMinutes}min left
 										</div>
 									{:else if timeRemaining.diff <= 0}
@@ -538,11 +540,11 @@
 		<!-- Map legend -->
 		<div class="mt-4 flex flex-wrap items-center gap-4 rounded-lg bg-base-200 p-4">
 			<div class="flex items-center gap-2">
-				<div class="h-3 w-3 rounded-full bg-success"></div>
+				<div class="size-3 rounded-full bg-success"></div>
 				<span class="text-sm text-base-content/80">Your Location</span>
 			</div>
 			<div class="flex items-center gap-2">
-				<div class="h-3 w-3 rounded-full bg-primary"></div>
+				<div class="size-3 rounded-full bg-primary"></div>
 				<span class="text-sm text-base-content/80">Available Offers ({mapOffers.length})</span>
 			</div>
 		</div>
@@ -596,14 +598,14 @@
 
 								{#if offer.isRecurring}
 									<div class="bg-secondary/10 px-2.5 py-1 text-xs font-medium text-secondary">
-										<IconFluentCalendar24Regular class="mr-1 inline h-3 w-3" />
+										<IconFluentCalendar24Regular class="mr-1 inline size-3" />
 										Recurring
 									</div>
 								{/if}
 
 								{#if timeRemaining.diff > 0 && timeRemaining.totalMinutes <= 30}
 									<div class="bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
-										<IconFluentTimer24Regular class="mr-1 inline h-3 w-3" />
+										<IconFluentTimer24Regular class="mr-1 inline size-3" />
 										{timeRemaining.totalMinutes}min left
 									</div>
 								{:else if timeRemaining.diff <= 0}
@@ -630,4 +632,4 @@
 			{/each}
 		</div>
 	{/if}
-</div>
+</BaseLayout>

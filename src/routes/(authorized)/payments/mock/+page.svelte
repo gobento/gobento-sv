@@ -44,12 +44,12 @@
 			<div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-warning">
 				<IconWarning class="size-10 text-warning-content" />
 			</div>
-			<h1 class="mb-2 text-3xl font-bold text-base-content">Mock Payment Gateway</h1>
+			<h1 class="mb-2 text-lg font-bold text-base-content">Mock Payment Gateway</h1>
 			<p class="text-base-content/70">Testing Mode - No Real Money</p>
 		</div>
 
 		<!-- Payment Card -->
-		<div class="rounded-2xl bg-base-100 p-8 shadow-xl">
+		<div class="rounded-2xl bg-base-100 p-8">
 			{#if !processing}
 				<!-- Payment Info -->
 				<div class="mb-6 space-y-4">
@@ -64,7 +64,7 @@
 						<div class="mb-2 text-sm font-semibold tracking-wide text-base-content/60 uppercase">
 							Amount
 						</div>
-						<div class="text-3xl font-bold text-primary">
+						<div class="text-lg font-bold text-primary">
 							{new Intl.NumberFormat('fa-IR', {
 								style: 'currency',
 								currency: 'IRR'
@@ -89,18 +89,12 @@
 
 				<!-- Action Buttons -->
 				<div class="grid gap-3 sm:grid-cols-2">
-					<button
-						onclick={handleSuccess}
-						class="btn rounded-xl text-base font-bold btn-lg btn-success"
-					>
+					<button onclick={handleSuccess} class="btn rounded-xl text-base font-bold btn-success">
 						<IconCheckmark class="size-6" />
 						Simulate Success
 					</button>
 
-					<button
-						onclick={handleFailure}
-						class="btn rounded-xl text-base font-bold btn-lg btn-error"
-					>
+					<button onclick={handleFailure} class="btn rounded-xl text-base font-bold btn-error">
 						<IconCancel class="size-6" />
 						Simulate Failure
 					</button>

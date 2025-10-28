@@ -147,7 +147,7 @@
 </script>
 
 <div>
-	<h1 class="text-3xl font-bold">
+	<h1 class="text-lg font-bold">
 		{isUser ? 'Payment Settings' : 'Edit Profile'}
 	</h1>
 	<p class="mt-2 text-base-content/70">

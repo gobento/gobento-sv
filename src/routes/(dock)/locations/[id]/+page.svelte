@@ -37,7 +37,7 @@
 		<!-- Business Logo Overlay -->
 		<div class="absolute bottom-0 left-8 translate-y-1/2">
 			<div class="avatar">
-				<div class="size-32 rounded-xl border-4 border-base-100 bg-base-100 shadow-xl">
+				<div class="size-32 rounded-xl border-4 border-base-100 bg-base-100">
 					<img src={data.business.logo.url} alt={data.business.name} />
 				</div>
 			</div>
@@ -48,7 +48,7 @@
 			{#if data.isOwner}
 				<a
 					href="/locations/{data.location.id}/edit"
-					class="btn btn-circle border-0 bg-base-100/90 shadow-lg hover:bg-base-100"
+					class="btn btn-circle border-0 bg-base-100/90 hover:bg-base-100"
 				>
 					<IconEdit class="size-6" />
 				</a>
@@ -73,7 +73,7 @@
 					<button
 						type="submit"
 						disabled={isTogglingFavorite}
-						class="btn btn-circle border-0 bg-base-100/90 shadow-lg hover:bg-base-100"
+						class="btn btn-circle border-0 bg-base-100/90 hover:bg-base-100"
 						class:loading={isTogglingFavorite}
 						aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
 					>

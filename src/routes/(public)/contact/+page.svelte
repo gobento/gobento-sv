@@ -14,7 +14,7 @@
 		<div class="mb-4 flex justify-center">
 			<FluentEmojiFlatBentoBox class="h-20 w-20" />
 		</div>
-		<h1 class="mb-3 text-4xl font-bold text-white">Contact Us</h1>
+		<h1 class="mb-3 text-3xl font-bold text-white">Contact Us</h1>
 		<p class="text-lg text-white/70">
 			We're here to help! Reach out to us for any questions or concerns.
 		</p>

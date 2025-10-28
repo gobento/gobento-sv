@@ -187,7 +187,7 @@
 </script>
 
 <dialog class="modal" class:modal-open={show}>
-	<div class="modal-box max-w-xl rounded-3xl">
+	<div class="modal-box max-w-xl rounded-lg">
 		<!-- Header -->
 		<div class="mb-8 flex items-start justify-between">
 			<div class="flex items-center gap-3">
@@ -241,7 +241,7 @@
 		<div class="mb-8 rounded-2xl bg-primary/10 p-6">
 			<div class="flex items-baseline justify-between">
 				<span class="text-sm font-medium text-primary">Total Amount</span>
-				<span class="text-3xl font-semibold text-primary">
+				<span class="text-lg font-semibold text-primary">
 					{formatPrice(offer.price, offer.currency)}
 				</span>
 			</div>

@@ -204,7 +204,7 @@
 			<IconLocation class="h-7 w-7 text-primary-content" />
 		</div>
 		<div>
-			<h1 class="text-4xl font-bold tracking-tight">Add New Location</h1>
+			<h1 class="text-3xl font-bold tracking-tight">Add New Location</h1>
 			<p class="mt-2 text-base text-base-content/60">
 				Create a new business location in {data.businessCountry}
 			</p>
@@ -234,7 +234,7 @@
 			<button
 				onclick={searchLocation}
 				disabled={isSearching}
-				class="btn join-item gap-2.5 btn-lg btn-primary"
+				class="btn join-item gap-2.5 btn-primary"
 			>
 				{#if isSearching}
 					<span class="loading loading-md loading-spinner"></span>
@@ -523,11 +523,11 @@
 
 		<!-- Actions -->
 		<div class="mt-10 flex justify-end gap-3">
-			<a href="/locations" class="btn btn-ghost btn-lg">Cancel</a>
+			<a href="/locations" class="btn btn-ghost">Cancel</a>
 			<button
 				type="submit"
 				disabled={isSubmitting || !selectedImage}
-				class="btn gap-2.5 btn-lg btn-primary"
+				class="btn gap-2.5 btn-primary"
 			>
 				{#if isSubmitting}
 					<span class="loading loading-md loading-spinner"></span>
