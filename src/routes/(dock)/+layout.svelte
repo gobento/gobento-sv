@@ -191,7 +191,7 @@
 </main>
 
 <!-- Mobile Bottom Dock -->
-<div class="dock z-1000 dock-md md:hidden">
+<div class="dock z-1001 dock-md md:hidden">
 	{#each navigation() as item}
 		<button
 			onclick={() => navigateTo(item.path)}
