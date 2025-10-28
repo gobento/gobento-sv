@@ -83,9 +83,7 @@
 	{:else}
 		<!-- Available to Reserve - Vibrant Primary Blue/Purple -->
 		<div class="rounded-2xl border-2 border-primary bg-primary/20 via-primary/10 to-primary/5 p-4">
-			<div
-				class="mb-5 flex items-center gap-3 rounded-xl border-2 border-primary/40 bg-primary/10 p-4 shadow-sm"
-			>
+			<div class="mb-5 flex items-center gap-3">
 				<div class="rounded-lg bg-primary p-2.5">
 					<IconClock class="size-6 text-primary-content" />
 				</div>

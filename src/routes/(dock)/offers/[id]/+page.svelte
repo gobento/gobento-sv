@@ -5,7 +5,7 @@
 	import IconStore from '~icons/fluent/building-retail-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
-	import IconGift from '~icons/fluent/gift-24-regular';
+	import IconLocation from '~icons/fluent/location-24-regular';
 
 	import PaymentModal from '$lib/components/PaymentModal.svelte';
 	import { formatDate, formatTime } from '$lib/util.js';
@@ -33,14 +33,35 @@
 		}
 	});
 
-	const formatPrice = (price: number, currency: string) => {
-		if (currency === 'USDT') {
-			return `${price.toFixed(2)} USDT`;
+	const formatPrice = (price: number, country: string) => {
+		if (country === 'Iran') {
+			return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
 		}
 		return new Intl.NumberFormat('de-DE', {
 			style: 'currency',
-			currency: currency
+			currency: 'EUR'
 		}).format(price);
+	};
+
+	const getBusinessTypeDescription = (businessType: string) => {
+		const descriptions = {
+			bakery:
+				'This surprise bag contains a selection of fresh baked goods such as bread, rolls, pastries, cakes, and other delicious treats from our daily production.',
+			restaurant:
+				'This surprise bag contains a variety of restaurant meals including main courses, side dishes, and appetizers prepared fresh in our kitchen.',
+			cafe: 'This surprise bag contains café favorites like sandwiches, wraps, salads, baked goods, and other fresh items from our daily menu.',
+			grocery:
+				'This surprise bag contains a mix of grocery items such as fresh produce, dairy products, pantry staples, and seasonal products.',
+			supermarket:
+				'This surprise bag contains a variety of supermarket products including fresh goods, packaged items, dairy, and bakery products.',
+			hotel:
+				'This surprise bag contains hotel buffet items, breakfast goods, prepared meals, and fresh ingredients from our kitchen.',
+			catering:
+				'This surprise bag contains catering selections including prepared meals, party platters, side dishes, and desserts.',
+			other:
+				'This surprise bag contains a variety of quality products and fresh items selected from our daily offerings.'
+		};
+		return descriptions[businessType] || descriptions.other;
 	};
 
 	const handleDelete = async () => {
@@ -53,130 +74,131 @@
 	};
 </script>
 
-<!-- Business Header -->
-<div>
-	<div class="flex items-center gap-4">
-		<div class="h-16 w-16 overflow-hidden rounded-lg border border-base-300">
-			<img src={data.logo.url} alt={data.business.name} class="h-full w-full object-cover" />
+<!-- Hero Section with Price -->
+<div class="flex flex-wrap items-start justify-between gap-6">
+	<div class="flex-1 space-y-4">
+		<h1 class="text-4xl leading-tight font-bold lg:text-5xl">
+			{data.offer.name}
+		</h1>
+
+		<div class="text-lg leading-relaxed text-base-content/70">
+			{getBusinessTypeDescription(data.business.businessType)}
 		</div>
-		<div class="flex-1">
-			<div
-				class="mb-1 flex items-center gap-2 text-xs font-medium tracking-wide text-base-content/60 uppercase"
-			>
-				<IconStore class="h-4 w-4" />
-				<span>{data.business.name}</span>
-			</div>
-			{#if data.location}
-				<a href="/locations/{data.location.id}" class="text-xl font-bold hover:text-primary">
-					{data.location.name}
-				</a>
-			{:else}
-				<h2 class="text-xl font-bold">All Locations</h2>
-			{/if}
+	</div>
+
+	<div class="flex flex-col items-end gap-1">
+		<div class="text-base text-base-content/50 line-through">
+			{formatPrice(data.offer.displayOriginalValue, data.business.country)}
+		</div>
+		<div class="text-5xl font-bold text-primary lg:text-6xl">
+			{formatPrice(data.offer.displayPrice, data.business.country)}
 		</div>
 	</div>
 </div>
 
-<!-- Hero Section -->
-<div>
-	<div class="flex flex-wrap items-start justify-between gap-4">
-		<div class="flex-1 space-y-3">
-			<div class="flex flex-wrap items-center gap-2">
-				<div class="badge gap-1.5 px-3 py-3 badge-primary">
-					<IconGift class="h-4 w-4" />
-					Surprise Bag
-				</div>
-				{#if data.offer.isRecurring}
-					<div class="badge gap-1.5 px-3 py-3 badge-secondary">
-						<IconRepeat class="h-4 w-4" />
-						Daily
-					</div>
-				{/if}
+<!-- Availability Info -->
+<div class="rounded-lg bg-base-200 p-4">
+	<div class="flex flex-wrap items-center gap-x-8 gap-y-4">
+		<div class="flex items-center gap-3">
+			<div class="rounded-lg bg-primary/10 p-2.5">
+				<IconClock class="size-6 text-primary" />
 			</div>
-
-			<h1 class="text-3xl leading-tight font-bold lg:text-4xl">
-				{data.offer.name}
-			</h1>
-
-			<p class="max-w-2xl text-base leading-relaxed text-base-content/70">
-				{data.offer.description}
-			</p>
-		</div>
-
-		<div class="flex flex-col items-end gap-2">
-			<div class="text-right">
-				<div class="text-lg text-base-content/50 line-through">
-					{formatPrice(data.offer.displayOriginalValue, data.offer.displayCurrency)}
+			<div>
+				<div class="mb-1 text-xs font-medium tracking-wide text-base-content/60 uppercase">
+					Pickup Time
 				</div>
-				<div class="text-4xl font-bold text-primary lg:text-5xl">
-					{formatPrice(data.offer.displayPrice, data.offer.displayCurrency)}
+				<div class="text-lg font-bold text-primary">
+					{formatTime(data.offer.pickupTimeFrom)} - {formatTime(data.offer.pickupTimeUntil)}
 				</div>
 			</div>
 		</div>
-	</div>
-</div>
 
-<!-- Pickup Details -->
-<div class="grid gap-4 lg:grid-cols-2">
-	<!-- Location -->
-	{#if data.location}
-		<LocationCard
-			name={data.location.name}
-			address={data.location.address}
-			city={data.location.city}
-			province={data.location.province}
-			zipCode={data.location.zipCode}
-			country={data.location.country}
-			latitude={data.location.latitude}
-			longitude={data.location.longitude}
-		/>
-	{:else}
-		<div class="rounded-lg border border-base-300 bg-base-100 p-4">
+		{#if data.offer.isRecurring}
 			<div class="flex items-center gap-3">
-				<div class="rounded-lg bg-primary/10 p-2">
-					<IconStore class="size-5 text-primary" />
+				<div class="rounded-lg bg-secondary/10 p-2.5">
+					<IconRepeat class="size-6 text-secondary" />
 				</div>
 				<div>
-					<h3 class="font-semibold">All Locations</h3>
-					<p class="text-xs text-base-content/70">Can be picked up at any location</p>
-				</div>
-			</div>
-		</div>
-	{/if}
-
-	<!-- Pickup Time -->
-	<div class="space-y-3">
-		<div class="flex items-center gap-2">
-			<div class="rounded-lg bg-primary/10 p-2">
-				<IconClock class="size-5 text-primary" />
-			</div>
-			<h3 class="font-semibold">Pickup Time</h3>
-		</div>
-
-		<div class="space-y-2">
-			<div class="rounded-lg bg-base-200 p-3">
-				<p class="text-xl font-bold">
-					{formatTime(data.offer.pickupTimeFrom)} - {formatTime(data.offer.pickupTimeUntil)}
-				</p>
-				{#if data.offer.isRecurring}
-					<p class="mt-1 text-xs text-base-content/60">Daily availability</p>
-				{/if}
-			</div>
-
-			{#if data.offer.validUntil}
-				<div class="rounded-lg bg-base-200 p-3">
-					<div
-						class="mb-1 flex items-center gap-1.5 text-xs font-medium tracking-wide text-base-content/60 uppercase"
-					>
-						<IconCalendar class="h-3 w-3" />
-						Valid Until
+					<div class="mb-1 text-xs font-medium tracking-wide text-base-content/60 uppercase">
+						Availability
 					</div>
-					<p class="font-semibold">
-						{formatDate(data.offer.validUntil)}
-					</p>
+					<div class="text-lg font-bold text-secondary">
+						{#if data.offer.validUntil}
+							Available daily until {formatDate(data.offer.validUntil)}
+						{:else}
+							Available daily
+						{/if}
+					</div>
 				</div>
-			{/if}
+			</div>
+		{:else if data.offer.validUntil}
+			<div class="flex items-center gap-3">
+				<div class="rounded-lg bg-warning/10 p-2.5">
+					<IconCalendar class="size-6 text-warning" />
+				</div>
+				<div>
+					<div class="mb-1 text-xs font-medium tracking-wide text-base-content/60 uppercase">
+						Available Until
+					</div>
+					<div class="text-lg font-bold text-warning">
+						{formatDate(data.offer.validUntil)}
+					</div>
+				</div>
+			</div>
+		{/if}
+	</div>
+</div>
+
+<!-- Location -->
+{#if data.location}
+	<LocationCard
+		name={data.location.name}
+		address={data.location.address}
+		city={data.location.city}
+		province={data.location.province}
+		zipCode={data.location.zipCode}
+		country={data.location.country}
+		latitude={data.location.latitude}
+		longitude={data.location.longitude}
+	/>
+{:else}
+	<div class="rounded-lg border border-base-300 bg-base-100 p-5">
+		<div class="flex items-center gap-3">
+			<div class="rounded-lg bg-primary/10 p-2.5">
+				<IconStore class="size-6 text-primary" />
+			</div>
+			<div>
+				<h3 class="text-lg font-semibold">All Locations</h3>
+				<p class="text-sm text-base-content/70">Can be picked up at any location</p>
+			</div>
 		</div>
+	</div>
+{/if}
+
+<!-- Business Info -->
+<div class="flex items-center gap-4 rounded-lg border border-base-300 bg-base-100 p-5">
+	<div class="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-base-300">
+		<img src={data.logo.url} alt={data.business.name} class="h-full w-full object-cover" />
+	</div>
+	<div class="min-w-0 flex-1">
+		<div
+			class="mb-1 flex items-center gap-2 text-xs font-medium tracking-wide text-base-content/60 uppercase"
+		>
+			<IconStore class="h-4 w-4" />
+			<span>Offered by</span>
+		</div>
+		{#if data.location}
+			<a
+				href="/locations/{data.location.id}"
+				class="block truncate text-xl font-bold hover:text-primary"
+			>
+				{data.business.name} - {data.location.name}
+			</a>
+		{:else}
+			<h2 class="truncate text-xl font-bold">
+				{data.business.name}
+			</h2>
+		{/if}
 	</div>
 </div>
 
@@ -208,7 +230,7 @@
 		id: data.offer.id,
 		name: data.offer.name,
 		price: data.offer.displayPrice,
-		currency: data.offer.displayCurrency
+		currency: data.business.country === 'Iran' ? 'IRR' : 'EUR'
 	}}
 	businessPaymentMethods={data.businessPaymentMethods}
 	{pickupDate}
