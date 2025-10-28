@@ -9,6 +9,7 @@
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-regular';
 	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
+	import { schedulePickupNotifications } from '$lib/client/schedulePickupNotifications';
 
 	interface Props {
 		show: boolean;
@@ -24,10 +25,11 @@
 			preferredMethod: 'iban' | 'tether';
 		};
 		pickupDate: string;
+		locationName?: string;
 		onClose: () => void;
 	}
 
-	let { show, offer, businessPaymentMethods, pickupDate, onClose }: Props = $props();
+	let { show, offer, businessPaymentMethods, pickupDate, locationName, onClose }: Props = $props();
 
 	let selectedMethod = $state<'iban' | 'tether' | null>(null);
 	let processing = $state(false);
@@ -120,6 +122,27 @@
 			const result = await response.json();
 
 			if (result.type === 'success') {
+				// Payment successful - schedule pickup notifications
+				try {
+					const notificationResult = await schedulePickupNotifications({
+						reservationId: result.data.reservationId,
+						pickupDate: pickupDate,
+						offerName: offer.name,
+						locationName: locationName
+					});
+
+					if (notificationResult.success) {
+						console.log(
+							`Scheduled ${notificationResult.scheduledCount} notification(s) for pickup`
+						);
+					} else {
+						console.warn('Failed to schedule notifications:', notificationResult.error);
+					}
+				} catch (notifError) {
+					// Don't fail the whole payment if notification scheduling fails
+					console.error('Notification scheduling error:', notifError);
+				}
+
 				alert('Payment confirmed! Your reservation has been created.');
 				window.location.reload();
 			} else if (result.type === 'failure') {

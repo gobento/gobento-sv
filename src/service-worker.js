@@ -4,6 +4,110 @@ import { build, files, version } from '$service-worker';
 
 const CACHE = `cache-${version}`;
 const ASSETS = [...build, ...files];
+const DB_NAME = 'scheduled-notifications';
+const DB_VERSION = 1;
+const STORE_NAME = 'notifications';
+
+// IndexedDB helper functions
+async function openDB() {
+	return new Promise((resolve, reject) => {
+		const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+		request.onerror = () => reject(request.error);
+		request.onsuccess = () => resolve(request.result);
+
+		request.onupgradeneeded = (event) => {
+			const db = event.target.result;
+			if (!db.objectStoreNames.contains(STORE_NAME)) {
+				const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+				store.createIndex('scheduledTime', 'scheduledTime', { unique: false });
+			}
+		};
+	});
+}
+
+async function saveScheduledNotification(notification) {
+	const db = await openDB();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(STORE_NAME, 'readwrite');
+		const store = tx.objectStore(STORE_NAME);
+		const request = store.put(notification);
+
+		request.onsuccess = () => resolve(request.result);
+		request.onerror = () => reject(request.error);
+	});
+}
+
+async function getScheduledNotifications() {
+	const db = await openDB();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(STORE_NAME, 'readonly');
+		const store = tx.objectStore(STORE_NAME);
+		const request = store.getAll();
+
+		request.onsuccess = () => resolve(request.result);
+		request.onerror = () => reject(request.error);
+	});
+}
+
+async function deleteScheduledNotification(id) {
+	const db = await openDB();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(STORE_NAME, 'readwrite');
+		const store = tx.objectStore(STORE_NAME);
+		const request = store.delete(id);
+
+		request.onsuccess = () => resolve();
+		request.onerror = () => reject(request.error);
+	});
+}
+
+// Check and show due notifications
+async function checkScheduledNotifications() {
+	const now = Date.now();
+	const notifications = await getScheduledNotifications();
+
+	for (const notification of notifications) {
+		if (notification.scheduledTime <= now && !notification.shown) {
+			// Show the notification
+			await sw.registration.showNotification(notification.title, {
+				body: notification.body,
+				icon: notification.icon || '/icon-192.png',
+				badge: notification.badge || '/icon-192.png',
+				tag: notification.tag,
+				data: notification.data,
+				requireInteraction: notification.requireInteraction || false,
+				vibrate: notification.vibrate || [200, 100, 200]
+			});
+
+			// Mark as shown and update
+			notification.shown = true;
+			await saveScheduledNotification(notification);
+
+			// Delete after 24 hours to keep DB clean
+			setTimeout(
+				async () => {
+					await deleteScheduledNotification(notification.id);
+				},
+				24 * 60 * 60 * 1000
+			);
+		}
+	}
+}
+
+// Set up periodic check (every minute)
+let checkInterval;
+
+function startNotificationChecker() {
+	if (checkInterval) clearInterval(checkInterval);
+
+	checkInterval = setInterval(() => {
+		checkScheduledNotifications();
+	}, 60 * 1000); // Check every minute
+
+	// Check immediately
+	checkScheduledNotifications();
+}
 
 // Install event - cache assets
 sw.addEventListener('install', (event) => {
@@ -15,15 +119,16 @@ sw.addEventListener('install', (event) => {
 	event.waitUntil(addFilesToCache());
 });
 
-// Activate event - delete old caches
+// Activate event - delete old caches and start notification checker
 sw.addEventListener('activate', (event) => {
-	async function deleteOldCaches() {
+	async function setup() {
 		for (const key of await caches.keys()) {
 			if (key !== CACHE) await caches.delete(key);
 		}
+		startNotificationChecker();
 	}
 
-	event.waitUntil(deleteOldCaches());
+	event.waitUntil(setup());
 });
 
 // Fetch event - serve from cache, fallback to network
@@ -56,12 +161,62 @@ sw.addEventListener('fetch', (event) => {
 	event.respondWith(respond());
 });
 
-// Listen for ntfy subscription messages
+// Listen for messages from clients
 let ntfyConnection = null;
 let currentTopic = null;
 let ntfyServerUrl = 'http://localhost:8080';
 
 sw.addEventListener('message', (event) => {
+	// Schedule a notification
+	if (event.data && event.data.type === 'SCHEDULE_NOTIFICATION') {
+		const { id, title, body, scheduledTime, data, icon, badge, tag, requireInteraction, vibrate } =
+			event.data;
+
+		const notification = {
+			id: id || `notification-${Date.now()}`,
+			title,
+			body,
+			scheduledTime: new Date(scheduledTime).getTime(),
+			data,
+			icon,
+			badge,
+			tag,
+			requireInteraction,
+			vibrate,
+			shown: false,
+			createdAt: Date.now()
+		};
+
+		event.waitUntil(
+			saveScheduledNotification(notification).then(() => {
+				console.log('Notification scheduled for:', new Date(scheduledTime));
+				// Send confirmation back to client
+				event.ports[0]?.postMessage({ success: true, id: notification.id });
+			})
+		);
+	}
+
+	// Cancel a scheduled notification
+	if (event.data && event.data.type === 'CANCEL_SCHEDULED_NOTIFICATION') {
+		const { id } = event.data;
+		event.waitUntil(
+			deleteScheduledNotification(id).then(() => {
+				console.log('Cancelled scheduled notification:', id);
+				event.ports[0]?.postMessage({ success: true });
+			})
+		);
+	}
+
+	// Get all scheduled notifications
+	if (event.data && event.data.type === 'GET_SCHEDULED_NOTIFICATIONS') {
+		event.waitUntil(
+			getScheduledNotifications().then((notifications) => {
+				event.ports[0]?.postMessage({ success: true, notifications });
+			})
+		);
+	}
+
+	// NTFY subscription
 	if (event.data && event.data.type === 'SUBSCRIBE_NTFY') {
 		const { topic, serverUrl } = event.data;
 
@@ -154,3 +309,6 @@ sw.addEventListener('notificationclick', (event) => {
 		})
 	);
 });
+
+// Start the checker when service worker starts
+startNotificationChecker();
