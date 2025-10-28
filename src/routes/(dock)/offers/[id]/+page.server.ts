@@ -79,13 +79,32 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const logoUrl = await getSignedDownloadUrl(logo.key, 3600);
 
+	// Get location image URL if exists
+	let locationImageUrl = null;
+	if (location?.imageId) {
+		const [locationImage] = await db
+			.select()
+			.from(files)
+			.where(eq(files.id, location.imageId))
+			.limit(1);
+
+		if (locationImage) {
+			locationImageUrl = await getSignedDownloadUrl(locationImage.key, 3600);
+		}
+	}
+
 	return {
 		offer: {
 			...offer,
 			displayPrice: offer.price,
 			displayOriginalValue: offer.originalValue
 		},
-		location,
+		location: location
+			? {
+					...location,
+					imageUrl: locationImageUrl
+				}
+			: null,
 		business: {
 			name: business.name,
 			description: business.description,
