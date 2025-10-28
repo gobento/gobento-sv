@@ -2,7 +2,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
-	import IconAlertCircle from '~icons/fluent/alert-circle-24-regular';
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconSave from '~icons/fluent/save-24-regular';
 	import { env } from '$env/dynamic/public';
@@ -47,7 +46,7 @@
 
 	{#if form?.message}
 		<div class="mb-4 alert alert-error">
-			<IconAlertCircle class="h-6 w-6" />
+			<IconInfo class="size-6" />
 			<span>{form.message}</span>
 		</div>
 	{/if}
@@ -159,7 +158,7 @@
 				<!-- Payment Fee Info -->
 				{#if buyerTotal()}
 					<div class="alert alert-info">
-						<IconInfo class="h-6 w-6" />
+						<IconInfo class="size-6" />
 						<div class="flex-1">
 							<p class="font-semibold">Customer will pay: {buyerTotal()} {currency}</p>
 							<p class="mt-1 text-sm">
@@ -329,7 +328,7 @@
 		<div class="flex justify-end gap-4">
 			<a href="/offers" class="btn btn-ghost">Cancel</a>
 			<button type="submit" class="btn btn-primary">
-				<IconSave class="h-5 w-5" />
+				<IconSave class="size-5" />
 				Create Offer
 			</button>
 		</div>
