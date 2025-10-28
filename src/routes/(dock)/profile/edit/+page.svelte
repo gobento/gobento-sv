@@ -6,14 +6,12 @@
 	import IconUser from '~icons/fluent/person-24-regular';
 	import IconBuilding from '~icons/fluent/building-24-regular';
 	import IconHeart from '~icons/fluent/heart-24-regular';
-	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
 	import IconCheck from '~icons/fluent/checkmark-24-regular';
 	import IconImage from '~icons/fluent/image-24-regular';
 	import IconUpload from '~icons/fluent/arrow-upload-24-regular';
 	import IconWallet from '~icons/fluent/wallet-24-regular';
-	import IconShield from '~icons/fluent/shield-24-regular';
-	import IconInfo from '~icons/fluent/info-24-regular';
-
+	import IconBank from '~icons/fluent/building-bank-24-regular';
+	import FluentPayment24Regular from '~icons/fluent/payment-24-regular';
 	interface Props {
 		data: PageData;
 	}
@@ -26,32 +24,37 @@
 	let fileInputError = $state<string | null>(null);
 	let formError = $state<string | null>(null);
 
-	// Form fields for business/charity
+	// Form fields
 	let editName = $state(data.profile?.name || '');
 	let editDescription = $state(data.profile?.description || '');
 
-	// Payment provider fields
-	let paymentProvider = $state<'zarinpal' | 'tether' | ''>(
+	// Payment fields
+	let ibanEnabled = $state(
 		data.account.accountType === 'business'
-			? data.wallet?.zarinpalEnabled
-				? 'zarinpal'
-				: data.wallet?.tetherEnabled
-					? 'tether'
-					: 'zarinpal'
-			: data.profile?.preferredPaymentMethod || ''
+			? data.wallet?.ibanEnabled || false
+			: data.profile?.ibanEnabled || false
 	);
-	let zarinpalMerchantId = $state(
+	let tetherEnabled = $state(
 		data.account.accountType === 'business'
-			? data.wallet?.zarinpalMerchantId || ''
-			: data.profile?.zarinpalMerchantId || ''
+			? data.wallet?.tetherEnabled || false
+			: data.profile?.tetherEnabled || false
+	);
+	let ibanNumber = $state(
+		data.account.accountType === 'business'
+			? data.wallet?.ibanNumber || ''
+			: data.profile?.ibanNumber || ''
 	);
 	let tetherAddress = $state(
 		data.account.accountType === 'business'
 			? data.wallet?.tetherAddress || ''
 			: data.profile?.tetherAddress || ''
 	);
+	let preferredPaymentMethod = $state<'iban' | 'tether'>(
+		data.account.accountType === 'business'
+			? data.wallet?.preferredPaymentMethod || 'iban'
+			: data.profile?.preferredPaymentMethod || 'iban'
+	);
 
-	// Track if we're using existing picture or new one
 	let hasExistingPicture = $state(!!data.profile?.profilePictureId);
 	let keepExistingPicture = $state(hasExistingPicture);
 
@@ -59,18 +62,14 @@
 		const input = e.target as HTMLInputElement;
 		const file = input.files?.[0];
 
-		if (!file) {
-			return;
-		}
+		if (!file) return;
 
-		// Validate file type
 		if (!file.type.startsWith('image/')) {
 			fileInputError = 'Only images are allowed';
 			input.value = '';
 			return;
 		}
 
-		// Validate file size (5MB max)
 		const maxSize = 5 * 1024 * 1024;
 		if (file.size > maxSize) {
 			fileInputError = 'File size must be less than 5MB';
@@ -78,12 +77,10 @@
 			return;
 		}
 
-		// Clear error and set file
 		fileInputError = null;
 		selectedFile = file;
 		keepExistingPicture = false;
 
-		// Create preview URL
 		if (previewUrl && !hasExistingPicture) {
 			URL.revokeObjectURL(previewUrl);
 		}
@@ -110,8 +107,8 @@
 			default:
 				return {
 					icon: IconUser,
-					namePlaceholder: 'Enter name',
-					descriptionPlaceholder: 'Enter description...',
+					namePlaceholder: '',
+					descriptionPlaceholder: '',
 					needsProfile: false
 				};
 		}
@@ -123,49 +120,41 @@
 	const needsProfile = $derived(config.needsProfile);
 
 	const canSave = $derived(() => {
-		if (isUser) {
-			// For users, require a payment method to be configured
-			if (!paymentProvider) return false;
+		// Must have at least one payment method
+		if (!ibanEnabled && !tetherEnabled) return false;
 
-			if (paymentProvider === 'zarinpal') {
-				return zarinpalMerchantId.trim().length > 0;
-			} else if (paymentProvider === 'tether') {
-				return tetherAddress.trim().length > 0;
-			}
+		// Validate enabled payment methods have data
+		if (ibanEnabled && !ibanNumber.trim()) return false;
+		if (tetherEnabled && !tetherAddress.trim()) return false;
 
-			return false;
+		// If business/charity, need profile info
+		if (needsProfile) {
+			if (!editName.trim() || !editDescription.trim()) return false;
+			if (!selectedFile && !keepExistingPicture) return false;
 		}
 
-		if (!needsProfile) return true;
+		return true;
+	});
 
-		const hasBasicInfo =
-			editName.trim() && editDescription.trim() && (selectedFile || keepExistingPicture);
-
-		if (isBusiness) {
-			if (paymentProvider === 'zarinpal') {
-				return hasBasicInfo && zarinpalMerchantId.trim();
-			} else if (paymentProvider === 'tether') {
-				return hasBasicInfo && tetherAddress.trim();
-			}
+	// Auto-adjust preferred method if disabled
+	$effect(() => {
+		if (preferredPaymentMethod === 'iban' && !ibanEnabled && tetherEnabled) {
+			preferredPaymentMethod = 'tether';
+		} else if (preferredPaymentMethod === 'tether' && !tetherEnabled && ibanEnabled) {
+			preferredPaymentMethod = 'iban';
 		}
-
-		return hasBasicInfo;
 	});
 </script>
 
-<!-- Header -->
 <div>
-	<h1 class="card-title text-3xl">
-		{isUser ? 'Edit Payment Settings' : 'Edit Your Profile'}
+	<h1 class="text-3xl font-bold">
+		{isUser ? 'Payment Settings' : 'Edit Profile'}
 	</h1>
-	<p class="text-base-content/70">
-		{isUser
-			? 'Configure your preferred payment method'
-			: `Update your profile information${isBusiness ? ' and payment settings' : ''}`}
+	<p class="mt-2 text-base-content/70">
+		{isUser ? 'Configure your payment methods' : `Update your profile and payment settings`}
 	</p>
 </div>
 
-<!-- Form -->
 <form
 	method="POST"
 	action="?/updateProfile"
@@ -185,22 +174,22 @@
 			}
 		};
 	}}
-	class="card-body space-y-6"
+	class="space-y-8"
 >
 	{#if needsProfile && !isUser}
-		<!-- Profile Picture (business/charity only) -->
-		<div class="form-control">
-			<label class="label">
-				<span class="label-text font-medium">Profile Picture</span>
-				<span class="label-text-alt text-error">Required</span>
+		<!-- Profile Picture -->
+		<div class="space-y-3">
+			<label class="flex items-center justify-between text-sm font-medium">
+				<span>Profile Picture</span>
+				<span class="text-xs text-error">Required</span>
 			</label>
 
 			<div
-				class="flex flex-col items-center gap-4 rounded-lg border border-base-300 bg-base-200 p-6"
+				class="flex flex-col items-center gap-4 rounded-lg border border-base-300 bg-base-100 p-6"
 			>
 				{#if previewUrl}
 					<div class="avatar">
-						<div class="w-32 rounded-full ring ring-base-300 ring-offset-2 ring-offset-base-200">
+						<div class="w-32 rounded-full">
 							<img src={previewUrl} alt="Preview" />
 						</div>
 					</div>
@@ -212,8 +201,8 @@
 					</div>
 				{/if}
 
-				<label class="btn gap-2 btn-outline">
-					<IconUpload class="size-5" />
+				<label class="btn gap-2 btn-sm">
+					<IconUpload class="h-4 w-4" />
 					{selectedFile ? 'Change Picture' : 'Choose Picture'}
 					<input
 						type="file"
@@ -227,31 +216,29 @@
 
 				{#if selectedFile}
 					<div class="text-center">
-						<div class="badge gap-1 badge-success">
+						<div class="badge gap-1 badge-sm badge-success">
 							<IconCheck class="h-3 w-3" />
-							Ready to upload
+							Ready
 						</div>
-						<p class="mt-2 text-xs text-base-content/60">{selectedFile.name}</p>
+						<p class="mt-1 text-xs text-base-content/60">{selectedFile.name}</p>
 					</div>
 				{:else if keepExistingPicture}
-					<p class="text-sm text-base-content/60">Using current profile picture</p>
+					<p class="text-sm text-base-content/60">Using current picture</p>
 				{/if}
 			</div>
 
 			{#if fileInputError}
-				<label class="label">
-					<span class="label-text-alt text-error">{fileInputError}</span>
-				</label>
+				<p class="text-xs text-error">{fileInputError}</p>
 			{/if}
 		</div>
 
 		<!-- Name -->
-		<div class="form-control">
-			<label class="label" for="name">
-				<span class="label-text font-medium">
-					{data.account.accountType === 'business' ? 'Business Name' : 'Organization Name'}
-				</span>
-				<span class="label-text-alt text-error">Required</span>
+		<div class="space-y-3">
+			<label for="name" class="flex items-center justify-between text-sm font-medium">
+				<span
+					>{data.account.accountType === 'business' ? 'Business Name' : 'Organization Name'}</span
+				>
+				<span class="text-xs text-error">Required</span>
 			</label>
 			<input
 				id="name"
@@ -266,173 +253,176 @@
 		</div>
 
 		<!-- Description -->
-		<div class="form-control">
-			<label class="label" for="description">
-				<span class="label-text font-medium">Description</span>
-				<span class="label-text-alt text-error">Required</span>
+		<div class="space-y-3">
+			<label for="description" class="flex items-center justify-between text-sm font-medium">
+				<span>Description</span>
+				<span class="text-xs text-error">Required</span>
 			</label>
 			<textarea
 				id="description"
 				name="description"
 				bind:value={editDescription}
 				placeholder={config.descriptionPlaceholder}
-				class="textarea-bordered textarea h-32 w-full"
+				class="textarea-bordered textarea h-32 w-full resize-none"
 				required
 				disabled={saving}
 			></textarea>
-			<label class="label">
-				<span class="label-text-alt text-base-content/60">
-					{editDescription.length} characters
-				</span>
-			</label>
+			<p class="text-xs text-base-content/60">
+				{editDescription.length} characters
+			</p>
 		</div>
 	{/if}
 
-	{#if isBusiness || isUser}
-		<!-- Payment Provider Section -->
-		<div class="space-y-4">
-			<div class="flex items-start gap-3">
-				<IconWallet class="mt-1 size-5 text-primary" />
-				<div class="flex-1">
-					<h2 class="text-lg font-semibold">Payment Settings</h2>
-					<p class="text-sm text-base-content/70">
-						{isUser
-							? 'Configure your preferred payment method'
-							: 'Configure how you receive payments'}
-					</p>
-				</div>
+	<!-- Payment Settings -->
+	<div class="space-y-6">
+		<div class="flex items-center gap-3">
+			<IconWallet class="size-5 text-primary" />
+			<div>
+				<h2 class="text-lg font-semibold">Payment Methods</h2>
+				<p class="text-sm text-base-content/70">Enable at least one payment method</p>
 			</div>
+		</div>
 
-			<!-- Provider Selection -->
-			<div class="form-control">
-				<label class="label">
-					<span class="label-text font-medium">Payment Provider</span>
-					<span class="label-text-alt text-error">Required</span>
-				</label>
-				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-					<label
-						class="cursor-pointer rounded-lg border-2 p-4 transition-colors hover:border-primary/50"
-						class:border-primary={paymentProvider === 'zarinpal'}
-						class:bg-primary-5={paymentProvider === 'zarinpal'}
-						class:border-base-300={paymentProvider !== 'zarinpal'}
-					>
-						<div class="flex items-center gap-3">
-							<input
-								type="radio"
-								name="paymentProvider"
-								value="zarinpal"
-								bind:group={paymentProvider}
-								class="radio radio-primary"
-								disabled={saving}
-							/>
-							<div>
-								<p class="font-medium">Zarinpal</p>
-								<p class="text-xs text-base-content/60">Iranian Rial (IRR)</p>
-							</div>
-						</div>
-					</label>
-
-					<label
-						class="cursor-pointer rounded-lg border-2 p-4 transition-colors hover:border-primary/50"
-						class:border-primary={paymentProvider === 'tether'}
-						class:bg-primary-5={paymentProvider === 'tether'}
-						class:border-base-300={paymentProvider !== 'tether'}
-					>
-						<div class="flex items-center gap-3">
-							<input
-								type="radio"
-								name="paymentProvider"
-								value="tether"
-								bind:group={paymentProvider}
-								class="radio radio-primary"
-								disabled={saving}
-							/>
-							<div>
-								<p class="font-medium">USDT</p>
-								<p class="text-xs text-base-content/60">Tether (ERC-20)</p>
-							</div>
-						</div>
-					</label>
-				</div>
-			</div>
-
-			<!-- Zarinpal Configuration -->
-			{#if paymentProvider === 'zarinpal'}
-				<div class="form-control">
-					<label class="label" for="zarinpalMerchantId">
-						<span class="label-text font-medium">Zarinpal Merchant ID</span>
-						<span class="label-text-alt text-error">Required</span>
-					</label>
+		<!-- IBAN -->
+		<div class="space-y-3 rounded-lg border border-base-300 bg-base-100 p-4">
+			<label class="flex cursor-pointer items-center justify-between">
+				<div class="flex items-center gap-3">
 					<input
-						id="zarinpalMerchantId"
-						name="zarinpalMerchantId"
+						type="checkbox"
+						class="checkbox checkbox-primary"
+						bind:checked={ibanEnabled}
+						disabled={saving}
+					/>
+					<div class="flex items-center gap-2">
+						<IconBank class="size-5" />
+						<span class="font-medium">IBAN</span>
+					</div>
+				</div>
+			</label>
+
+			{#if ibanEnabled}
+				<div class="space-y-2 pl-10">
+					<input
+						name="ibanNumber"
 						type="text"
-						bind:value={zarinpalMerchantId}
-						placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-						class="input-bordered input w-full font-mono"
+						bind:value={ibanNumber}
+						placeholder="DE89 3704 0044 0532 0130 00"
+						class="input-bordered input input-sm w-full font-mono"
 						required
 						disabled={saving}
 					/>
-					<label class="label">
-						<span class="label-text-alt flex items-center gap-2 text-base-content/70">
-							<IconShield class="h-3 w-3" />
-							Your Merchant ID is stored securely and never shared publicly
-						</span>
-					</label>
+					<p class="text-xs text-base-content/60">
+						International Bank Account Number for EUR transfers
+					</p>
 				</div>
 			{/if}
+		</div>
 
-			<!-- Tether Configuration -->
-			{#if paymentProvider === 'tether'}
-				<div class="form-control">
-					<label class="label" for="tetherAddress">
-						<span class="label-text font-medium">USDT Wallet Address (ERC-20)</span>
-						<span class="label-text-alt text-error">Required</span>
-					</label>
+		<!-- Tether -->
+		<div class="space-y-3 rounded-lg border border-base-300 bg-base-100 p-4">
+			<label class="flex cursor-pointer items-center justify-between">
+				<div class="flex items-center gap-3">
 					<input
-						id="tetherAddress"
+						type="checkbox"
+						class="checkbox checkbox-primary"
+						bind:checked={tetherEnabled}
+						disabled={saving}
+					/>
+					<div class="flex items-center gap-2">
+						<FluentPayment24Regular class="size-5" />
+						<span class="font-medium">USDT (Tether)</span>
+					</div>
+				</div>
+			</label>
+
+			{#if tetherEnabled}
+				<div class="space-y-2 pl-10">
+					<input
 						name="tetherAddress"
 						type="text"
 						bind:value={tetherAddress}
 						placeholder="0x..."
-						class="input-bordered input w-full font-mono"
+						class="input-bordered input input-sm w-full font-mono"
 						required
 						disabled={saving}
 					/>
-					<label class="label">
-						<span class="label-text-alt flex flex-col gap-2">
-							<span class="flex items-center gap-2 text-base-content/70">
-								<IconShield class="h-3 w-3" />
-								Your wallet address is stored securely and never shared publicly
-							</span>
-							<span class="flex items-center gap-2 text-warning">
-								<IconInfo class="h-3 w-3" />
-								Make sure this is an ERC-20 USDT address (Ethereum network)
-							</span>
-						</span>
-					</label>
+					<p class="text-xs text-base-content/60">ERC-20 USDT wallet address (Ethereum network)</p>
 				</div>
 			{/if}
 		</div>
-	{/if}
+
+		<!-- Preferred Method -->
+		{#if ibanEnabled || tetherEnabled}
+			<div class="space-y-3">
+				<label class="text-sm font-medium">Preferred Payment Method</label>
+				<!-- todo: use a select dropdown for that-->
+				<div class="flex gap-3">
+					{#if ibanEnabled}
+						<label
+							class="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border-2 p-3 transition-colors"
+							class:border-primary={preferredPaymentMethod === 'iban'}
+							class:border-base-300={preferredPaymentMethod !== 'iban'}
+						>
+							<input
+								type="radio"
+								name="preferredPaymentMethod"
+								value="iban"
+								bind:group={preferredPaymentMethod}
+								class="radio radio-sm radio-primary"
+								disabled={saving}
+							/>
+							<span class="text-sm font-medium">IBAN</span>
+						</label>
+					{/if}
+
+					{#if tetherEnabled}
+						<label
+							class="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border-2 p-3 transition-colors"
+							class:border-primary={preferredPaymentMethod === 'tether'}
+							class:border-base-300={preferredPaymentMethod !== 'tether'}
+						>
+							<input
+								type="radio"
+								name="preferredPaymentMethod"
+								value="tether"
+								bind:group={preferredPaymentMethod}
+								class="radio radio-sm radio-primary"
+								disabled={saving}
+							/>
+							<span class="text-sm font-medium">USDT</span>
+						</label>
+					{/if}
+				</div>
+				<p class="text-xs text-base-content/60">
+					{isUser
+						? 'Your preferred method for receiving payments'
+						: 'Customers will see prices in this currency'}
+				</p>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Hidden inputs -->
+	<input type="hidden" name="ibanEnabled" value={ibanEnabled} />
+	<input type="hidden" name="tetherEnabled" value={tetherEnabled} />
 
 	{#if formError}
-		<div class="alert alert-error">
-			<span>{formError}</span>
+		<div class="rounded-lg border border-error bg-error/10 p-4">
+			<p class="text-sm text-error">{formError}</p>
 		</div>
 	{/if}
 
 	<!-- Action Buttons -->
-	<div class="flex flex-col gap-3 sm:flex-row">
+	<div class="flex gap-3">
 		<button type="submit" class="btn flex-1 gap-2 btn-primary" disabled={saving || !canSave()}>
 			{#if saving}
-				<span class="loading loading-spinner"></span>
+				<span class="loading loading-sm loading-spinner"></span>
 				Saving...
 			{:else}
 				<IconCheck class="size-5" />
 				Save Changes
 			{/if}
 		</button>
-		<a href="/profile" class="btn flex-1 btn-outline" class:btn-disabled={saving}> Cancel </a>
+		<a href="/profile" class="btn flex-1" class:btn-disabled={saving}> Cancel </a>
 	</div>
 </form>

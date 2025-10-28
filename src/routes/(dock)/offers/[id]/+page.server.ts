@@ -15,8 +15,6 @@ import {
 import { eq, and, desc } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { PaymentHandler } from '$lib/server/payments/handler';
-import { ZarinpalService } from '$lib/server/payments/zarinpal';
-import { TetherService } from '$lib/server/payments/tether';
 import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -45,6 +43,17 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const { offer, location, business, businessAccount, logo } = offerData[0];
 
+	// Get business payment preferences
+	const [wallet] = await db
+		.select()
+		.from(businessWallets)
+		.where(eq(businessWallets.accountId, offer.businessAccountId))
+		.limit(1);
+
+	if (!wallet || (!wallet.ibanEnabled && !wallet.tetherEnabled)) {
+		throw error(500, 'Business has not configured payment methods');
+	}
+
 	// Check for existing active reservation
 	let existingReservation = null;
 	let userReservation = null;
@@ -70,8 +79,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const logoUrl = await getSignedDownloadUrl(logo.key, 3600);
 
-	const result = {
-		offer,
+	const displayCurrency = wallet.preferredPaymentMethod === 'tether' ? 'USDT' : 'EUR';
+
+	return {
+		offer: {
+			...offer,
+			displayCurrency,
+			displayPrice: offer.price,
+			displayOriginalValue: offer.originalValue
+		},
 		location,
 		business: {
 			name: business.name,
@@ -84,7 +100,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		},
 		isOwner,
 		isUser,
-
 		accountType: account?.accountType || null,
 		isReserved: !!existingReservation,
 		userReservation: userReservation
@@ -95,16 +110,18 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 					pickupUntil: userReservation.pickupUntil,
 					claimToken: userReservation.claimToken
 				}
-			: null
+			: null,
+		businessPaymentMethods: {
+			ibanEnabled: wallet.ibanEnabled,
+			tetherEnabled: wallet.tetherEnabled,
+			preferredMethod: wallet.preferredPaymentMethod
+		}
 	};
-
-	console.log('Offer loaded:', result);
-	return result;
 };
 
 export const actions: Actions = {
 	/**
-	 * Initialize payment (creates payment record and redirects/returns address)
+	 * Initialize payment
 	 */
 	initPayment: async ({ params, locals, request, url }) => {
 		const account = locals.account!;
@@ -113,16 +130,14 @@ export const actions: Actions = {
 			throw error(403, 'Only user accounts can make payments');
 		}
 
-		// Get form data
 		const formData = await request.formData();
-		const paymentMethod = formData.get('paymentMethod') as 'zarinpal' | 'tether';
+		const paymentMethod = formData.get('paymentMethod') as 'iban' | 'tether';
 		const pickupDateStr = formData.get('pickupDate') as string;
 
 		if (!paymentMethod || !pickupDateStr) {
 			return fail(400, { error: 'Missing required fields' });
 		}
 
-		// Validate pickup date
 		const pickupDate = new Date(pickupDateStr);
 		if (isNaN(pickupDate.getTime())) {
 			return fail(400, { error: 'Invalid pickup date' });
@@ -154,19 +169,39 @@ export const actions: Actions = {
 			return fail(400, { error: 'Offer is already reserved' });
 		}
 
+		// Verify business accepts this payment method
+		const [wallet] = await db
+			.select()
+			.from(businessWallets)
+			.where(eq(businessWallets.accountId, offer.businessAccountId))
+			.limit(1);
+
+		if (!wallet) {
+			return fail(500, { error: 'Business payment configuration not found' });
+		}
+
+		if (paymentMethod === 'iban' && !wallet.ibanEnabled) {
+			return fail(400, { error: 'Business does not accept IBAN payments' });
+		}
+
+		if (paymentMethod === 'tether' && !wallet.tetherEnabled) {
+			return fail(400, { error: 'Business does not accept USDT payments' });
+		}
+
 		// Create payment record
+		const currency = paymentMethod === 'tether' ? 'USDT' : 'EUR';
+
 		const paymentResult = await PaymentHandler.createPayment({
 			offerId: params.id,
 			userAccountId: account.id,
 			businessAccountId: offer.businessAccountId,
 			amount: offer.price,
-			currency: offer.currency === 'EUR' ? 'USDT' : (offer.currency as 'IRR' | 'USDT'),
+			currency,
 			paymentMethod,
 			pickupDate,
 			metadata: {
 				pickupDate: pickupDateStr,
-				offerName: offer.name,
-				scheduleNotification: true // Flag to schedule notification on completion
+				offerName: offer.name
 			}
 		});
 
@@ -174,54 +209,27 @@ export const actions: Actions = {
 			return fail(500, { error: paymentResult.error || 'Failed to create payment' });
 		}
 
-		// Handle based on payment method
-		if (paymentMethod === 'zarinpal') {
-			// Request Zarinpal payment
-			const callbackUrl = `${env.PUBLIC_APP_URL}/payments/callback?paymentId=${paymentResult.paymentId}`;
-
-			const zarinpalResult = await ZarinpalService.requestPayment({
-				amount: offer.price,
-				description: `Payment for ${offer.name}`,
-				email: account.email,
-				callbackUrl,
-				metadata: {
-					paymentId: paymentResult.paymentId,
-					offerId: params.id
-				}
-			});
-
-			if (!zarinpalResult.success || !zarinpalResult.paymentUrl) {
-				await PaymentHandler.failPayment(
-					paymentResult.paymentId,
-					zarinpalResult.error || 'Failed to initialize Zarinpal payment'
-				);
-				return fail(500, { error: zarinpalResult.error || 'Payment initialization failed' });
-			}
-
-			// Redirect to Zarinpal
-			throw redirect(303, zarinpalResult.paymentUrl);
-		} else if (paymentMethod === 'tether') {
-			// Get business wallet
-			const [wallet] = await db
-				.select()
-				.from(businessWallets)
-				.where(eq(businessWallets.accountId, offer.businessAccountId))
-				.limit(1);
-
-			if (!wallet || !wallet.tetherAddress || !wallet.tetherEnabled) {
-				await PaymentHandler.failPayment(
-					paymentResult.paymentId,
-					'Business does not accept Tether'
-				);
-				return fail(400, { error: 'Business does not accept Tether payments' });
-			}
-
-			// Return wallet address and pickup info for user to send payment
+		// Return payment details based on method
+		if (paymentMethod === 'iban') {
 			return {
 				success: true,
 				paymentId: paymentResult.paymentId,
+				paymentMethod: 'iban',
+				ibanNumber: wallet.ibanNumber,
+				amount: offer.price,
+				currency: 'EUR',
+				reference: `PAY-${paymentResult.paymentId.substring(0, 8).toUpperCase()}`,
+				pickupDate: pickupDateStr,
+				offerName: offer.name
+			};
+		} else if (paymentMethod === 'tether') {
+			return {
+				success: true,
+				paymentId: paymentResult.paymentId,
+				paymentMethod: 'tether',
 				tetherAddress: wallet.tetherAddress,
 				amount: offer.price,
+				currency: 'USDT',
 				pickupDate: pickupDateStr,
 				offerName: offer.name
 			};
@@ -231,29 +239,17 @@ export const actions: Actions = {
 	},
 
 	/**
-	 * Verify Tether transaction
+	 * Confirm payment (manual verification by user)
 	 */
-	verifyTether: async ({ params, locals, request }) => {
+	confirmPayment: async ({ params, locals, request }) => {
 		const account = locals.account!;
 
 		const formData = await request.formData();
-		const txHash = formData.get('txHash') as string;
-		const tetherAddress = formData.get('tetherAddress') as string;
-		const pickupDateStr = formData.get('pickupDate') as string;
+		const paymentId = formData.get('paymentId') as string;
+		const transactionReference = formData.get('transactionReference') as string;
 
-		if (!txHash || !tetherAddress) {
-			return fail(400, { error: 'Transaction hash is required' });
-		}
-
-		// Get offer
-		const [offer] = await db
-			.select()
-			.from(businessOffers)
-			.where(eq(businessOffers.id, params.id))
-			.limit(1);
-
-		if (!offer) {
-			throw error(404, 'Offer not found');
+		if (!paymentId) {
+			return fail(400, { error: 'Payment ID is required' });
 		}
 
 		// Find payment record
@@ -262,48 +258,31 @@ export const actions: Actions = {
 			.from(payments)
 			.where(
 				and(
-					eq(payments.offerId, params.id),
+					eq(payments.id, paymentId),
 					eq(payments.userAccountId, account.id),
 					eq(payments.status, 'pending')
 				)
 			)
-			.orderBy(desc(payments.createdAt))
 			.limit(1);
 
 		if (!payment) {
 			return fail(400, { error: 'Payment not found' });
 		}
 
-		// Verify transaction on blockchain
-		const tetherService = new TetherService();
-		const verifyResult = await tetherService.verifyPayment({
-			txHash,
-			expectedAmount: offer.price,
-			recipientAddress: tetherAddress
-		});
-
-		if (!verifyResult.success) {
-			return fail(400, { error: verifyResult.error || 'Transaction verification failed' });
-		}
-
-		// Complete payment and create reservation
+		// Update payment with reference
 		const completeResult = await PaymentHandler.completePayment({
 			paymentId: payment.id,
-			tetherTxHash: txHash,
-			tetherFromAddress: verifyResult.from
+			ibanReference: payment.paymentMethod === 'iban' ? transactionReference : undefined,
+			tetherTxHash: payment.paymentMethod === 'tether' ? transactionReference : undefined
 		});
 
 		if (!completeResult.success) {
 			return fail(500, { error: completeResult.error || 'Failed to complete payment' });
 		}
 
-		// Return reservation data including pickup time for notification scheduling
 		return {
 			success: true,
-			reservationId: completeResult.reservationId,
-			pickupDate: pickupDateStr,
-			offerName: offer.name,
-			shouldScheduleNotification: true
+			reservationId: completeResult.reservationId
 		};
 	}
 };
