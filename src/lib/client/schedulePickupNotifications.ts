@@ -1,5 +1,8 @@
 // src/lib/client/schedulePickupNotifications.ts
-import { scheduleNotification } from './schedulePickupNotifications';
+import {
+	scheduleNotification,
+	cancelScheduledNotification
+} from '$lib/client/notificationScheduler';
 
 /**
  * Schedule pickup notifications after successful payment
@@ -99,8 +102,6 @@ export async function schedulePickupNotifications(options: {
  */
 export async function cancelPickupNotifications(reservationId: string) {
 	try {
-		const { cancelScheduledNotification } = await import('./schedulePickupNotifications');
-
 		await Promise.all([
 			cancelScheduledNotification(`pickup-${reservationId}`),
 			cancelScheduledNotification(`reminder-30min-${reservationId}`),
