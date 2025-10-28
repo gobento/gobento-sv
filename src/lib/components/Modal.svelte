@@ -34,7 +34,7 @@
 
 {#if open}
 	<div class="modal-open modal">
-		<div class="modal-box {sizeClasses[size]} rounded-3xl">
+		<div class="modal-box {sizeClasses[size]} rounded-lg">
 			<!-- Header with back button (optional) and close button -->
 			<div class="mb-6 flex items-center justify-between">
 				<div class="flex items-center gap-2">

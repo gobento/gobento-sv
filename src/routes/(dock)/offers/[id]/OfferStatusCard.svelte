@@ -97,7 +97,7 @@
 
 			<button
 				type="button"
-				class="btn w-full transition-all btn-lg btn-primary hover:shadow-xl"
+				class="hover: btn w-full transition-all btn-primary"
 				onclick={onReserve}
 			>
 				<IconShoppingBag class="size-5" />
@@ -110,9 +110,7 @@
 	<!-- Owner Controls - Info Blue or Error Red -->
 	{#if isReserved}
 		<div class="rounded-2xl border-2 border-info bg-info/20 via-info/10 to-info/5 p-4">
-			<div
-				class="flex items-center gap-3 rounded-xl border-2 border-info/40 bg-info/10 p-4 shadow-sm"
-			>
+			<div class="flex items-center gap-3 rounded-xl border-2 border-info/40 bg-info/10 p-4">
 				<div class="rounded-lg bg-info p-2.5">
 					<IconInfo class="size-6 text-info-content" />
 				</div>
@@ -121,11 +119,7 @@
 		</div>
 	{:else}
 		<div class="rounded-2xl border-2 border-error/50 bg-error/10 via-error/5 to-base-100 p-4">
-			<button
-				type="button"
-				class="btn w-full transition-all btn-lg btn-error hover:shadow-xl"
-				onclick={onDelete}
-			>
+			<button type="button" class="hover: btn w-full transition-all btn-error" onclick={onDelete}>
 				<IconDelete class="size-5" />
 				Delete Offer
 			</button>

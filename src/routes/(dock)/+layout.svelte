@@ -181,7 +181,7 @@
 <main class="min-h-screen w-full max-w-full overflow-x-hidden p-6 md:ps-64">
 	<div class="mb-16 w-full max-w-full md:mb-0">
 		{#if $navigating}
-			<div class="flex min-h-screen items-center justify-center">
+			<div class="flex h-full w-full items-center justify-center">
 				<span class="loading loading-lg loading-spinner text-primary"></span>
 			</div>
 		{:else}

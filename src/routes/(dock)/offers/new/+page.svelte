@@ -37,9 +37,9 @@
 	});
 </script>
 
-<div class="container mx-auto max-w-3xl p-4">
+<div class="container mx-auto max-w-lg p-4">
 	<div class="mb-6">
-		<h1 class="text-3xl font-bold">Create New Offer</h1>
+		<h1 class="text-lg font-bold">Create New Offer</h1>
 		<p class="mt-2 text-base-content/70">
 			Create a new surprise bag or discounted offer for your customers
 		</p>

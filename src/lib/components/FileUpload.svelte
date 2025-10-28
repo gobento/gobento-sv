@@ -255,7 +255,7 @@
 	</div>
 
 	<!-- Submit Button -->
-	<button type="submit" class="btn btn-block btn-lg btn-primary" disabled={!canUpload || disabled}>
+	<button type="submit" class="btn btn-block btn-primary" disabled={!canUpload || disabled}>
 		{#if uploading}
 			<span class="loading loading-spinner"></span>
 			Uploading...

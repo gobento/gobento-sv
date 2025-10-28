@@ -123,7 +123,7 @@
 			<IconLocation class="h-7 w-7 text-primary-content" />
 		</div>
 		<div>
-			<h1 class="text-4xl font-bold tracking-tight">Edit Location</h1>
+			<h1 class="text-3xl font-bold tracking-tight">Edit Location</h1>
 			<p class="mt-2 text-base text-base-content/60">{data.business.name}</p>
 		</div>
 	</div>
@@ -366,8 +366,8 @@
 
 		<!-- Actions -->
 		<div class="mt-10 flex justify-end gap-3">
-			<a href="/locations/{data.location.id}" class="btn btn-ghost btn-lg">Cancel</a>
-			<button type="submit" disabled={isSaving} class="btn gap-2.5 btn-lg btn-primary">
+			<a href="/locations/{data.location.id}" class="btn btn-ghost">Cancel</a>
+			<button type="submit" disabled={isSaving} class="btn gap-2.5 btn-primary">
 				{#if isSaving}
 					<span class="loading loading-md loading-spinner"></span>
 					Saving...
