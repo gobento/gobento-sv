@@ -3,10 +3,12 @@
 	import { enhance } from '$app/forms';
 	import IconClose from '~icons/fluent/dismiss-24-regular';
 	import IconBank from '~icons/fluent/building-bank-24-regular';
-	import FluentPayment24Regular from '~icons/fluent/payment-24-regular';
+	import IconWallet from '~icons/fluent/wallet-24-regular';
 	import IconCopy from '~icons/fluent/copy-24-regular';
-	import IconCheck from '~icons/fluent/checkmark-24-regular';
-	import IconCalendar from '~icons/fluent/calendar-24-regular';
+	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
+	import IconInfo from '~icons/fluent/info-24-regular';
+	import IconWarning from '~icons/fluent/warning-24-regular';
+	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
 
 	interface Props {
 		show: boolean;
@@ -27,19 +29,20 @@
 
 	let { show, offer, businessPaymentMethods, pickupDate, onClose }: Props = $props();
 
-	let selectedMethod = $state<'iban' | 'tether'>(businessPaymentMethods.preferredMethod);
+	let selectedMethod = $state<'iban' | 'tether' | null>(null);
 	let processing = $state(false);
 	let paymentDetails = $state<any>(null);
 	let copiedField = $state<string | null>(null);
 	let transactionReference = $state('');
+	let showPaymentForm = $state(false);
 
 	const formatPrice = (price: number, currency: string) => {
-		return price;
-
 		if (currency === 'USDT') {
 			return `${price.toFixed(2)} USDT`;
 		}
-
+		if (currency === 'IRR') {
+			return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
+		}
 		return new Intl.NumberFormat('de-DE', {
 			style: 'currency',
 			currency: currency
@@ -58,10 +61,12 @@
 		}
 	};
 
-	const handleInitPayment = async () => {
+	const handleMethodSelect = async (method: 'iban' | 'tether') => {
+		selectedMethod = method;
 		processing = true;
+
 		const formData = new FormData();
-		formData.append('paymentMethod', selectedMethod);
+		formData.append('paymentMethod', method);
 		formData.append('pickupDate', pickupDate);
 
 		try {
@@ -70,25 +75,29 @@
 				body: formData
 			});
 
-			console.log('initPayment response:', response);
-
 			const result = await response.json();
-
-			console.log('initPayment result:', result);
 
 			if (result.type === 'success' && result.data) {
 				paymentDetails = result.data;
+				showPaymentForm = true;
 			} else if (result.type === 'failure') {
 				alert(result.data?.error || 'Payment initialization failed');
-				onClose();
+				selectedMethod = null;
 			}
 		} catch (err) {
 			console.error('Payment error:', err);
 			alert('Failed to initialize payment');
-			onClose();
+			selectedMethod = null;
 		} finally {
 			processing = false;
 		}
+	};
+
+	const handleBack = () => {
+		selectedMethod = null;
+		showPaymentForm = false;
+		paymentDetails = null;
+		transactionReference = '';
 	};
 
 	const handleConfirmPayment = async () => {
@@ -125,220 +134,260 @@
 	};
 
 	$effect(() => {
-		if (show && !paymentDetails) {
-			handleInitPayment();
-		}
 		if (!show) {
+			selectedMethod = null;
+			showPaymentForm = false;
 			paymentDetails = null;
 			transactionReference = '';
 		}
 	});
 </script>
 
-{#if show}
-	<div class="modal-open modal">
-		<div class="modal-box max-w-2xl">
-			<!-- Header -->
-			<div class="mb-6 flex items-start justify-between">
+<dialog class="modal" class:modal-open={show}>
+	<div class="modal-box max-w-xl rounded-3xl">
+		<!-- Header -->
+		<div class="mb-8 flex items-start justify-between">
+			<div class="flex items-center gap-3">
+				{#if selectedMethod}
+					<button
+						onclick={handleBack}
+						disabled={processing}
+						class="btn btn-circle btn-ghost btn-sm"
+					>
+						<IconArrowLeft class="size-5" />
+					</button>
+				{/if}
 				<div>
-					<h3 class="text-2xl font-semibold">Complete Payment</h3>
-					<p class="mt-1 text-base text-base-content/60">{offer.name}</p>
+					<h3 class="text-xl font-semibold">Complete Payment</h3>
+					<p class="mt-1 text-sm opacity-60">{offer.name}</p>
 				</div>
-				<button
-					type="button"
-					class="btn btn-circle btn-ghost btn-sm"
-					onclick={onClose}
-					disabled={processing}
-				>
-					<IconClose class="size-5" />
-				</button>
 			</div>
+			<button onclick={onClose} disabled={processing} class="btn btn-circle btn-ghost btn-sm">
+				<IconClose class="size-5" />
+			</button>
+		</div>
 
-			{#if processing && !paymentDetails}
-				<div class="flex flex-col items-center gap-4 py-12">
-					<span class="loading loading-lg loading-spinner text-primary"></span>
-					<p class="text-base-content/60">Initializing payment...</p>
-				</div>
-			{:else if paymentDetails}
-				<div class="space-y-6">
-					<!-- Amount -->
-					<div class="rounded-lg border border-base-300 bg-base-100 p-5">
-						<p class="mb-2 text-sm text-base-content/60">Amount to Pay</p>
-						<p class="text-3xl font-bold text-success">
-							{formatPrice(paymentDetails.amount, paymentDetails.currency)}
-						</p>
+		<!-- Price Display -->
+		<div class="mb-8 rounded-2xl bg-primary/10 p-6">
+			<div class="flex items-baseline justify-between">
+				<span class="text-sm font-medium text-primary">Total Amount</span>
+				<span class="text-3xl font-semibold text-primary">
+					{formatPrice(offer.price, offer.currency)}
+				</span>
+			</div>
+			<div class="mt-3 flex items-center justify-between text-xs opacity-50">
+				<span>Pickup Date</span>
+				<span class="font-medium">
+					{new Date(pickupDate).toLocaleDateString('en-US', {
+						month: 'short',
+						day: 'numeric',
+						year: 'numeric'
+					})}
+				</span>
+			</div>
+		</div>
+
+		{#if !selectedMethod}
+			<!-- Payment Method Selection -->
+			<div class="mb-6 space-y-3">
+				<h4 class="mb-4 text-sm font-medium opacity-60">Select Payment Method</h4>
+
+				{#if businessPaymentMethods.ibanEnabled}
+					<button
+						onclick={() => handleMethodSelect('iban')}
+						disabled={processing}
+						class="flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 p-5 text-left transition-all hover:border-primary hover:bg-primary/5 disabled:opacity-50"
+					>
+						<div class="rounded-xl bg-primary/10 p-3">
+							<IconBank class="size-6 text-primary" />
+						</div>
+						<div class="flex-1">
+							<div class="font-semibold">Bank Transfer</div>
+							<div class="text-sm opacity-60">Shetab card payment</div>
+						</div>
+						<span class="text-primary">→</span>
+					</button>
+				{/if}
+
+				{#if businessPaymentMethods.tetherEnabled}
+					<button
+						onclick={() => handleMethodSelect('tether')}
+						disabled={processing}
+						class="flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 p-5 text-left transition-all hover:border-secondary hover:bg-secondary/5 disabled:opacity-50"
+					>
+						<div class="rounded-xl bg-secondary/10 p-3">
+							<IconWallet class="size-6 text-secondary" />
+						</div>
+						<div class="flex-1">
+							<div class="font-semibold">Tether (USDT)</div>
+							<div class="text-sm opacity-60">Cryptocurrency wallet</div>
+						</div>
+						<span class="text-secondary">→</span>
+					</button>
+				{/if}
+			</div>
+		{:else if processing && !paymentDetails}
+			<!-- Loading State -->
+			<div class="flex flex-col items-center gap-4 py-12">
+				<span class="loading loading-lg loading-spinner text-primary"></span>
+				<p class="opacity-60">Initializing payment...</p>
+			</div>
+		{:else if showPaymentForm && paymentDetails}
+			<!-- Payment Form -->
+			<div class="space-y-6">
+				{#if paymentDetails.paymentMethod === 'iban'}
+					<!-- Bank Transfer Instructions -->
+					<div class="rounded-2xl bg-primary/10 p-5">
+						<div class="flex gap-3">
+							<IconInfo class="mt-0.5 size-5 flex-shrink-0 text-primary" />
+							<div class="text-sm">
+								<p class="font-medium">Bank Transfer Instructions</p>
+								<p class="mt-1 opacity-70">
+									Transfer the exact amount to the card number below and include the reference.
+								</p>
+							</div>
+						</div>
 					</div>
 
-					<!-- Pickup Date -->
-					<div class="rounded-lg border border-base-300 bg-base-100 p-5">
-						<div class="mb-3 flex items-center gap-2">
-							<IconCalendar class="size-5 text-primary" />
-							<h4 class="text-lg font-semibold">Pickup Date</h4>
-						</div>
-						<p class="text-xl font-semibold">
-							{new Date(paymentDetails.pickupDate).toLocaleDateString('de-DE', {
-								weekday: 'long',
-								year: 'numeric',
-								month: 'long',
-								day: 'numeric'
-							})}
-						</p>
-					</div>
-
-					<!-- Payment Instructions -->
-					{#if paymentDetails.paymentMethod === 'iban'}
-						<div class="rounded-lg border border-base-300 bg-base-100 p-5">
-							<div class="mb-4 flex items-center gap-2">
-								<IconBank class="size-5 text-primary" />
-								<h4 class="text-lg font-semibold">Bank Transfer Details</h4>
-							</div>
-
-							<div class="space-y-4">
-								<!-- IBAN -->
-								<div class="space-y-2">
-									<label class="text-sm text-base-content/60">Shetab Card Number</label>
-									<div class="flex gap-2">
-										<input
-											type="text"
-											value={paymentDetails.ibanNumber}
-											readonly
-											class="input-bordered input flex-1 bg-base-200 font-mono text-sm"
-										/>
-										<button
-											type="button"
-											class="btn btn-square"
-											onclick={() => copyToClipboard(paymentDetails.ibanNumber, 'iban')}
-										>
-											{#if copiedField === 'iban'}
-												<IconCheck class="size-5 text-success" />
-											{:else}
-												<IconCopy class="size-5" />
-											{/if}
-										</button>
-									</div>
-								</div>
-
-								<!-- Reference -->
-								<div class="space-y-2">
-									<label class="text-sm text-base-content/60">Payment Reference</label>
-									<div class="flex gap-2">
-										<input
-											type="text"
-											value={paymentDetails.reference}
-											readonly
-											class="input-bordered input flex-1 bg-base-200 font-mono"
-										/>
-										<button
-											type="button"
-											class="btn btn-square"
-											onclick={() => copyToClipboard(paymentDetails.reference, 'reference')}
-										>
-											{#if copiedField === 'reference'}
-												<IconCheck class="size-5 text-success" />
-											{:else}
-												<IconCopy class="size-5" />
-											{/if}
-										</button>
-									</div>
-								</div>
-
-								<div class="rounded-lg border border-info/30 bg-info/10 p-4">
-									<p class="text-sm">
-										Please transfer <strong
-											>{formatPrice(paymentDetails.amount, paymentDetails.currency)}</strong
-										>
-										to the card number above and include the reference in your transfer description.
-									</p>
-								</div>
-							</div>
-						</div>
-					{:else if paymentDetails.paymentMethod === 'tether'}
-						<div class="rounded-lg border border-base-300 bg-base-100 p-5">
-							<div class="mb-4 flex items-center gap-2">
-								<FluentPayment24Regular class="size-5 text-primary" />
-								<h4 class="text-lg font-semibold">USDT Transfer Details</h4>
-							</div>
-
-							<div class="space-y-4">
-								<!-- Wallet Address -->
-								<div class="space-y-2">
-									<label class="text-sm text-base-content/60">Wallet Address (ERC-20)</label>
-									<div class="flex gap-2">
-										<input
-											type="text"
-											value={paymentDetails.tetherAddress}
-											readonly
-											class="input-bordered input flex-1 bg-base-200 font-mono text-xs"
-										/>
-										<button
-											type="button"
-											class="btn btn-square"
-											onclick={() => copyToClipboard(paymentDetails.tetherAddress, 'address')}
-										>
-											{#if copiedField === 'address'}
-												<IconCheck class="size-5 text-success" />
-											{:else}
-												<IconCopy class="size-5" />
-											{/if}
-										</button>
-									</div>
-								</div>
-
-								<div class="rounded-lg border border-warning/30 bg-warning/10 p-4">
-									<p class="text-sm">
-										Send <strong>{paymentDetails.amount} USDT</strong> to the address above on the
-										<strong>Ethereum network (ERC-20)</strong>. Double-check the address before
-										sending.
-									</p>
-								</div>
-							</div>
-						</div>
-					{/if}
-
-					<!-- Confirmation Input -->
-					<div class="rounded-lg border border-base-300 bg-base-100 p-5">
-						<div class="space-y-3">
-							<label class="text-base font-semibold">
-								{paymentDetails.paymentMethod === 'iban'
-									? 'Enter Your Transaction Reference'
-									: 'Enter the Transaction Hash (TxHash)'}
-							</label>
+					<div>
+						<label class="mb-2 block text-sm font-medium text-primary">Shetab Card Number</label>
+						<div class="flex gap-2">
 							<input
 								type="text"
-								bind:value={transactionReference}
-								placeholder={paymentDetails.paymentMethod === 'iban'
-									? 'e.g., REF123456789'
-									: '0x...'}
-								class="input-bordered input w-full bg-base-200 font-mono"
-								disabled={processing}
+								value={paymentDetails.ibanNumber}
+								readonly
+								class="input-bordered input flex-1 rounded-xl bg-base-200 font-mono text-sm focus:border-primary"
 							/>
-							<p class="text-sm text-base-content/60">This helps us verify your payment</p>
+							<button
+								type="button"
+								onclick={() => copyToClipboard(paymentDetails.ibanNumber, 'iban')}
+								class="btn btn-square rounded-xl btn-primary"
+							>
+								{#if copiedField === 'iban'}
+									<IconCheckmark class="size-5" />
+								{:else}
+									<IconCopy class="size-5" />
+								{/if}
+							</button>
 						</div>
 					</div>
 
-					<!-- Actions -->
-					<div class="flex gap-3 pt-2">
-						<button
-							type="button"
-							class="btn flex-1 gap-1 btn-primary"
-							onclick={handleConfirmPayment}
-							disabled={processing || !transactionReference.trim()}
-						>
-							{#if processing}
-								<span class="loading loading-sm loading-spinner"></span>
-								Processing...
-							{:else}
-								<IconCheck class="size-5" />
-								Confirm Payment
-							{/if}
-						</button>
-						<button type="button" class="btn" onclick={onClose} disabled={processing}>
-							Cancel
-						</button>
+					<div>
+						<label class="mb-2 block text-sm font-medium text-primary">Payment Reference</label>
+						<div class="flex gap-2">
+							<input
+								type="text"
+								value={paymentDetails.reference}
+								readonly
+								class="input-bordered input flex-1 rounded-xl bg-base-200 font-mono focus:border-primary"
+							/>
+							<button
+								type="button"
+								onclick={() => copyToClipboard(paymentDetails.reference, 'reference')}
+								class="btn btn-square rounded-xl btn-primary"
+							>
+								{#if copiedField === 'reference'}
+									<IconCheckmark class="size-5" />
+								{:else}
+									<IconCopy class="size-5" />
+								{/if}
+							</button>
+						</div>
+						<p class="mt-2 text-xs opacity-50">Include this in your transfer description</p>
 					</div>
+				{:else if paymentDetails.paymentMethod === 'tether'}
+					<!-- Tether Transfer Instructions -->
+					<div class="rounded-2xl bg-warning/10 p-5">
+						<div class="flex gap-3">
+							<IconWarning class="mt-0.5 size-5 flex-shrink-0 text-warning" />
+							<div class="text-sm">
+								<p class="font-medium">Important</p>
+								<p class="mt-1 opacity-80">
+									Send exactly <span class="font-semibold text-secondary">
+										{paymentDetails.amount} USDT</span
+									> on the Ethereum network (ERC-20). Double-check the address.
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<div>
+						<label class="mb-2 block text-sm font-medium text-secondary">
+							Wallet Address (ERC-20)
+						</label>
+						<div class="flex gap-2">
+							<input
+								type="text"
+								value={paymentDetails.tetherAddress}
+								readonly
+								class="input-bordered input flex-1 rounded-xl bg-base-200 font-mono text-xs focus:border-secondary"
+							/>
+							<button
+								type="button"
+								onclick={() => copyToClipboard(paymentDetails.tetherAddress, 'address')}
+								class="btn btn-square rounded-xl btn-secondary"
+							>
+								{#if copiedField === 'address'}
+									<IconCheckmark class="size-5" />
+								{:else}
+									<IconCopy class="size-5" />
+								{/if}
+							</button>
+						</div>
+					</div>
+
+					<div class="rounded-2xl bg-secondary/10 p-5">
+						<p class="mb-3 text-sm font-medium text-secondary">Steps:</p>
+						<ol class="ml-5 list-decimal space-y-2 text-sm opacity-80">
+							<li>Copy the wallet address above</li>
+							<li>Open your crypto wallet (MetaMask, Trust Wallet, etc.)</li>
+							<li>Send exactly {paymentDetails.amount} USDT on ERC-20 network</li>
+							<li>Copy the transaction hash and paste it below</li>
+						</ol>
+					</div>
+				{/if}
+
+				<!-- Transaction Reference Input -->
+				<div>
+					<label class="mb-2 block text-sm font-medium">
+						{paymentDetails.paymentMethod === 'iban'
+							? 'Your Transaction Reference'
+							: 'Transaction Hash'}
+					</label>
+					<input
+						type="text"
+						bind:value={transactionReference}
+						placeholder={paymentDetails.paymentMethod === 'iban' ? 'Enter reference' : '0x...'}
+						disabled={processing}
+						class="input-bordered input w-full rounded-xl bg-base-200 font-mono text-sm"
+					/>
+					<p class="mt-2 text-xs opacity-50">
+						{paymentDetails.paymentMethod === 'iban'
+							? 'Enter the reference from your bank transfer'
+							: 'Paste the transaction hash from your wallet'}
+					</p>
 				</div>
-			{/if}
-		</div>
-		<div class="modal-backdrop" onclick={onClose}></div>
+
+				<button
+					type="button"
+					onclick={handleConfirmPayment}
+					disabled={processing || !transactionReference.trim()}
+					class="btn w-full rounded-xl"
+					class:btn-primary={paymentDetails.paymentMethod === 'iban'}
+					class:btn-secondary={paymentDetails.paymentMethod === 'tether'}
+				>
+					{#if processing}
+						<span class="loading loading-sm loading-spinner"></span>
+						Verifying...
+					{:else}
+						Confirm Payment
+					{/if}
+				</button>
+			</div>
+		{/if}
 	</div>
-{/if}
+
+	<form method="dialog" class="modal-backdrop">
+		<button onclick={onClose} disabled={processing}>close</button>
+	</form>
+</dialog>
