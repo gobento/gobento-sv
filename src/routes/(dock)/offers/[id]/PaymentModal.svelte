@@ -8,6 +8,8 @@
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-regular';
+	import IconError from '~icons/fluent/error-circle-24-regular';
+	import IconSuccess from '~icons/fluent/checkmark-circle-24-filled';
 	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
 	import { schedulePickupNotifications } from '$lib/client/schedulePickupNotifications';
 
@@ -37,6 +39,8 @@
 	let copiedField = $state<string | null>(null);
 	let transactionReference = $state('');
 	let showPaymentForm = $state(false);
+	let errorMessage = $state<string | null>(null);
+	let successMessage = $state<string | null>(null);
 
 	const formatPrice = (price: number, currency: string) => {
 		if (currency === 'USDT') {
@@ -63,7 +67,13 @@
 		}
 	};
 
+	const clearMessages = () => {
+		errorMessage = null;
+		successMessage = null;
+	};
+
 	const handleMethodSelect = async (method: 'iban' | 'tether') => {
+		clearMessages();
 		selectedMethod = method;
 		processing = true;
 
@@ -83,12 +93,12 @@
 				paymentDetails = result.data;
 				showPaymentForm = true;
 			} else if (result.type === 'failure') {
-				alert(result.data?.error || 'Payment initialization failed');
+				errorMessage = result.data?.error || 'Payment initialization failed';
 				selectedMethod = null;
 			}
 		} catch (err) {
 			console.error('Payment error:', err);
-			alert('Failed to initialize payment');
+			errorMessage = 'Failed to initialize payment. Please try again.';
 			selectedMethod = null;
 		} finally {
 			processing = false;
@@ -96,6 +106,7 @@
 	};
 
 	const handleBack = () => {
+		clearMessages();
 		selectedMethod = null;
 		showPaymentForm = false;
 		paymentDetails = null;
@@ -104,10 +115,11 @@
 
 	const handleConfirmPayment = async () => {
 		if (!transactionReference.trim()) {
-			alert('Please enter the transaction reference');
+			errorMessage = 'Please enter the transaction reference';
 			return;
 		}
 
+		clearMessages();
 		processing = true;
 		const formData = new FormData();
 		formData.append('paymentId', paymentDetails.paymentId);
@@ -135,22 +147,29 @@
 						console.log(
 							`Scheduled ${notificationResult.scheduledCount} notification(s) for pickup`
 						);
+						successMessage = `Payment confirmed! ${notificationResult.scheduledCount} pickup reminder(s) scheduled.`;
 					} else {
 						console.warn('Failed to schedule notifications:', notificationResult.error);
+						successMessage =
+							'Payment confirmed! Your reservation has been created. (Reminders could not be scheduled)';
 					}
 				} catch (notifError) {
 					// Don't fail the whole payment if notification scheduling fails
 					console.error('Notification scheduling error:', notifError);
+					successMessage =
+						'Payment confirmed! Your reservation has been created. (Reminders could not be scheduled)';
 				}
 
-				alert('Payment confirmed! Your reservation has been created.');
-				window.location.reload();
+				// Redirect after a short delay
+				setTimeout(() => {
+					window.location.href = `/reservations/${result.data.reservationId}`;
+				}, 2000);
 			} else if (result.type === 'failure') {
-				alert(result.data?.error || 'Payment confirmation failed');
+				errorMessage = result.data?.error || 'Payment confirmation failed';
 			}
 		} catch (err) {
 			console.error('Confirmation error:', err);
-			alert('Failed to confirm payment');
+			errorMessage = 'Failed to confirm payment. Please try again.';
 		} finally {
 			processing = false;
 		}
@@ -158,6 +177,7 @@
 
 	$effect(() => {
 		if (!show) {
+			clearMessages();
 			selectedMethod = null;
 			showPaymentForm = false;
 			paymentDetails = null;
@@ -189,6 +209,33 @@
 				<IconClose class="size-5" />
 			</button>
 		</div>
+
+		<!-- Success Message -->
+		{#if successMessage}
+			<div class="mb-6 rounded-2xl bg-success/10 p-5">
+				<div class="flex gap-3">
+					<IconSuccess class="mt-0.5 size-6 flex-shrink-0 text-success" />
+					<div class="flex-1">
+						<p class="font-medium text-success">Success!</p>
+						<p class="mt-1 text-sm text-success/80">{successMessage}</p>
+						<p class="mt-2 text-xs text-success/60">Redirecting to your reservation...</p>
+					</div>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Error Message -->
+		{#if errorMessage}
+			<div class="mb-6 rounded-2xl bg-error/10 p-5">
+				<div class="flex gap-3">
+					<IconError class="mt-0.5 size-6 flex-shrink-0 text-error" />
+					<div class="flex-1">
+						<p class="font-medium text-error">Error</p>
+						<p class="mt-1 text-sm text-error/80">{errorMessage}</p>
+					</div>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Price Display -->
 		<div class="mb-8 rounded-2xl bg-primary/10 p-6">
@@ -381,7 +428,7 @@
 						type="text"
 						bind:value={transactionReference}
 						placeholder={paymentDetails.paymentMethod === 'iban' ? 'Enter reference' : '0x...'}
-						disabled={processing}
+						disabled={processing || !!successMessage}
 						class="input-bordered input w-full rounded-xl bg-base-200 font-mono text-sm"
 					/>
 					<p class="mt-2 text-xs opacity-50">
@@ -394,7 +441,7 @@
 				<button
 					type="button"
 					onclick={handleConfirmPayment}
-					disabled={processing || !transactionReference.trim()}
+					disabled={processing || !transactionReference.trim() || !!successMessage}
 					class="btn w-full rounded-xl"
 					class:btn-primary={paymentDetails.paymentMethod === 'iban'}
 					class:btn-secondary={paymentDetails.paymentMethod === 'tether'}
@@ -402,6 +449,9 @@
 					{#if processing}
 						<span class="loading loading-sm loading-spinner"></span>
 						Verifying...
+					{:else if successMessage}
+						<IconCheckmark class="size-5" />
+						Payment Confirmed
 					{:else}
 						Confirm Payment
 					{/if}

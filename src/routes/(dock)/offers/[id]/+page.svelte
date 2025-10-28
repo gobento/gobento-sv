@@ -5,9 +5,8 @@
 	import IconStore from '~icons/fluent/building-retail-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
-	import IconLocation from '~icons/fluent/location-24-regular';
 
-	import PaymentModal from '$lib/components/PaymentModal.svelte';
+	import PaymentModal from './PaymentModal.svelte';
 	import { formatDate, formatTime } from '$lib/util.js';
 	import LocationCard from '$lib/components/LocationCard.svelte';
 	import OfferStatusCard from './OfferStatusCard.svelte';
