@@ -178,7 +178,7 @@
 </nav>
 
 <!-- Main Content (with padding for sidebar on desktop) -->
-<main class="min-h-screen w-full max-w-full overflow-x-hidden p-6 md:ps-64">
+<main class="min-h-screen w-full max-w-full overflow-x-hidden md:ps-58">
 	<div class="mb-16 w-full max-w-full md:mb-0">
 		{#if $navigating}
 			<div class="flex h-full w-full items-center justify-center">
@@ -191,7 +191,7 @@
 </main>
 
 <!-- Mobile Bottom Dock -->
-<div class="dock dock-md md:hidden">
+<div class="dock z-1000 dock-md md:hidden">
 	{#each navigation() as item}
 		<button
 			onclick={() => navigateTo(item.path)}

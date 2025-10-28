@@ -11,6 +11,7 @@
 	import IconError from '~icons/fluent/error-circle-24-regular';
 	import IconSuccess from '~icons/fluent/checkmark-circle-24-filled';
 	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
+	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import { schedulePickupNotifications } from '$lib/client/schedulePickupNotifications';
 
 	interface Props {
@@ -27,11 +28,24 @@
 			preferredMethod: 'iban' | 'tether';
 		};
 		pickupDate: string;
+		minDate: string;
+		maxDate: string;
+		isRecurring: boolean;
 		locationName?: string;
 		onClose: () => void;
 	}
 
-	let { show, offer, businessPaymentMethods, pickupDate, locationName, onClose }: Props = $props();
+	let {
+		show,
+		offer,
+		businessPaymentMethods,
+		pickupDate,
+		minDate,
+		maxDate,
+		isRecurring,
+		locationName,
+		onClose
+	}: Props = $props();
 
 	let selectedMethod = $state<'iban' | 'tether' | null>(null);
 	let processing = $state(false);
@@ -41,6 +55,12 @@
 	let showPaymentForm = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let successMessage = $state<string | null>(null);
+	let localPickupDate = $state(pickupDate);
+
+	// Keep local date in sync with prop
+	$effect(() => {
+		localPickupDate = pickupDate;
+	});
 
 	const formatPrice = (price: number, currency: string) => {
 		if (currency === 'USDT') {
@@ -53,6 +73,16 @@
 			style: 'currency',
 			currency: currency
 		}).format(price);
+	};
+
+	const formatDateDisplay = (dateStr: string) => {
+		const date = new Date(dateStr);
+		return date.toLocaleDateString('en-US', {
+			weekday: 'long',
+			month: 'long',
+			day: 'numeric',
+			year: 'numeric'
+		});
 	};
 
 	const copyToClipboard = async (text: string, field: string) => {
@@ -79,7 +109,7 @@
 
 		const formData = new FormData();
 		formData.append('paymentMethod', method);
-		formData.append('pickupDate', pickupDate);
+		formData.append('pickupDate', localPickupDate);
 
 		try {
 			const response = await fetch(`/offers/${offer.id}?/initPayment`, {
@@ -138,7 +168,7 @@
 				try {
 					const notificationResult = await schedulePickupNotifications({
 						reservationId: result.data.reservationId,
-						pickupDate: pickupDate,
+						pickupDate: localPickupDate,
 						offerName: offer.name,
 						locationName: locationName
 					});
@@ -189,7 +219,7 @@
 <dialog class="modal" class:modal-open={show}>
 	<div class="modal-box max-w-xl rounded-lg">
 		<!-- Header -->
-		<div class="mb-8 flex items-start justify-between">
+		<div class="mb-6 flex items-start justify-between">
 			<div class="flex items-center gap-3">
 				{#if selectedMethod}
 					<button
@@ -214,7 +244,7 @@
 		{#if successMessage}
 			<div class="mb-6 rounded-2xl bg-success/10 p-5">
 				<div class="flex gap-3">
-					<IconSuccess class="mt-0.5 size-6 flex-shrink-0 text-success" />
+					<IconSuccess class="mt-0.5 size-6 shrink-0 text-success" />
 					<div class="flex-1">
 						<p class="font-medium text-success">Success!</p>
 						<p class="mt-1 text-sm text-success/80">{successMessage}</p>
@@ -237,24 +267,40 @@
 			</div>
 		{/if}
 
-		<!-- Price Display -->
-		<div class="mb-8 rounded-2xl bg-primary/10 p-6">
-			<div class="flex items-baseline justify-between">
-				<span class="text-sm font-medium text-primary">Total Amount</span>
-				<span class="text-lg font-semibold text-primary">
-					{formatPrice(offer.price, offer.currency)}
-				</span>
+		<!-- Order Summary -->
+		<div class="mb-6 space-y-4">
+			<!-- Price -->
+			<div class="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5">
+				<div class="flex items-baseline justify-between">
+					<span class="text-sm font-medium text-primary">Total Amount</span>
+					<span class="text-2xl font-bold text-primary">
+						{formatPrice(offer.price, offer.currency)}
+					</span>
+				</div>
 			</div>
-			<div class="mt-3 flex items-center justify-between text-xs opacity-50">
-				<span>Pickup Date</span>
-				<span class="font-medium">
-					{new Date(pickupDate).toLocaleDateString('en-US', {
-						month: 'short',
-						day: 'numeric',
-						year: 'numeric'
-					})}
-				</span>
-			</div>
+
+			<!-- Pickup Date -->
+			{#if isRecurring}
+				<div
+					class="rounded-2xl bg-gradient-to-br from-secondary/10 via-secondary/5 to-transparent p-5"
+				>
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-3">
+							<div class="rounded-lg bg-gradient-to-br from-secondary/30 to-secondary/20 p-2">
+								<IconCalendar class="size-5 text-secondary" />
+							</div>
+							<div>
+								<div class="text-xs font-medium tracking-wide text-secondary/70 uppercase">
+									Pickup Date
+								</div>
+								<div class="mt-0.5 font-semibold text-secondary">
+									{formatDateDisplay(localPickupDate)}
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			{/if}
 		</div>
 
 		{#if !selectedMethod}
@@ -266,9 +312,9 @@
 					<button
 						onclick={() => handleMethodSelect('iban')}
 						disabled={processing}
-						class="flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 p-5 text-left transition-all hover:border-primary hover:bg-primary/5 disabled:opacity-50"
+						class="to-base-50 flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 bg-gradient-to-br from-base-100 p-5 text-left transition-all hover:border-primary hover:from-primary/5 hover:to-primary/10 disabled:opacity-50"
 					>
-						<div class="rounded-xl bg-primary/10 p-3">
+						<div class="rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 p-3">
 							<IconBank class="size-6 text-primary" />
 						</div>
 						<div class="flex-1">
@@ -283,9 +329,9 @@
 					<button
 						onclick={() => handleMethodSelect('tether')}
 						disabled={processing}
-						class="flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 p-5 text-left transition-all hover:border-secondary hover:bg-secondary/5 disabled:opacity-50"
+						class="to-base-50 flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 bg-gradient-to-br from-base-100 p-5 text-left transition-all hover:border-secondary hover:from-secondary/5 hover:to-secondary/10 disabled:opacity-50"
 					>
-						<div class="rounded-xl bg-secondary/10 p-3">
+						<div class="rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 p-3">
 							<IconWallet class="size-6 text-secondary" />
 						</div>
 						<div class="flex-1">
@@ -307,7 +353,7 @@
 			<div class="space-y-6">
 				{#if paymentDetails.paymentMethod === 'iban'}
 					<!-- Bank Transfer Instructions -->
-					<div class="rounded-2xl bg-primary/10 p-5">
+					<div class="rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 p-5">
 						<div class="flex gap-3">
 							<IconInfo class="mt-0.5 size-5 flex-shrink-0 text-primary" />
 							<div class="text-sm">
@@ -367,7 +413,7 @@
 					</div>
 				{:else if paymentDetails.paymentMethod === 'tether'}
 					<!-- Tether Transfer Instructions -->
-					<div class="rounded-2xl bg-warning/10 p-5">
+					<div class="rounded-2xl bg-gradient-to-br from-warning/10 to-warning/5 p-5">
 						<div class="flex gap-3">
 							<IconWarning class="mt-0.5 size-5 flex-shrink-0 text-warning" />
 							<div class="text-sm">
@@ -406,7 +452,7 @@
 						</div>
 					</div>
 
-					<div class="rounded-2xl bg-secondary/10 p-5">
+					<div class="rounded-2xl bg-gradient-to-br from-secondary/10 to-secondary/5 p-5">
 						<p class="mb-3 text-sm font-medium text-secondary">Steps:</p>
 						<ol class="ml-5 list-decimal space-y-2 text-sm opacity-80">
 							<li>Copy the wallet address above</li>
