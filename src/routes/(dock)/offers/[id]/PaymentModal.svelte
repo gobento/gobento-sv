@@ -216,8 +216,8 @@
 	});
 </script>
 
-<dialog class="modal" class:modal-open={show}>
-	<div class="modal-box max-w-xl rounded-lg">
+<dialog class="modal z-1002" class:modal-open={show}>
+	<div class="z-1002 modal-box max-w-xl rounded-lg">
 		<!-- Header -->
 		<div class="mb-6 flex items-start justify-between">
 			<div class="flex items-center gap-3">
