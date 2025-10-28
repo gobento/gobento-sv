@@ -19,7 +19,6 @@
 	let minDate = $state('');
 	let maxDate = $state('');
 
-	// Initialize default values
 	$effect(() => {
 		const now = new Date();
 		const tomorrow = new Date(now);
@@ -35,6 +34,9 @@
 	});
 
 	const formatPrice = (price: number, currency: string) => {
+		if (currency === 'USDT') {
+			return `${price.toFixed(2)} USDT`;
+		}
 		return new Intl.NumberFormat('de-DE', {
 			style: 'currency',
 			currency: currency
@@ -54,25 +56,22 @@
 <!-- Business Header -->
 <div>
 	<div class="flex items-center gap-4">
-		<div class="size-16 overflow-hidden rounded-xl border border-base-300 bg-base-200">
+		<div class="h-16 w-16 overflow-hidden rounded-lg border border-base-300">
 			<img src={data.logo.url} alt={data.business.name} class="h-full w-full object-cover" />
 		</div>
 		<div class="flex-1">
 			<div
-				class="mb-1 flex items-center gap-2 text-xs font-semibold tracking-wide text-base-content/60 uppercase"
+				class="mb-1 flex items-center gap-2 text-xs font-medium tracking-wide text-base-content/60 uppercase"
 			>
-				<IconStore class="size-4" />
+				<IconStore class="h-4 w-4" />
 				<span>{data.business.name}</span>
 			</div>
 			{#if data.location}
-				<a
-					href="/locations/{data.location.id}"
-					class="text-xl font-bold text-base-content hover:text-primary"
-				>
+				<a href="/locations/{data.location.id}" class="text-xl font-bold hover:text-primary">
 					{data.location.name}
 				</a>
 			{:else}
-				<h2 class="text-xl font-bold text-base-content">All Locations</h2>
+				<h2 class="text-xl font-bold">All Locations</h2>
 			{/if}
 		</div>
 	</div>
@@ -83,19 +82,19 @@
 	<div class="flex flex-wrap items-start justify-between gap-4">
 		<div class="flex-1 space-y-3">
 			<div class="flex flex-wrap items-center gap-2">
-				<div class="badge gap-1.5 px-3 py-3 font-semibold badge-primary">
-					<IconGift class="size-4" />
+				<div class="badge gap-1.5 px-3 py-3 badge-primary">
+					<IconGift class="h-4 w-4" />
 					Surprise Bag
 				</div>
 				{#if data.offer.isRecurring}
-					<div class="badge gap-1.5 px-3 py-3 font-semibold badge-secondary">
-						<IconRepeat class="size-4" />
+					<div class="badge gap-1.5 px-3 py-3 badge-secondary">
+						<IconRepeat class="h-4 w-4" />
 						Daily
 					</div>
 				{/if}
 			</div>
 
-			<h1 class="text-3xl leading-tight font-bold text-base-content lg:text-4xl">
+			<h1 class="text-3xl leading-tight font-bold lg:text-4xl">
 				{data.offer.name}
 			</h1>
 
@@ -106,11 +105,11 @@
 
 		<div class="flex flex-col items-end gap-2">
 			<div class="text-right">
-				<div class="text-lg font-semibold text-base-content/50 line-through">
-					{formatPrice(data.offer.originalValue, data.offer.currency)}
+				<div class="text-lg text-base-content/50 line-through">
+					{formatPrice(data.offer.displayOriginalValue, data.offer.displayCurrency)}
 				</div>
 				<div class="text-4xl font-bold text-primary lg:text-5xl">
-					{formatPrice(data.offer.price, data.offer.currency)}
+					{formatPrice(data.offer.displayPrice, data.offer.displayCurrency)}
 				</div>
 			</div>
 		</div>
@@ -132,47 +131,47 @@
 			longitude={data.location.longitude}
 		/>
 	{:else}
-		<div class="rounded-2xl bg-base-100 p-4">
-			<div class="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
-				<div class="rounded-lg bg-primary/20 p-2">
+		<div class="rounded-lg border border-base-300 bg-base-100 p-4">
+			<div class="flex items-center gap-3">
+				<div class="rounded-lg bg-primary/10 p-2">
 					<IconStore class="size-5 text-primary" />
 				</div>
 				<div>
 					<h3 class="font-semibold">All Locations</h3>
-					<p class="text-xs font-medium text-base-content/70">Can be picked up at any location</p>
+					<p class="text-xs text-base-content/70">Can be picked up at any location</p>
 				</div>
 			</div>
 		</div>
 	{/if}
 
 	<!-- Pickup Time -->
-	<div>
-		<div class="mb-4 flex items-center gap-2">
+	<div class="space-y-3">
+		<div class="flex items-center gap-2">
 			<div class="rounded-lg bg-primary/10 p-2">
 				<IconClock class="size-5 text-primary" />
 			</div>
-			<h3 class="text-lg font-bold text-base-content">Pickup Time</h3>
+			<h3 class="font-semibold">Pickup Time</h3>
 		</div>
 
-		<div class="space-y-3">
-			<div class="rounded-xl bg-base-200 p-4">
-				<p class="text-2xl font-bold text-base-content">
+		<div class="space-y-2">
+			<div class="rounded-lg bg-base-200 p-3">
+				<p class="text-xl font-bold">
 					{formatTime(data.offer.pickupTimeFrom)} - {formatTime(data.offer.pickupTimeUntil)}
 				</p>
 				{#if data.offer.isRecurring}
-					<p class="mt-1 text-xs font-medium text-base-content/60">Daily availability</p>
+					<p class="mt-1 text-xs text-base-content/60">Daily availability</p>
 				{/if}
 			</div>
 
 			{#if data.offer.validUntil}
-				<div class="rounded-xl bg-base-200 p-4">
+				<div class="rounded-lg bg-base-200 p-3">
 					<div
-						class="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-base-content/60 uppercase"
+						class="mb-1 flex items-center gap-1.5 text-xs font-medium tracking-wide text-base-content/60 uppercase"
 					>
-						<IconCalendar class="size-4" />
+						<IconCalendar class="h-3 w-3" />
 						Valid Until
 					</div>
-					<p class="text-xl font-bold text-base-content">
+					<p class="font-semibold">
 						{formatDate(data.offer.validUntil)}
 					</p>
 				</div>
@@ -181,12 +180,12 @@
 	</div>
 </div>
 
-<!-- Action Messages -->
+<!-- Error Message -->
 {#if form?.error}
-	<div class="rounded-xl border border-error bg-error/10 p-4">
+	<div class="rounded-lg border border-error bg-error/10 p-4">
 		<div class="flex items-center gap-2">
 			<IconCancel class="size-5 text-error" />
-			<span class="font-semibold text-error">{form.error}</span>
+			<span class="font-medium text-error">{form.error}</span>
 		</div>
 	</div>
 {/if}
@@ -208,9 +207,10 @@
 	offer={{
 		id: data.offer.id,
 		name: data.offer.name,
-		price: data.offer.price,
-		currency: data.offer.currency
+		price: data.offer.displayPrice,
+		currency: data.offer.displayCurrency
 	}}
+	businessPaymentMethods={data.businessPaymentMethods}
 	{pickupDate}
 	onClose={() => (showPaymentModal = false)}
 />

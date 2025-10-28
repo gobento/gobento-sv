@@ -1,5 +1,5 @@
 // src/routes/(dock)/profile/edit/+page.server.ts
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import {
@@ -24,7 +24,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw error(403, 'Profile editing not available for this account type');
 	}
 
-	// Load profile based on account type
 	let profile = null;
 	let profilePictureUrl = null;
 	let wallet = null;
@@ -47,7 +46,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			profilePictureUrl = file ? await getSignedDownloadUrl(file.key) : null;
 		}
 
-		// Load wallet configuration
 		const [walletConfig] = await db
 			.select()
 			.from(businessWallets)
@@ -73,7 +71,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			profilePictureUrl = file ? await getSignedDownloadUrl(file.key) : null;
 		}
 	} else if (account.accountType === 'user') {
-		// Load user profile with preferences
 		const [userProfile] = await db
 			.select()
 			.from(userProfiles)
@@ -95,6 +92,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 	};
 };
 
+function validateIBAN(iban: string): boolean {
+	const trimmed = iban.replace(/\s/g, '');
+	if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/.test(trimmed)) return false;
+	if (trimmed.length < 15 || trimmed.length > 34) return false;
+	return true;
+}
+
+function validateTetherAddress(address: string): boolean {
+	return /^0x[a-fA-F0-9]{40}$/.test(address.trim());
+}
+
 export const actions: Actions = {
 	updateProfile: async ({ request, locals }) => {
 		const { id: accountId, accountType } = locals.account!;
@@ -104,51 +112,53 @@ export const actions: Actions = {
 		const description = formData.get('description') as string;
 		const profilePicture = formData.get('profilePicture') as File | null;
 
-		// Payment provider fields
-		const paymentProvider = formData.get('paymentProvider') as string;
-		const zarinpalMerchantId = formData.get('zarinpalMerchantId') as string;
+		// Payment fields
+		const ibanEnabled = formData.get('ibanEnabled') === 'true';
+		const tetherEnabled = formData.get('tetherEnabled') === 'true';
+		const ibanNumber = formData.get('ibanNumber') as string;
 		const tetherAddress = formData.get('tetherAddress') as string;
+		const preferredPaymentMethod = formData.get('preferredPaymentMethod') as 'iban' | 'tether';
 
-		// Validate required fields based on account type
+		// Validate at least one payment method is enabled
+		if (!ibanEnabled && !tetherEnabled) {
+			return fail(400, { error: 'Please enable at least one payment method' });
+		}
+
+		// Validate IBAN if enabled
+		if (ibanEnabled) {
+			if (!ibanNumber?.trim()) {
+				return fail(400, { error: 'IBAN number is required when IBAN is enabled' });
+			}
+			if (!validateIBAN(ibanNumber.trim())) {
+				return fail(400, { error: 'Invalid IBAN format' });
+			}
+		}
+
+		// Validate Tether if enabled
+		if (tetherEnabled) {
+			if (!tetherAddress?.trim()) {
+				return fail(400, { error: 'USDT wallet address is required when Tether is enabled' });
+			}
+			if (!validateTetherAddress(tetherAddress.trim())) {
+				return fail(400, { error: 'Invalid USDT wallet address format' });
+			}
+		}
+
+		// Validate preferred method is enabled
+		if (preferredPaymentMethod === 'iban' && !ibanEnabled) {
+			return fail(400, { error: 'Cannot set IBAN as preferred when it is disabled' });
+		}
+		if (preferredPaymentMethod === 'tether' && !tetherEnabled) {
+			return fail(400, { error: 'Cannot set Tether as preferred when it is disabled' });
+		}
+
+		// Validate required fields for business/charity
 		if (accountType === 'business' || accountType === 'charity') {
 			if (!name?.trim()) {
 				return fail(400, { error: 'Name is required' });
 			}
-
 			if (!description?.trim()) {
 				return fail(400, { error: 'Description is required' });
-			}
-		}
-
-		// Validate payment provider for business accounts
-		if (accountType === 'business') {
-			if (!paymentProvider || (paymentProvider !== 'zarinpal' && paymentProvider !== 'tether')) {
-				return fail(400, { error: 'Please select a payment provider' });
-			}
-
-			if (paymentProvider === 'zarinpal' && !zarinpalMerchantId?.trim()) {
-				return fail(400, { error: 'Zarinpal Merchant ID is required' });
-			}
-
-			if (paymentProvider === 'tether' && !tetherAddress?.trim()) {
-				return fail(400, { error: 'USDT wallet address is required' });
-			}
-
-			// Validate Tether address format (basic validation)
-			if (paymentProvider === 'tether' && tetherAddress) {
-				if (!/^0x[a-fA-F0-9]{40}$/.test(tetherAddress.trim())) {
-					return fail(400, { error: 'Invalid USDT wallet address format' });
-				}
-			}
-		}
-
-		// Validate payment provider for user accounts (optional)
-		if (accountType === 'user' && paymentProvider) {
-			if (paymentProvider === 'tether' && tetherAddress?.trim()) {
-				// Validate Tether address format
-				if (!/^0x[a-fA-F0-9]{40}$/.test(tetherAddress.trim())) {
-					return fail(400, { error: 'Invalid USDT wallet address format' });
-				}
 			}
 		}
 
@@ -156,7 +166,6 @@ export const actions: Actions = {
 			if (accountType === 'business' || accountType === 'charity') {
 				const profileTable = accountType === 'business' ? businessProfiles : charityProfiles;
 
-				// Get current profile to check if it has a picture
 				const [currentProfile] = await db
 					.select()
 					.from(profileTable)
@@ -165,20 +174,16 @@ export const actions: Actions = {
 
 				let profilePictureId = currentProfile?.profilePictureId;
 
-				// Handle new profile picture upload
 				if (profilePicture && profilePicture.size > 0) {
-					// Validate file type
 					if (!profilePicture.type.startsWith('image/')) {
 						return fail(400, { error: 'Only images are allowed' });
 					}
 
-					// Validate file size (5MB max)
 					const maxSize = 5 * 1024 * 1024;
 					if (profilePicture.size > maxSize) {
 						return fail(400, { error: 'File size must be less than 5MB' });
 					}
 
-					// Upload new file
 					const uploadResult = await uploadFileFromForm(profilePicture);
 
 					if (!uploadResult.success) {
@@ -188,7 +193,6 @@ export const actions: Actions = {
 					const fileId = randomUUID();
 					const storageKey = uploadResult.key;
 
-					// Save file metadata to database
 					await db.insert(files).values({
 						id: fileId,
 						key: storageKey,
@@ -200,11 +204,9 @@ export const actions: Actions = {
 
 					profilePictureId = fileId;
 				} else if (!profilePictureId) {
-					// No new file and no existing file
 					return fail(400, { error: 'Profile picture is required' });
 				}
 
-				// Update profile
 				await db
 					.update(profileTable)
 					.set({
@@ -214,7 +216,6 @@ export const actions: Actions = {
 					})
 					.where(eq(profileTable.accountId, accountId));
 
-				// Handle wallet configuration for business accounts
 				if (accountType === 'business') {
 					const [existingWallet] = await db
 						.select()
@@ -223,10 +224,11 @@ export const actions: Actions = {
 						.limit(1);
 
 					const walletData = {
-						zarinpalMerchantId: paymentProvider === 'zarinpal' ? zarinpalMerchantId.trim() : null,
-						zarinpalEnabled: paymentProvider === 'zarinpal',
-						tetherAddress: paymentProvider === 'tether' ? tetherAddress.trim() : null,
-						tetherEnabled: paymentProvider === 'tether',
+						ibanNumber: ibanEnabled ? ibanNumber.trim().replace(/\s/g, '') : null,
+						ibanEnabled,
+						tetherAddress: tetherEnabled ? tetherAddress.trim() : null,
+						tetherEnabled,
+						preferredPaymentMethod,
 						updatedAt: new Date()
 					};
 
@@ -243,7 +245,6 @@ export const actions: Actions = {
 					}
 				}
 			} else if (accountType === 'user') {
-				// Handle user profile updates (only payment preferences)
 				const [existingProfile] = await db
 					.select()
 					.from(userProfiles)
@@ -251,12 +252,11 @@ export const actions: Actions = {
 					.limit(1);
 
 				const userData = {
-					preferredPaymentMethod: paymentProvider
-						? (paymentProvider as 'zarinpal' | 'tether')
-						: null,
-					zarinpalMerchantId:
-						paymentProvider === 'zarinpal' ? zarinpalMerchantId?.trim() || null : null,
-					tetherAddress: paymentProvider === 'tether' ? tetherAddress?.trim() || null : null,
+					ibanNumber: ibanEnabled ? ibanNumber.trim().replace(/\s/g, '') : null,
+					ibanEnabled,
+					tetherAddress: tetherEnabled ? tetherAddress.trim() : null,
+					tetherEnabled,
+					preferredPaymentMethod,
 					updatedAt: new Date()
 				};
 

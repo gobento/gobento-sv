@@ -8,10 +8,14 @@
 	import IconFluentSearch24Regular from '~icons/fluent/search-24-regular';
 	import IconFluentClock24Regular from '~icons/fluent/clock-24-regular';
 	import IconFluentArrowRight24Regular from '~icons/fluent/arrow-right-24-regular';
+	import IconFluentMap24Regular from '~icons/fluent/map-24-regular';
+	import IconFluentGrid24Regular from '~icons/fluent/grid-24-regular';
 
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { browser } from '$app/environment';
+	import { Map, TileLayer, Marker, Popup } from 'sveaflet';
 
 	let { data }: { data: PageData } = $props();
 
@@ -26,6 +30,9 @@
 	let searchTimeout: ReturnType<typeof setTimeout>;
 	let selectedLocation = $state<{ name: string; lat: number; lon: number } | null>(null);
 	let selectedTypes = $state<string[]>(['all']);
+
+	// View mode state
+	let viewMode = $state<'grid' | 'map'>('grid');
 
 	// Business type options
 	const businessTypes = [
@@ -45,16 +52,24 @@
 			currentTime = new Date();
 		}, 1000);
 
-		// Load saved location from localStorage
-		const saved = localStorage.getItem('userLocation');
-		if (saved) {
-			selectedLocation = JSON.parse(saved);
-		}
+		// Load saved location
+		if (browser) {
+			const saved = localStorage.getItem('userLocation');
+			if (saved) {
+				selectedLocation = JSON.parse(saved);
+			}
 
-		// Load saved filter types
-		const savedTypes = localStorage.getItem('filterTypes');
-		if (savedTypes) {
-			selectedTypes = JSON.parse(savedTypes);
+			// Load saved filter types
+			const savedTypes = localStorage.getItem('filterTypes');
+			if (savedTypes) {
+				selectedTypes = JSON.parse(savedTypes);
+			}
+
+			// Load saved view mode
+			const savedView = localStorage.getItem('discoverViewMode');
+			if (savedView === 'map' || savedView === 'grid') {
+				viewMode = savedView;
+			}
 		}
 	});
 
@@ -97,7 +112,7 @@
 			lon: parseFloat(result.lon)
 		};
 		selectedLocation = location;
-		localStorage.setItem('userLocation', JSON.stringify(location));
+		if (browser) localStorage.setItem('userLocation', JSON.stringify(location));
 		searchQuery = result.display_name;
 		showResults = false;
 
@@ -110,7 +125,6 @@
 				async (position) => {
 					const { latitude, longitude } = position.coords;
 
-					// Reverse geocode to get address
 					try {
 						const response = await fetch(
 							`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
@@ -123,7 +137,7 @@
 							lon: longitude
 						};
 						selectedLocation = location;
-						localStorage.setItem('userLocation', JSON.stringify(location));
+						if (browser) localStorage.setItem('userLocation', JSON.stringify(location));
 						searchQuery = result.display_name;
 
 						updateUrl();
@@ -142,7 +156,7 @@
 	function clearLocation() {
 		selectedLocation = null;
 		searchQuery = '';
-		localStorage.removeItem('userLocation');
+		if (browser) localStorage.removeItem('userLocation');
 		updateUrl();
 	}
 
@@ -157,7 +171,6 @@
 			params.delete('lon');
 		}
 
-		// Handle multiple types
 		const typesToSend = selectedTypes.includes('all') ? [] : selectedTypes;
 		if (typesToSend.length > 0) {
 			params.set('types', typesToSend.join(','));
@@ -172,10 +185,8 @@
 		if (type === 'all') {
 			selectedTypes = ['all'];
 		} else {
-			// Remove 'all' if present
 			const filtered = selectedTypes.filter((t) => t !== 'all');
 
-			// Toggle the type
 			if (filtered.includes(type)) {
 				const newTypes = filtered.filter((t) => t !== type);
 				selectedTypes = newTypes.length === 0 ? ['all'] : newTypes;
@@ -184,8 +195,13 @@
 			}
 		}
 
-		localStorage.setItem('filterTypes', JSON.stringify(selectedTypes));
+		if (browser) localStorage.setItem('filterTypes', JSON.stringify(selectedTypes));
 		updateUrl();
+	}
+
+	function toggleViewMode() {
+		viewMode = viewMode === 'grid' ? 'map' : 'grid';
+		if (browser) localStorage.setItem('discoverViewMode', viewMode);
 	}
 
 	function getTimeRemaining(validUntil: Date | null) {
@@ -237,10 +253,6 @@
 		return `${distance.toFixed(1)}km`;
 	}
 
-	function getLogoUrl(key: string) {
-		return `/api/files/${key}`;
-	}
-
 	function getPickupTimeRemaining(pickupTimeUntil: string, currentTime: Date) {
 		const now = currentTime;
 		const todayDateStr = now.toISOString().split('T')[0];
@@ -250,6 +262,44 @@
 
 		return { diff, totalMinutes };
 	}
+
+	// Get closest 10 offers with locations
+	const mapOffers = $derived(
+		data.offers
+			.filter((offer) => {
+				return (
+					offer &&
+					offer.location &&
+					offer.distance !== null &&
+					offer.business &&
+					offer.business.logo &&
+					offer.business.logo.url
+				);
+			})
+			.slice(0, 10)
+	);
+
+	// Calculate map center
+	const mapCenter = $derived.by(() => {
+		if (selectedLocation) {
+			return [selectedLocation.lat, selectedLocation.lon];
+		}
+		if (mapOffers.length > 0 && mapOffers[0].location) {
+			const avgLat =
+				mapOffers.reduce((sum, o) => sum + (o.location?.latitude || 0), 0) / mapOffers.length;
+			const avgLon =
+				mapOffers.reduce((sum, o) => sum + (o.location?.longitude || 0), 0) / mapOffers.length;
+			return [avgLat, avgLon];
+		}
+		return [51.1657, 10.4515]; // Germany center
+	});
+
+	const customMarkerHtml = (color: string) => `
+		<div class="relative w-10 h-10">
+			<div class="absolute top-1/2 left-1/2 w-10 h-10 rounded-full -translate-x-1/2 -translate-y-1/2 rotate-[-45deg] border-[3px] border-white shadow-lg" style="background-color: ${color}; border-radius: 50% 50% 50% 0;"></div>
+			<div class="absolute top-1/2 left-1/2 w-4 h-4 bg-white rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+		</div>
+	`;
 </script>
 
 <div class="container mx-auto max-w-7xl px-4 py-8">
@@ -321,26 +371,54 @@
 				</div>
 			</div>
 
-			<div class="flex-1">
-				<label class="mb-2 block font-medium">Business Type</label>
-				<div class="flex flex-wrap gap-2">
-					{#each businessTypes as type}
+			<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+				<div class="flex-1">
+					<label class="mb-2 block font-medium">Business Type</label>
+					<div class="flex flex-wrap gap-2">
+						{#each businessTypes as type}
+							<button
+								type="button"
+								class="btn btn-sm {selectedTypes.includes(type.value)
+									? 'btn-primary'
+									: 'border border-base-300 btn-ghost'}"
+								onclick={() => handleTypeToggle(type.value)}
+							>
+								{type.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- View Mode Toggle -->
+				{#if selectedLocation && mapOffers.length > 0}
+					<div class="flex gap-2">
 						<button
 							type="button"
-							class="btn btn-sm {selectedTypes.includes(type.value)
+							class="btn btn-sm {viewMode === 'grid'
 								? 'btn-primary'
 								: 'border border-base-300 btn-ghost'}"
-							onclick={() => handleTypeToggle(type.value)}
+							onclick={toggleViewMode}
 						>
-							{type.label}
+							<IconFluentGrid24Regular class="size-4" />
+							Grid
 						</button>
-					{/each}
-				</div>
+						<button
+							type="button"
+							class="btn btn-sm {viewMode === 'map'
+								? 'btn-primary'
+								: 'border border-base-300 btn-ghost'}"
+							onclick={toggleViewMode}
+						>
+							<IconFluentMap24Regular class="size-4" />
+							Map
+						</button>
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>
 
-	<!-- Offers Grid -->
+	<!-- Content -->
 	{#if data.offers.length === 0}
 		<div class="rounded-xl bg-info/5 p-6">
 			<div class="flex items-center gap-3">
@@ -349,83 +427,206 @@
 				>
 			</div>
 		</div>
+	{:else if viewMode === 'map' && browser && mapOffers.length > 0}
+		<!-- Map View -->
+		<div class="overflow-hidden rounded-xl border border-base-300 shadow-lg">
+			<div class="h-[600px] w-full">
+				<Map
+					options={{
+						center: mapCenter,
+						zoom: selectedLocation ? 13 : 11,
+						minZoom: 1,
+						maxZoom: 18
+					}}
+					class="h-full w-full"
+				>
+					<TileLayer
+						url={'https://tile.openstreetmap.org/{z}/{x}/{y}.png'}
+						attribution={"&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}
+					/>
+
+					<!-- User location marker -->
+					{#if selectedLocation}
+						<Marker
+							latLng={[selectedLocation.lat, selectedLocation.lon]}
+							width={40}
+							height={40}
+							html={customMarkerHtml('#10b981')}
+						>
+							<Popup>
+								<div class="p-2">
+									<p class="font-bold">Your Location</p>
+								</div>
+							</Popup>
+						</Marker>
+					{/if}
+
+					<!-- Business markers -->
+					{#each mapOffers as offer (offer.id)}
+						{@const timeRemaining = getPickupTimeRemaining(offer.pickupTimeUntil, currentTime)}
+						<Marker
+							latLng={[offer.location!.latitude, offer.location!.longitude]}
+							width={40}
+							height={40}
+							html={customMarkerHtml('#570df8')}
+						>
+							<Popup>
+								<div class="w-64 p-2">
+									<div class="mb-3 flex items-center gap-3">
+										<img
+											src={offer.business.logo.url}
+											alt={offer.business.name}
+											class="h-12 w-12 rounded-full object-cover"
+										/>
+										<div class="flex-1">
+											<h3 class="font-bold text-base-content">{offer.name}</h3>
+											<p class="text-xs text-base-content/60">{offer.business.name}</p>
+										</div>
+									</div>
+
+									<div class="mb-2 space-y-1 text-sm">
+										<div class="flex items-center gap-2 text-base-content/60">
+											<IconFluentLocation24Regular class="size-4" />
+											<span class="truncate">{offer.location!.city}</span>
+											{#if offer.distance !== null}
+												<span class="bg-base-200 px-2 py-0.5 text-xs font-medium">
+													{formatDistance(offer.distance)}
+												</span>
+											{/if}
+										</div>
+
+										<div class="flex items-center gap-2 text-base-content/60">
+											<IconFluentClock24Regular class="size-4" />
+											<span
+												>{offer.pickupTimeFrom.slice(0, 5)} - {offer.pickupTimeUntil.slice(
+													0,
+													5
+												)}</span
+											>
+										</div>
+									</div>
+
+									{#if timeRemaining.diff > 0 && timeRemaining.totalMinutes <= 30}
+										<div class="mb-3 bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
+											<IconFluentTimer24Regular class="mr-1 inline h-3 w-3" />
+											{timeRemaining.totalMinutes}min left
+										</div>
+									{:else if timeRemaining.diff <= 0}
+										<div class="mb-3 bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
+											Pickup ended
+										</div>
+									{/if}
+
+									<div class="mb-3 flex items-center justify-between">
+										<span class="text-lg font-bold text-primary">
+											{formatPrice(offer.price, offer.currency)}
+										</span>
+									</div>
+
+									<a href="/offers/{offer.id}" class="btn w-full btn-sm btn-primary">
+										View Offer
+										<IconFluentArrowRight24Regular class="size-4" />
+									</a>
+								</div>
+							</Popup>
+						</Marker>
+					{/each}
+				</Map>
+			</div>
+		</div>
+
+		<!-- Map legend -->
+		<div class="mt-4 flex flex-wrap items-center gap-4 rounded-lg bg-base-200 p-4">
+			<div class="flex items-center gap-2">
+				<div class="h-3 w-3 rounded-full bg-success"></div>
+				<span class="text-sm text-base-content/80">Your Location</span>
+			</div>
+			<div class="flex items-center gap-2">
+				<div class="h-3 w-3 rounded-full bg-primary"></div>
+				<span class="text-sm text-base-content/80">Available Offers ({mapOffers.length})</span>
+			</div>
+		</div>
 	{:else}
+		<!-- Grid View -->
 		<div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 			{#each data.offers as offer (offer.id)}
-				{@const timeRemaining = getPickupTimeRemaining(offer.pickupTimeUntil, currentTime)}
-				<a
-					href="/offers/{offer.id}"
-					class="group block bg-base-100 p-5 transition-all hover:bg-base-200"
-				>
-					<div class="mb-4 flex justify-center">
-						<div class="h-20 w-20 overflow-hidden rounded-full">
-							<img
-								src={offer.business.logo.url}
-								alt={offer.business.name}
-								class="h-full w-full object-cover"
-							/>
-						</div>
-					</div>
-
-					<div>
-						<h2 class="mb-2 text-lg leading-tight font-semibold">{offer.name}</h2>
-
-						<div class="mb-2 flex items-center gap-2 text-sm text-base-content/60">
-							<IconFluentTag24Regular class="size-4" />
-							<span class="truncate">{offer.business.name}</span>
+				{#if offer && offer.business && offer.business.logo}
+					{@const timeRemaining = getPickupTimeRemaining(offer.pickupTimeUntil, currentTime)}
+					<a
+						href="/offers/{offer.id}"
+						class="group block bg-base-100 p-5 transition-all hover:bg-base-200"
+					>
+						<div class="mb-4 flex justify-center">
+							<div class="h-20 w-20 overflow-hidden rounded-full">
+								<img
+									src={offer.business.logo.url}
+									alt={offer.business.name}
+									class="h-full w-full object-cover"
+								/>
+							</div>
 						</div>
 
-						{#if offer.location}
-							<div class="mb-3 flex items-center gap-2 text-sm text-base-content/60">
-								<IconFluentLocation24Regular class="size-4" />
-								<span class="truncate">{offer.location.city}</span>
-								{#if offer.distance !== null}
-									<span class="bg-base-200 px-2 py-0.5 text-xs font-medium">
-										{formatDistance(offer.distance)}
-									</span>
+						<div>
+							<h2 class="mb-2 text-lg leading-tight font-semibold">{offer.name}</h2>
+
+							<div class="mb-2 flex items-center gap-2 text-sm text-base-content/60">
+								<IconFluentTag24Regular class="size-4" />
+								<span class="truncate">{offer.business.name}</span>
+							</div>
+
+							{#if offer.location}
+								<div class="mb-3 flex items-center gap-2 text-sm text-base-content/60">
+									<IconFluentLocation24Regular class="size-4" />
+									<span class="truncate">{offer.location.city}</span>
+									{#if offer.distance !== null}
+										<span class="bg-base-200 px-2 py-0.5 text-xs font-medium">
+											{formatDistance(offer.distance)}
+										</span>
+									{/if}
+								</div>
+							{/if}
+
+							<div class="mb-4 flex flex-wrap gap-2">
+								<div class="flex items-center gap-2 text-sm text-base-content/60">
+									<IconFluentClock24Regular class="size-4" />
+									<span
+										>{offer.pickupTimeFrom.slice(0, 5)} - {offer.pickupTimeUntil.slice(0, 5)}</span
+									>
+								</div>
+
+								{#if offer.isRecurring}
+									<div class="bg-secondary/10 px-2.5 py-1 text-xs font-medium text-secondary">
+										<IconFluentCalendar24Regular class="mr-1 inline h-3 w-3" />
+										Recurring
+									</div>
+								{/if}
+
+								{#if timeRemaining.diff > 0 && timeRemaining.totalMinutes <= 30}
+									<div class="bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
+										<IconFluentTimer24Regular class="mr-1 inline h-3 w-3" />
+										{timeRemaining.totalMinutes}min left
+									</div>
+								{:else if timeRemaining.diff <= 0}
+									<div class="bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
+										Pickup ended
+									</div>
 								{/if}
 							</div>
-						{/if}
 
-						<div class="mb-4 flex flex-wrap gap-2">
-							<div class="flex items-center gap-2 text-sm text-base-content/60">
-								<IconFluentClock24Regular class="size-4" />
-								<span>{offer.pickupTimeFrom.slice(0, 5)} - {offer.pickupTimeUntil.slice(0, 5)}</span
-								>
+							<div class="flex items-center justify-between pt-4">
+								<div class="flex items-baseline gap-2">
+									<span class="text-xl font-bold text-primary">
+										{formatPrice(offer.price, offer.currency)}
+									</span>
+								</div>
+
+								<IconFluentArrowRight24Regular
+									class="size-5 text-primary transition-transform group-hover:translate-x-1"
+								/>
 							</div>
-
-							{#if offer.isRecurring}
-								<div class="bg-secondary/10 px-2.5 py-1 text-xs font-medium text-secondary">
-									<IconFluentCalendar24Regular class="mr-1 inline h-3 w-3" />
-									Recurring
-								</div>
-							{/if}
-
-							{#if timeRemaining.diff > 0 && timeRemaining.totalMinutes <= 30}
-								<div class="bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
-									<IconFluentTimer24Regular class="mr-1 inline h-3 w-3" />
-									{timeRemaining.totalMinutes}min left
-								</div>
-							{:else if timeRemaining.diff <= 0}
-								<div class="bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
-									Pickup ended
-								</div>
-							{/if}
 						</div>
-
-						<div class="flex items-center justify-between pt-4">
-							<div class="flex items-baseline gap-2">
-								<span class="text-xl font-bold text-primary">
-									{formatPrice(offer.price, offer.currency)}
-								</span>
-							</div>
-
-							<IconFluentArrowRight24Regular
-								class="size-5 text-primary transition-transform group-hover:translate-x-1"
-							/>
-						</div>
-					</div>
-				</a>
+					</a>
+				{/if}
 			{/each}
 		</div>
 	{/if}
