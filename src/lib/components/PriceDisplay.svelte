@@ -5,18 +5,10 @@
 		price: number;
 		country: string;
 		paymentFeePercent?: number;
-		showFinalPrice?: boolean;
 		size?: 'sm' | 'lg';
 	}
 
-	let {
-		originalValue,
-		price,
-		country,
-		paymentFeePercent = 5,
-		showFinalPrice = true,
-		size = 'lg'
-	}: Props = $props();
+	let { originalValue, price, country, paymentFeePercent = 5, size = 'lg' }: Props = $props();
 
 	const formatPrice = (amount: number, countryCode: string) => {
 		if (countryCode === 'Iran') {
@@ -36,8 +28,6 @@
 	const badgeClass = $derived(size === 'sm' ? 'badge-sm px-2 py-2' : 'badge-lg px-3 py-3');
 	const originalPriceClass = $derived(size === 'sm' ? 'text-sm' : 'text-lg');
 	const mainPriceClass = $derived(size === 'sm' ? 'text-xl' : 'text-3xl');
-	const feeTextClass = $derived(size === 'sm' ? 'text-xs' : 'text-sm');
-	const totalPriceClass = $derived(size === 'sm' ? 'text-base' : 'text-xl');
 </script>
 
 <div class="flex flex-col items-end gap-2">
@@ -56,18 +46,6 @@
 
 	<!-- Offer Price -->
 	<div class="{mainPriceClass} font-bold text-primary">
-		{formatPrice(price, country)}
+		{formatPrice(finalPrice, country)}
 	</div>
-
-	<!-- Final Price with Fee -->
-	{#if showFinalPrice && paymentFeePercent > 0}
-		<div class="flex flex-col items-end gap-1">
-			<div class="{feeTextClass} text-base-content/60">
-				+ {paymentFeePercent}% service fee
-			</div>
-			<div class="{totalPriceClass} font-semibold text-base-content">
-				Total: {formatPrice(finalPrice, country)}
-			</div>
-		</div>
-	{/if}
 </div>

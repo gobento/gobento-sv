@@ -136,7 +136,6 @@
 	price={data.offer.displayPrice}
 	country={data.business.country}
 	paymentFeePercent={5}
-	showFinalPrice={true}
 	size="lg"
 />
 

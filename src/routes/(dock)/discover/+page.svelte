@@ -525,7 +525,6 @@
 										price={offer.price}
 										country={offer.business.country}
 										paymentFeePercent={5}
-										showFinalPrice={false}
 										size="sm"
 									/>
 
