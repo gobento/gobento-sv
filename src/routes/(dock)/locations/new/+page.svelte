@@ -8,6 +8,7 @@
 	import IconSearch from '~icons/fluent/search-24-regular';
 	import IconImage from '~icons/fluent/image-24-regular';
 	import IconCamera from '~icons/fluent/camera-24-regular';
+	import BaseLayout from '$lib/components/BaseLayout.svelte';
 
 	let { data } = $props();
 	let form = $page.form;

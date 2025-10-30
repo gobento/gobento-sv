@@ -4,7 +4,10 @@
 	import { page } from '$app/stores';
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconSave from '~icons/fluent/save-24-regular';
+	import IconTag from '~icons/fluent/tag-24-regular';
+
 	import { env } from '$env/dynamic/public';
+	import BaseLayout from '$lib/components/BaseLayout.svelte';
 
 	let { data, form } = $props();
 
@@ -36,21 +39,11 @@
 	});
 </script>
 
-<div class="container mx-auto max-w-lg p-4">
-	<div class="mb-6">
-		<h1 class="text-lg font-bold">Create New Offer</h1>
-		<p class="mt-2 text-base-content/70">
-			Create a new surprise bag or discounted offer for your customers
-		</p>
-	</div>
-
-	{#if form?.message}
-		<div class="mb-4 alert alert-error">
-			<IconInfo class="size-6" />
-			<span>{form.message}</span>
-		</div>
-	{/if}
-
+<BaseLayout
+	title="Create New Offer"
+	description="Create a new surprise bag or discounted offer for your customers"
+	icon={IconTag}
+>
 	<form method="POST" use:enhance class="space-y-6">
 		<!-- Basic Information -->
 		<div class="card bg-base-200">
@@ -324,6 +317,13 @@
 			</div>
 		</div>
 
+		{#if form?.message}
+			<div class="mb-4 alert alert-error">
+				<IconInfo class="size-6" />
+				<span>{form.message}</span>
+			</div>
+		{/if}
+
 		<!-- Actions -->
 		<div class="flex justify-end gap-4">
 			<a href="/offers" class="btn btn-ghost">Cancel</a>
@@ -333,4 +333,4 @@
 			</button>
 		</div>
 	</form>
-</div>
+</BaseLayout>
