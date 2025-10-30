@@ -35,7 +35,7 @@ export const actions = {
 			return fail(400, { form });
 		}
 
-		const { accountType, paymentMethod, zarinpalMerchantId, tetherAddress } = form.data;
+		const { accountType, paymentMethod, ibanNumber, tetherAddress } = form.data;
 
 		try {
 			// Update account type if needed
@@ -43,28 +43,48 @@ export const actions = {
 				await db.update(accounts).set({ accountType }).where(eq(accounts.id, account.id));
 			}
 
-			// Validate payment configuration
-			if (paymentMethod === 'zarinpal' && !zarinpalMerchantId) {
-				return fail(400, {
-					form,
-					message: 'Zarinpal Merchant ID is required'
-				});
-			}
-
-			if (paymentMethod === 'tether' && !tetherAddress) {
-				return fail(400, {
-					form,
-					message: 'Tether wallet address is required'
-				});
-			}
-
-			// Validate Tether address format (basic validation)
-			if (paymentMethod === 'tether' && tetherAddress) {
-				if (!tetherAddress.startsWith('0x') || tetherAddress.length !== 42) {
+			// For business and charity accounts, payment method is REQUIRED
+			if (accountType === 'business' || accountType === 'charity') {
+				if (!paymentMethod) {
 					return fail(400, {
 						form,
-						message: 'Invalid Tether wallet address format'
+						message: 'Payment method is required for businesses and charities'
 					});
+				}
+
+				if (paymentMethod === 'iban' && !ibanNumber) {
+					return fail(400, {
+						form,
+						message: 'IBAN number is required'
+					});
+				}
+
+				if (paymentMethod === 'tether' && !tetherAddress) {
+					return fail(400, {
+						form,
+						message: 'Tether wallet address is required'
+					});
+				}
+
+				// Validate Tether address format
+				if (paymentMethod === 'tether' && tetherAddress) {
+					if (!tetherAddress.startsWith('0x') || tetherAddress.length !== 42) {
+						return fail(400, {
+							form,
+							message: 'Invalid Tether wallet address format'
+						});
+					}
+				}
+
+				// Validate IBAN format (basic check)
+				if (paymentMethod === 'iban' && ibanNumber) {
+					const cleanIban = ibanNumber.replace(/\s/g, '');
+					if (cleanIban.length < 15 || cleanIban.length > 34) {
+						return fail(400, {
+							form,
+							message: 'Invalid IBAN format'
+						});
+					}
 				}
 			}
 
@@ -77,27 +97,6 @@ export const actions = {
 						accountId: account.id
 					})
 					.onConflictDoNothing();
-
-				// Create/update user wallet configuration
-				await db
-					.insert(businessWallets)
-					.values({
-						accountId: account.id,
-						zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
-						zarinpalEnabled: paymentMethod === 'zarinpal',
-						tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
-						tetherEnabled: paymentMethod === 'tether'
-					})
-					.onConflictDoUpdate({
-						target: [businessWallets.accountId],
-						set: {
-							zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
-							zarinpalEnabled: paymentMethod === 'zarinpal',
-							tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
-							tetherEnabled: paymentMethod === 'tether',
-							updatedAt: new Date()
-						}
-					});
 
 				// Redirect to home (throws redirect error)
 				throw redirect(303, '/');
@@ -192,23 +191,25 @@ export const actions = {
 					profilePictureId: fileId
 				});
 
-				// Create business wallet configuration
+				// Create business wallet configuration (REQUIRED)
 				await db
 					.insert(businessWallets)
 					.values({
 						accountId: account.id,
-						zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
-						zarinpalEnabled: paymentMethod === 'zarinpal',
+						ibanNumber: paymentMethod === 'iban' ? ibanNumber : null,
+						ibanEnabled: paymentMethod === 'iban',
 						tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
-						tetherEnabled: paymentMethod === 'tether'
+						tetherEnabled: paymentMethod === 'tether',
+						preferredPaymentMethod: paymentMethod!
 					})
 					.onConflictDoUpdate({
 						target: [businessWallets.accountId],
 						set: {
-							zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
-							zarinpalEnabled: paymentMethod === 'zarinpal',
+							ibanNumber: paymentMethod === 'iban' ? ibanNumber : null,
+							ibanEnabled: paymentMethod === 'iban',
 							tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
 							tetherEnabled: paymentMethod === 'tether',
+							preferredPaymentMethod: paymentMethod!,
 							updatedAt: new Date()
 						}
 					});
@@ -224,23 +225,25 @@ export const actions = {
 					profilePictureId: fileId
 				});
 
-				// Create charity wallet configuration
+				// Create charity wallet configuration (REQUIRED)
 				await db
 					.insert(businessWallets)
 					.values({
 						accountId: account.id,
-						zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
-						zarinpalEnabled: paymentMethod === 'zarinpal',
+						ibanNumber: paymentMethod === 'iban' ? ibanNumber : null,
+						ibanEnabled: paymentMethod === 'iban',
 						tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
-						tetherEnabled: paymentMethod === 'tether'
+						tetherEnabled: paymentMethod === 'tether',
+						preferredPaymentMethod: paymentMethod!
 					})
 					.onConflictDoUpdate({
 						target: [businessWallets.accountId],
 						set: {
-							zarinpalMerchantId: paymentMethod === 'zarinpal' ? zarinpalMerchantId : null,
-							zarinpalEnabled: paymentMethod === 'zarinpal',
+							ibanNumber: paymentMethod === 'iban' ? ibanNumber : null,
+							ibanEnabled: paymentMethod === 'iban',
 							tetherAddress: paymentMethod === 'tether' ? tetherAddress : null,
 							tetherEnabled: paymentMethod === 'tether',
+							preferredPaymentMethod: paymentMethod!,
 							updatedAt: new Date()
 						}
 					});
