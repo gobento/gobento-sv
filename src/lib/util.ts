@@ -45,3 +45,11 @@ export const formatPrice = (price: number, currency: string) => {
 	}
 	return `${price.toFixed(2)} USDT`;
 };
+
+export function formatDistance(distance: number | null) {
+	if (distance === null) return null;
+	if (distance < 1) {
+		return `${Math.round(distance * 1000)}m`;
+	}
+	return `${distance.toFixed(1)}km`;
+}
