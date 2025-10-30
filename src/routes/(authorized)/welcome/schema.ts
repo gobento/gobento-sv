@@ -19,7 +19,7 @@ const businessSchema = v.pipe(
 			['bakery', 'restaurant', 'cafe', 'grocery', 'supermarket', 'hotel', 'catering', 'other'],
 			'Please select a valid business type'
 		),
-		paymentMethod: v.picklist(['zarinpal', 'tether'], 'Please select a payment method'),
+		paymentMethod: v.picklist(['iban', 'tether'], 'Please select a payment method'),
 		zarinpalMerchantId: v.optional(
 			v.pipe(v.string(), v.minLength(1, 'Zarinpal Merchant ID is required'))
 		),

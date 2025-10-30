@@ -2,12 +2,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import IconChevronDown from '~icons/fluent/chevron-down-24-regular';
-	import type { ComponentType } from 'svelte';
+	import type { Component } from 'svelte';
 
 	interface Country {
 		code: string;
 		name: string;
-		flag: ComponentType;
+		flag: Component;
 	}
 
 	interface Props {
@@ -94,13 +94,12 @@
 	>
 		{#if selectedCountry}
 			<div class="flex items-center gap-2">
-				<svelte:component this={selectedCountry.flag} class="size-5" />
+				<selectedCountry.flag class="size-5" />
 				<span>{selectedCountry.name}</span>
 			</div>
 		{:else}
 			<span class="text-base-content/50">Select your country</span>
 		{/if}
-		<IconChevronDown class="size-5 transition-transform" class:rotate-180={isOpen} />
 	</button>
 
 	<!-- Dropdown menu -->
@@ -118,7 +117,7 @@
 							class:active={value === country.code}
 							onclick={() => selectCountry(country)}
 						>
-							<svelte:component this={country.flag} class="size-5" />
+							<country.flag class="size-5" />
 							<span>{country.name}</span>
 						</button>
 					</li>
