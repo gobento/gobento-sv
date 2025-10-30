@@ -17,6 +17,7 @@
 	import { browser } from '$app/environment';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
 	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
+	import NotFound from '$lib/components/NotFound.svelte';
 	import { formatDistance } from '$lib/util';
 
 	let { data }: { data: PageData } = $props();
@@ -289,6 +290,17 @@
 						>
 							<IconFluentLocation24Regular class="size-5" />
 						</button>
+
+						{#if hasMapData}
+							<button
+								type="button"
+								class="btn btn-square btn-primary"
+								onclick={goToMap}
+								title="View map"
+							>
+								<IconFluentMap24Regular class="size-5" />
+							</button>
+						{/if}
 					</div>
 
 					{#if selectedLocation}
@@ -320,27 +332,17 @@
 						{/each}
 					</div>
 				</div>
-
-				<!-- Map Button -->
-				{#if selectedLocation && hasMapData}
-					<button type="button" class="btn gap-2 btn-primary" onclick={goToMap}>
-						<IconFluentMap24Regular class="size-5" />
-						View Map
-					</button>
-				{/if}
 			</div>
 		</div>
 	</div>
 
 	<!-- Content -->
 	{#if data.offers.length === 0}
-		<div class="rounded-xl bg-info/5 p-6">
-			<div class="flex items-center gap-3">
-				<IconFluentTag24Regular class="size-6 text-info" />
-				<span class="text-base-content/80">No offers available at the moment. Check back soon!</span
-				>
-			</div>
-		</div>
+		<NotFound
+			icon={IconFluentTag24Regular}
+			title={'No matching offers found'}
+			description={'No offers available at the moment. Check back soon!'}
+		/>
 	{:else}
 		<!-- Grid View -->
 		<div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -352,7 +354,7 @@
 						class="group block bg-base-100 p-5 transition-all hover:bg-base-200"
 					>
 						<div class="mb-4 flex justify-center">
-							<div class="h-20 w-20 overflow-hidden rounded-full">
+							<div class="size-20 overflow-hidden rounded-full">
 								<img
 									src={offer.business.logo.url}
 									alt={offer.business.name}
