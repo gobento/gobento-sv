@@ -9,16 +9,15 @@
 	import IconFluentClock24Regular from '~icons/fluent/clock-24-regular';
 	import IconFluentArrowRight24Regular from '~icons/fluent/arrow-right-24-regular';
 	import IconFluentMap24Regular from '~icons/fluent/map-24-regular';
-	import IconFluentGrid24Regular from '~icons/fluent/grid-24-regular';
 	import CompassIcon from '~icons/fluent/compass-northwest-24-regular';
 
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
-	import { Map, TileLayer, Marker, Popup } from 'sveaflet';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
 	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
+	import { formatDistance } from '$lib/util';
 
 	let { data }: { data: PageData } = $props();
 
@@ -33,9 +32,6 @@
 	let searchTimeout: ReturnType<typeof setTimeout>;
 	let selectedLocation = $state<{ name: string; lat: number; lon: number } | null>(null);
 	let selectedTypes = $state<string[]>(['all']);
-
-	// View mode state
-	let viewMode = $state<'grid' | 'map'>('grid');
 
 	// Business type options
 	const businessTypes = [
@@ -66,12 +62,6 @@
 			const savedTypes = localStorage.getItem('filterTypes');
 			if (savedTypes) {
 				selectedTypes = JSON.parse(savedTypes);
-			}
-
-			// Load saved view mode
-			const savedView = localStorage.getItem('discoverViewMode');
-			if (savedView === 'map' || savedView === 'grid') {
-				viewMode = savedView;
 			}
 		}
 	});
@@ -202,43 +192,17 @@
 		updateUrl();
 	}
 
-	function toggleViewMode() {
-		viewMode = viewMode === 'grid' ? 'map' : 'grid';
-		if (browser) localStorage.setItem('discoverViewMode', viewMode);
-	}
-
-	function getTimeRemaining(validUntil: Date | null) {
-		if (!validUntil) return null;
-
-		const end = new Date(validUntil);
-		const now = currentTime;
-		const diff = end.getTime() - now.getTime();
-
-		if (diff <= 0) return { expired: true };
-
-		const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-		const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-		const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-		const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-		return { expired: false, days, hours, minutes, seconds };
-	}
-
-	function formatCountdown(timeRemaining: ReturnType<typeof getTimeRemaining>) {
-		if (!timeRemaining) return null;
-		if (timeRemaining.expired) return 'Expired';
-
-		const { days, hours, minutes, seconds } = timeRemaining;
-
-		if (days > 0) {
-			return `${days}d ${hours}h`;
-		} else if (hours > 0) {
-			return `${hours}h ${minutes}m`;
-		} else if (minutes > 0) {
-			return `${minutes}m ${seconds}s`;
-		} else {
-			return `${seconds}s`;
+	function goToMap() {
+		const params = new URLSearchParams();
+		if (selectedLocation) {
+			params.set('lat', selectedLocation.lat.toString());
+			params.set('lon', selectedLocation.lon.toString());
 		}
+		const typesToSend = selectedTypes.includes('all') ? [] : selectedTypes;
+		if (typesToSend.length > 0) {
+			params.set('types', typesToSend.join(','));
+		}
+		goto(`/map?${params.toString()}`);
 	}
 
 	function formatPrice(price: number, currency: string) {
@@ -246,14 +210,6 @@
 			style: 'currency',
 			currency: currency
 		}).format(price);
-	}
-
-	function formatDistance(distance: number | null) {
-		if (distance === null) return null;
-		if (distance < 1) {
-			return `${Math.round(distance * 1000)}m`;
-		}
-		return `${distance.toFixed(1)}km`;
 	}
 
 	function getPickupTimeRemaining(pickupTimeUntil: string, currentTime: Date) {
@@ -266,44 +222,17 @@
 		return { diff, totalMinutes };
 	}
 
-	// Get closest 10 offers with locations
-	const mapOffers = $derived(
-		data.offers
-			.filter((offer) => {
-				return (
-					offer &&
-					offer.location &&
-					offer.distance !== null &&
-					offer.business &&
-					offer.business.logo &&
-					offer.business.logo.url
-				);
-			})
-			.slice(0, 10)
+	const hasMapData = $derived(
+		data.offers.some(
+			(offer) =>
+				offer &&
+				offer.location &&
+				offer.distance !== null &&
+				offer.business &&
+				offer.business.logo &&
+				offer.business.logo.url
+		)
 	);
-
-	// Calculate map center
-	const mapCenter = $derived.by(() => {
-		if (selectedLocation) {
-			return [selectedLocation.lat, selectedLocation.lon];
-		}
-		if (mapOffers.length > 0 && mapOffers[0].location) {
-			const avgLat =
-				mapOffers.reduce((sum, o) => sum + (o.location?.latitude || 0), 0) / mapOffers.length;
-			const avgLon =
-				mapOffers.reduce((sum, o) => sum + (o.location?.longitude || 0), 0) / mapOffers.length;
-			return [avgLat, avgLon];
-		}
-		// todo: this function should return LatLngExpression
-		return [51.1657, 10.4515]; // Germany center
-	});
-
-	const customMarkerHtml = (color: string) => `
-		<div class="relative size-10">
-			<div class="absolute top-1/2 left-1/2 size-10 rounded-full -translate-x-1/2 -translate-y-1/2 rotate-[-45deg] border-[3px] border-white " style="background-color: ${color}; border-radius: 50% 50% 50% 0;"></div>
-			<div class="absolute top-1/2 left-1/2size-4 bg-white rounded-full -translate-x-1/2 -translate-y-1/2"></div>
-		</div>
-	`;
 </script>
 
 <BaseLayout
@@ -392,30 +321,12 @@
 					</div>
 				</div>
 
-				<!-- View Mode Toggle -->
-				{#if selectedLocation && mapOffers.length > 0}
-					<div class="flex gap-2">
-						<button
-							type="button"
-							class="btn btn-sm {viewMode === 'grid'
-								? 'btn-primary'
-								: 'border border-base-300 btn-ghost'}"
-							onclick={toggleViewMode}
-						>
-							<IconFluentGrid24Regular class="size-4" />
-							Grid
-						</button>
-						<button
-							type="button"
-							class="btn btn-sm {viewMode === 'map'
-								? 'btn-primary'
-								: 'border border-base-300 btn-ghost'}"
-							onclick={toggleViewMode}
-						>
-							<IconFluentMap24Regular class="size-4" />
-							Map
-						</button>
-					</div>
+				<!-- Map Button -->
+				{#if selectedLocation && hasMapData}
+					<button type="button" class="btn gap-2 btn-primary" onclick={goToMap}>
+						<IconFluentMap24Regular class="size-5" />
+						View Map
+					</button>
 				{/if}
 			</div>
 		</div>
@@ -428,127 +339,6 @@
 				<IconFluentTag24Regular class="size-6 text-info" />
 				<span class="text-base-content/80">No offers available at the moment. Check back soon!</span
 				>
-			</div>
-		</div>
-	{:else if viewMode === 'map' && browser && mapOffers.length > 0}
-		<!-- Map View -->
-		<div class="overflow-hidden rounded-xl border border-base-300">
-			<div class="h-[600px] w-full">
-				<Map
-					options={{
-						center: mapCenter,
-						zoom: selectedLocation ? 13 : 11,
-						minZoom: 1,
-						maxZoom: 18
-					}}
-					class="h-full w-full"
-				>
-					<TileLayer
-						url={'https://tile.openstreetmap.org/{z}/{x}/{y}.png'}
-						attribution={"&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}
-					/>
-
-					<!-- User location marker -->
-					{#if selectedLocation}
-						<Marker
-							latLng={[selectedLocation.lat, selectedLocation.lon]}
-							width={40}
-							height={40}
-							html={customMarkerHtml('#10b981')}
-						>
-							<Popup>
-								<div class="p-2">
-									<p class="font-bold">Your Location</p>
-								</div>
-							</Popup>
-						</Marker>
-					{/if}
-
-					<!-- Business markers -->
-					{#each mapOffers as offer (offer.id)}
-						{@const timeRemaining = getPickupTimeRemaining(offer.pickupTimeUntil, currentTime)}
-						<Marker
-							latLng={[offer.location!.latitude, offer.location!.longitude]}
-							width={40}
-							height={40}
-							html={customMarkerHtml('#570df8')}
-						>
-							<Popup>
-								<div class="w-64 p-2">
-									<div class="mb-3 flex items-center gap-3">
-										<img
-											src={offer.business.logo.url}
-											alt={offer.business.name}
-											class="size-12 rounded-full object-cover"
-										/>
-										<div class="flex-1">
-											<h3 class="font-bold text-base-content">{offer.name}</h3>
-											<p class="text-xs text-base-content/60">{offer.business.name}</p>
-										</div>
-									</div>
-
-									<div class="mb-2 space-y-1 text-sm">
-										<div class="flex items-center gap-2 text-base-content/60">
-											<IconFluentLocation24Regular class="size-4" />
-											<span class="truncate">{offer.location!.city}</span>
-											{#if offer.distance !== null}
-												<span class="bg-base-200 px-2 py-0.5 text-xs font-medium">
-													{formatDistance(offer.distance)}
-												</span>
-											{/if}
-										</div>
-
-										<div class="flex items-center gap-2 text-base-content/60">
-											<IconFluentClock24Regular class="size-4" />
-											<span
-												>{offer.pickupTimeFrom.slice(0, 5)} - {offer.pickupTimeUntil.slice(
-													0,
-													5
-												)}</span
-											>
-										</div>
-									</div>
-
-									{#if timeRemaining.diff > 0 && timeRemaining.totalMinutes <= 30}
-										<div class="mb-3 bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
-											<IconFluentTimer24Regular class="mr-1 inline size-3" />
-											{timeRemaining.totalMinutes}min left
-										</div>
-									{:else if timeRemaining.diff <= 0}
-										<div class="mb-3 bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
-											Pickup ended
-										</div>
-									{/if}
-
-									<PriceDisplay
-										originalValue={offer.originalValue}
-										price={offer.price}
-										country={offer.business.country}
-										paymentFeePercent={5}
-										size="sm"
-									/>
-
-									<a href="/offers/{offer.id}" class="btn w-full btn-sm btn-primary">
-										View Offer
-										<IconFluentArrowRight24Regular class="size-4" />
-									</a>
-								</div>
-							</Popup>
-						</Marker>
-					{/each}
-				</Map>
-			</div>
-		</div>
-
-		<!-- Map legend -->
-		<div class="mt-4 flex flex-wrap items-center gap-4 rounded-lg bg-base-200 p-4">
-			<div class="flex items-center gap-2">
-				<div class="size-3 rounded-full bg-success"></div>
-				<span class="text-sm text-base-content/80">Your Location</span>
-			</div>
-			<div class="flex items-center gap-2">
-				<div class="size-3 rounded-full bg-primary"></div>
-				<span class="text-sm text-base-content/80">Available Offers ({mapOffers.length})</span>
 			</div>
 		</div>
 	{:else}
