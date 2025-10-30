@@ -121,13 +121,13 @@ export const actions: Actions = {
 
 		// Validate at least one payment method is enabled
 		if (!ibanEnabled && !tetherEnabled) {
-			return fail(400, { error: 'Please enable at least one payment method' });
+			return fail(400, { error: 'At least one payment method must be enabled' });
 		}
 
 		// Validate IBAN if enabled
 		if (ibanEnabled) {
 			if (!ibanNumber?.trim()) {
-				return fail(400, { error: 'IBAN number is required when IBAN is enabled' });
+				return fail(400, { error: 'IBAN number is required when Bank Transfer is enabled' });
 			}
 			if (!validateIBAN(ibanNumber.trim())) {
 				return fail(400, { error: 'Invalid IBAN format' });
@@ -137,19 +137,19 @@ export const actions: Actions = {
 		// Validate Tether if enabled
 		if (tetherEnabled) {
 			if (!tetherAddress?.trim()) {
-				return fail(400, { error: 'USDT wallet address is required when Tether is enabled' });
+				return fail(400, { error: 'USDT wallet address is required when Crypto is enabled' });
 			}
 			if (!validateTetherAddress(tetherAddress.trim())) {
-				return fail(400, { error: 'Invalid USDT wallet address format' });
+				return fail(400, { error: 'Invalid USDT wallet address format (must start with 0x)' });
 			}
 		}
 
 		// Validate preferred method is enabled
 		if (preferredPaymentMethod === 'iban' && !ibanEnabled) {
-			return fail(400, { error: 'Cannot set IBAN as preferred when it is disabled' });
+			return fail(400, { error: 'Cannot set Bank Transfer as preferred when it is disabled' });
 		}
 		if (preferredPaymentMethod === 'tether' && !tetherEnabled) {
-			return fail(400, { error: 'Cannot set Tether as preferred when it is disabled' });
+			return fail(400, { error: 'Cannot set Crypto as preferred when it is disabled' });
 		}
 
 		// Validate required fields for business/charity
