@@ -14,9 +14,9 @@
 		"lint": "prettier --check . && eslint ."
 	},
 	"devDependencies": {
-		"@aws-sdk/client-s3": "3.919.0",
-		"@aws-sdk/s3-request-presigner": "3.919.0",
-		"@eslint/compat": "1.4.0",
+		"@aws-sdk/client-s3": "3.920.0",
+		"@aws-sdk/s3-request-presigner": "3.920.0",
+		"@eslint/compat": "1.4.1",
 		"@eslint/js": "9.38.0",
 		"@iconify-json/circle-flags": "1.2.10",
 		"@iconify-json/fluent": "1.2.34",
@@ -26,8 +26,8 @@
 		"@iconify-json/logos": "1.2.10",
 		"@iconify-json/material-symbols": "1.2.43",
 		"@oslojs/oauth2": "0.5.0",
-		"@sveltejs/adapter-vercel": "6.1.0",
-		"@sveltejs/kit": "2.48.2",
+		"@sveltejs/adapter-vercel": "6.1.1",
+		"@sveltejs/kit": "2.48.3",
 		"@sveltejs/vite-plugin-svelte": "6.2.1",
 		"@tailwindcss/forms": "0.5.10",
 		"@tailwindcss/typography": "0.5.19",
