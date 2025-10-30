@@ -50,7 +50,7 @@
 </script>
 
 <BaseLayout title="Analytics" description="Track performance and insights" icon={ChartFilledIcon}>
-	<select class="select-bordered select w-full bg-base-200 select-sm font-medium sm:w-auto">
+	<select class="select-bordered select mb-6 w-full bg-base-200 select-sm font-medium sm:w-auto">
 		<option>Last 30 Days</option>
 		<option>Last 7 Days</option>
 		<option>Last 90 Days</option>

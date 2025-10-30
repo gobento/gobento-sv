@@ -12,6 +12,8 @@
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconBox from '~icons/fluent/box-24-regular';
 	import { formatDate, formatTime } from '$lib/util';
+	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import NotFound from '$lib/components/NotFound.svelte';
 
 	let { data } = $props();
 
@@ -28,20 +30,14 @@
 	icon={IconTag}
 >
 	{#if data.offers.length === 0}
-		<!-- Empty State -->
-		<div class="rounded-lg border-2 border-dashed border-base-300 bg-base-100 p-12 text-center">
-			<div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-base-200">
-				<IconTag class="h-8 w-8 text-base-content/40" />
-			</div>
-			<h2 class="mb-2 text-xl font-semibold">No offers yet</h2>
-			<p class="mb-6 text-base-content/60">
-				Create your first offer to attract customers and boost your business
-			</p>
-			<a href="/offers/new" class="btn gap-2 btn-primary">
-				<IconAdd class="size-5" />
-				Create First Offer
-			</a>
-		</div>
+		<NotFound
+			icon={IconTag}
+			title="No offers yet"
+			description="Create your first offer to attract customers and boost your business"
+			actionLabel="Create First Offer"
+			actionHref="/offers/new"
+			actionIcon={IconAdd}
+		/>
 	{:else}
 		<div class="mb-6 flex items-center justify-between">
 			<div class="tabs-bordered tabs">

@@ -13,6 +13,7 @@
 	import IconBank from '~icons/fluent/building-bank-24-regular';
 	import FluentPayment24Regular from '~icons/fluent/payment-24-regular';
 	import IconEdit from '~icons/fluent/edit-24-regular';
+	import BaseLayout from '$lib/components/BaseLayout.svelte';
 
 	interface Props {
 		data: PageData;
