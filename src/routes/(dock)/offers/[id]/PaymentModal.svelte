@@ -242,7 +242,7 @@
 		{#if errorMessage}
 			<div class="mb-6 rounded-2xl bg-error/10 p-5">
 				<div class="flex gap-3">
-					<IconError class="mt-0.5 size-6 flex-shrink-0 text-error" />
+					<IconError class="mt-0.5 size-6  text-error" />
 					<div class="flex-1">
 						<p class="font-medium text-error">Error</p>
 						<p class="mt-1 text-sm text-error/80">{errorMessage}</p>
@@ -253,7 +253,7 @@
 
 		<!-- Order Summary -->
 		<div class="mb-6 space-y-4">
-			<div class="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5">
+			<div class="rounded-2xl from-primary/10 via-primary/5 to-transparent p-5">
 				<div class="flex items-baseline justify-between">
 					<span class="text-sm font-medium text-primary">Total Amount</span>
 					<span class="text-2xl font-bold text-primary">
@@ -263,12 +263,10 @@
 			</div>
 
 			{#if isRecurring}
-				<div
-					class="rounded-2xl bg-gradient-to-br from-secondary/10 via-secondary/5 to-transparent p-5"
-				>
+				<div class="rounded-2xl from-secondary/10 via-secondary/5 to-transparent p-5">
 					<div class="flex items-center justify-between">
 						<div class="flex items-center gap-3">
-							<div class="rounded-lg bg-gradient-to-br from-secondary/30 to-secondary/20 p-2">
+							<div class="rounded-lg from-secondary/30 to-secondary/20 p-2">
 								<IconCalendar class="size-5 text-secondary" />
 							</div>
 							<div>
@@ -294,9 +292,9 @@
 					<button
 						onclick={() => handleMethodSelect('iban')}
 						disabled={processing}
-						class="to-base-50 flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 bg-gradient-to-br from-base-100 p-5 text-left transition-all hover:border-primary hover:from-primary/5 hover:to-primary/10 disabled:opacity-50"
+						class="to-base-50 flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 from-base-100 p-5 text-left transition-all hover:border-primary hover:from-primary/5 hover:to-primary/10 disabled:opacity-50"
 					>
-						<div class="rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 p-3">
+						<div class="rounded-xl from-primary/20 to-primary/10 p-3">
 							<IconBank class="size-6 text-primary" />
 						</div>
 						<div class="flex-1">
@@ -315,9 +313,9 @@
 					<button
 						onclick={() => handleMethodSelect('tether')}
 						disabled={processing}
-						class="to-base-50 flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 bg-gradient-to-br from-base-100 p-5 text-left transition-all hover:border-secondary hover:from-secondary/5 hover:to-secondary/10 disabled:opacity-50"
+						class="to-base-50 flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 from-base-100 p-5 text-left transition-all hover:border-secondary hover:from-secondary/5 hover:to-secondary/10 disabled:opacity-50"
 					>
-						<div class="rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 p-3">
+						<div class="rounded-xl from-secondary/20 to-secondary/10 p-3">
 							<IconWallet class="size-6 text-secondary" />
 						</div>
 						<div class="flex-1">
@@ -331,28 +329,13 @@
 						{/if}
 					</button>
 				{/if}
-
-				<div class="mt-6 rounded-2xl bg-info/10 p-5">
-					<div class="flex gap-3">
-						<IconInfo class="mt-0.5 size-5 flex-shrink-0 text-info" />
-						<div class="text-sm">
-							<p class="font-medium text-info">Secure Payment Process</p>
-							<ol class="mt-2 ml-4 list-decimal space-y-1 opacity-80">
-								<li>Payment goes to our secure platform wallet</li>
-								<li>Your reservation is created immediately</li>
-								<li>We transfer the business portion automatically</li>
-								<li>You receive your surprise bag at pickup time</li>
-							</ol>
-						</div>
-					</div>
-				</div>
 			</div>
 		{:else if step === 'initiated' && selectedMethod === 'tether'}
 			<!-- Tether Payment Instructions -->
 			<div class="space-y-6">
-				<div class="rounded-2xl bg-gradient-to-br from-warning/10 to-warning/5 p-5">
+				<div class="rounded-2xl from-warning/10 to-warning/5 p-5">
 					<div class="flex gap-3">
-						<IconWarning class="mt-0.5 size-5 flex-shrink-0 text-warning" />
+						<IconWarning class="mt-0.5 size-5  text-warning" />
 						<div class="text-sm">
 							<p class="font-medium">Important Instructions</p>
 							<p class="mt-1 opacity-80">

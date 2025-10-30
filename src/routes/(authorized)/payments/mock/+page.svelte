@@ -43,12 +43,12 @@
 	<title>Mock Payment Gateway - Testing Mode</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-warning/10 via-base-100 to-warning/5 p-4">
+<div class="min-h-screen from-warning/10 via-base-100 to-warning/5 p-4">
 	<div class="mx-auto max-w-2xl py-8">
 		<!-- Mock Gateway Header -->
 		<div class="mb-8 text-center">
 			<div
-				class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-warning/30 to-warning/10 shadow-lg"
+				class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full from-warning/30 to-warning/10 shadow-lg"
 			>
 				<IconWarning class="size-10 text-warning" />
 			</div>
@@ -61,9 +61,7 @@
 		<div class="rounded-2xl border-2 border-warning/30 bg-base-100 p-8 shadow-xl">
 			{#if !processing}
 				<!-- Mock Warning Banner -->
-				<div
-					class="mb-8 rounded-xl border-2 border-warning bg-gradient-to-br from-warning/20 to-warning/10 p-5"
-				>
+				<div class="mb-8 rounded-xl border-2 border-warning from-warning/20 to-warning/10 p-5">
 					<div class="flex gap-4">
 						<IconInfo class="size-6 shrink-0 text-warning" />
 						<div class="text-sm">
@@ -79,14 +77,14 @@
 
 				<!-- Payment Details -->
 				<div class="mb-8 space-y-4">
-					<div class="rounded-xl bg-gradient-to-br from-base-200 to-base-100 p-5">
+					<div class="rounded-xl from-base-200 to-base-100 p-5">
 						<div class="mb-2 text-xs font-bold tracking-wider text-base-content/60 uppercase">
 							Authority Code
 						</div>
 						<div class="font-mono text-sm break-all text-primary">{authority}</div>
 					</div>
 
-					<div class="rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 p-5">
+					<div class="rounded-xl from-primary/10 to-primary/5 p-5">
 						<div class="mb-2 text-xs font-bold tracking-wider text-primary uppercase">
 							Payment Amount
 						</div>
@@ -96,7 +94,7 @@
 					</div>
 
 					{#if data.paymentId}
-						<div class="rounded-xl bg-gradient-to-br from-base-200 to-base-100 p-5">
+						<div class="rounded-xl from-base-200 to-base-100 p-5">
 							<div class="mb-2 text-xs font-bold tracking-wider text-base-content/60 uppercase">
 								Payment ID
 							</div>
@@ -108,7 +106,7 @@
 				<!-- Payment Flow Explanation -->
 				<div class="mb-8 rounded-xl bg-info/10 p-5">
 					<div class="flex gap-3">
-						<IconInfo class="mt-0.5 size-5 flex-shrink-0 text-info" />
+						<IconInfo class="mt-0.5 size-5  text-info" />
 						<div class="text-sm">
 							<p class="font-medium text-info">How It Works (Production)</p>
 							<ol class="mt-2 ml-5 list-decimal space-y-1 text-base-content/80">
@@ -163,7 +161,7 @@
 		</div>
 
 		<!-- Environment Info Footer -->
-		<div class="mt-6 rounded-xl bg-gradient-to-br from-warning/20 to-warning/10 p-5 text-center">
+		<div class="mt-6 rounded-xl from-warning/20 to-warning/10 p-5 text-center">
 			<p class="font-semibold text-warning">💡 Development Mode</p>
 			<p class="mt-2 text-sm text-base-content/70">
 				Set <code class="rounded bg-base-200 px-2 py-1 font-mono text-xs">MOCK_PAYMENTS=false</code>

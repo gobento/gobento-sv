@@ -18,6 +18,7 @@
 	import FlagGermany from '~icons/circle-flags/de';
 	import FlagIran from '~icons/circle-flags/ir';
 	import { welcomeSchema } from './schema';
+	import CountrySelect from './CountrySelect.svelte';
 
 	interface Props {
 		data: PageData;
@@ -165,8 +166,7 @@
 		// For businesses and charities, require at least one payment method
 		const hasPaymentMethod =
 			paymentMethod &&
-			((paymentMethod === 'iban' && ibanNumber) ||
-				(paymentMethod === 'tether' && tetherAddress));
+			((paymentMethod === 'iban' && ibanNumber) || (paymentMethod === 'tether' && tetherAddress));
 
 		if ($form.accountType === 'business') {
 			const name = 'name' in $form ? $form.name : '';
@@ -516,7 +516,7 @@
 				{#if needsProfileData()}
 					<div class="space-y-4">
 						<div class="divider">Payment Information</div>
-						
+
 						<!-- Payment Method Selection -->
 						<div class="form-control">
 							<label class="label" for="paymentMethod">
