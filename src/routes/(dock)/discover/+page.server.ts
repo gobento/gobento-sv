@@ -9,7 +9,7 @@ import {
 	accounts
 } from '$lib/server/schema';
 import { eq, and, inArray } from 'drizzle-orm';
-import { getSignedDownloadUrl } from '$lib/server/backblaze'; // ← Import this
+import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { calculateDistance } from '$lib/util';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -71,9 +71,10 @@ export const load: PageServerLoad = async ({ url }) => {
 				business: {
 					name: row.business.name,
 					type: row.business.businessType,
+					country: row.business.country, // ← Added this
 					logo: {
 						id: row.logo.id,
-						url: logoUrl, // ← Now this is a signed URL!
+						url: logoUrl,
 						fileName: row.logo.fileName
 					}
 				},
