@@ -507,7 +507,7 @@
 							originalValue={selectedOffer.originalValue}
 							price={selectedOffer.price}
 							country={selectedOffer.business.country}
-							paymentFeePercent={5}
+							paymentFeePercent={data.feePercentage}
 							size="lg"
 						/>
 					</div>

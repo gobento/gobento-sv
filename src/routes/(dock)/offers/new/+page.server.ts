@@ -54,7 +54,6 @@ export const actions = {
 		const description = formData.get('description') as string;
 		const originalValue = parseFloat(formData.get('originalValue') as string);
 		const price = parseFloat(formData.get('price') as string);
-		const currency = formData.get('currency') as string;
 		const quantity = parseInt(formData.get('quantity') as string);
 		const locationId = formData.get('locationId') as string;
 		const isRecurring = formData.get('isRecurring') === 'on';
@@ -87,10 +86,6 @@ export const actions = {
 				message: 'Discounted price must be less than original value',
 				field: 'price'
 			});
-		}
-
-		if (!currency || currency.trim().length === 0) {
-			return fail(400, { message: 'Currency is required', field: 'currency' });
 		}
 
 		if (isNaN(quantity) || quantity < 1) {
@@ -193,7 +188,8 @@ export const actions = {
 				description: description.trim(),
 				originalValue,
 				price,
-				currency: currency.trim(),
+				currency: 'EUR',
+				//todo: use the currency of the country the business resides in
 				quantity,
 				isActive: true,
 				isRecurring,

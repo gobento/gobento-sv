@@ -305,7 +305,7 @@
 <div class="card-body">
 	<div class="flex flex-col gap-3 sm:flex-row">
 		{#if canEdit}
-			<a href="/profile/edit" class="btn flex-1 gap-2 btn-primary">
+			<a href="/profile/edit" class="btn gap-2 btn-primary">
 				<IconEdit class="size-5" />
 				{#if isUser}
 					Edit Payment Settings
@@ -318,10 +318,10 @@
 		{/if}
 
 		{#if data.account.accountType === 'user'}
-			<a href="/impact" class="btn flex-1 btn-ghost"> Your Impact on Environment </a>
+			<a href="/impact" class="btn btn-ghost"> Your Impact on Environment </a>
 		{/if}
 
-		<a href="/auth/logout" class="btn flex-1 btn-secondary"> Logout </a>
+		<a href="/auth/logout" class="btn btn-secondary"> Logout </a>
 	</div>
 </div>
 

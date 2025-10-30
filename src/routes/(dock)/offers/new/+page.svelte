@@ -96,7 +96,7 @@
 				<div class="grid gap-4 md:grid-cols-2">
 					<div class="form-control">
 						<label class="label" for="originalValue">
-							<span class="label-text">Original Value</span>
+							<span class="label-text">Value of the Goods in this surprise bag</span>
 						</label>
 						<input
 							type="number"
@@ -129,23 +129,6 @@
 							required
 						/>
 					</div>
-				</div>
-
-				<div class="form-control w-32">
-					<label class="label" for="currency">
-						<span class="label-text">Currency</span>
-					</label>
-					<select
-						id="currency"
-						name="currency"
-						bind:value={currency}
-						class="select-bordered select"
-						required
-					>
-						<option value="EUR">EUR (€)</option>
-						<option value="USD">USD ($)</option>
-						<option value="GBP">GBP (£)</option>
-					</select>
 				</div>
 
 				<!-- Payment Fee Info -->

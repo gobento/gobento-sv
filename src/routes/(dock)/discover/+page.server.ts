@@ -11,6 +11,7 @@ import {
 import { eq, and, inArray } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { calculateDistance } from '$lib/util';
+import { FEE_PERCENTAGE } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const lat = url.searchParams.get('lat');
@@ -71,7 +72,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				business: {
 					name: row.business.name,
 					type: row.business.businessType,
-					country: row.business.country, // ← Added this
+					country: row.business.country,
 					logo: {
 						id: row.logo.id,
 						url: logoUrl,
@@ -102,5 +103,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		});
 	}
 
-	return { offers };
+	return {
+		offers,
+		feePercentage: parseFloat(FEE_PERCENTAGE)
+	};
 };

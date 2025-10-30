@@ -4,8 +4,11 @@
 	import { superForm } from 'sveltekit-superforms';
 	import { valibotClient } from 'sveltekit-superforms/adapters';
 	import IconBriefcase from '~icons/fluent/briefcase-24-regular';
+	import IconBriefcaseFilled from '~icons/fluent/briefcase-24-filled';
 	import IconPerson from '~icons/fluent/person-24-regular';
+	import IconPersonFilled from '~icons/fluent/person-24-filled';
 	import IconHeart from '~icons/fluent/heart-24-regular';
+	import IconHeartFilled from '~icons/fluent/heart-24-filled';
 	import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
@@ -18,7 +21,6 @@
 	import FlagGermany from '~icons/circle-flags/de';
 	import FlagIran from '~icons/circle-flags/ir';
 	import { welcomeSchema } from './schema';
-	import CountrySelect from './CountrySelect.svelte';
 
 	interface Props {
 		data: PageData;
@@ -37,6 +39,7 @@
 		title: string;
 		description: string;
 		icon: any;
+		iconFilled: any;
 	}
 
 	interface Country {
@@ -55,19 +58,22 @@
 			id: 'business',
 			title: 'Business',
 			description: 'Sell surplus food at discounted prices',
-			icon: IconBriefcase
+			icon: IconBriefcase,
+			iconFilled: IconBriefcaseFilled
 		},
 		{
 			id: 'user',
 			title: 'Personal',
 			description: 'Save money and help reduce food waste',
-			icon: IconPerson
+			icon: IconPerson,
+			iconFilled: IconPersonFilled
 		},
 		{
 			id: 'charity',
 			title: 'Charity',
 			description: 'Receive donated food for those in need',
-			icon: IconHeart
+			icon: IconHeart,
+			iconFilled: IconHeartFilled
 		}
 	];
 
@@ -212,8 +218,8 @@
 
 {#if step === 1}
 	<div class="space-y-6">
-		<div class="justify-center text-center">
-			<FluentEmojiFlatBentoBox class="size-7" />
+		<div class="flex flex-col items-center justify-center text-center">
+			<FluentEmojiFlatBentoBox class="mb-3 size-12" />
 			<h1 class="mb-2 text-lg font-bold">Welcome to Go Bento!</h1>
 			<p class="text-base-content/70">Join the fight against food waste and help save our planet</p>
 		</div>
@@ -236,22 +242,21 @@
 							class:hover:bg-base-200={$form.accountType !== type.id}
 							onclick={() => selectType(type.id)}
 						>
-							<div
-								class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-							>
-								<type.icon class="h-6 w-6" />
-							</div>
+							{#if $form.accountType === type.id}
+								<div
+									class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-content"
+								>
+									<type.iconFilled class="size-6" />
+								</div>
+							{:else}
+								<div class="flex size-12 shrink-0 items-center justify-center text-base-content/60">
+									<type.icon class="size-6" />
+								</div>
+							{/if}
 							<div class="flex-1">
 								<h3 class="font-semibold">{type.title}</h3>
 								<p class="text-sm text-base-content/60">{type.description}</p>
 							</div>
-							{#if $form.accountType === type.id}
-								<div
-									class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-content"
-								>
-									<IconCheckmark class="h-4 w-4" />
-								</div>
-							{/if}
 						</button>
 					{/each}
 				</div>
@@ -271,7 +276,7 @@
 	<div class="space-y-6">
 		<div class="text-center">
 			<div
-				class="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-content"
+				class="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-content"
 			>
 				<IconCheckCircle class="size-7" />
 			</div>
@@ -413,23 +418,30 @@
 							{/if}
 						</div>
 
-						<!-- Country with Custom Select -->
+						<!-- Country with Native Select -->
 						<div class="form-control">
 							<label class="label" for="country">
 								<span class="label-text font-medium">Country</span>
 								<span class="label-text-alt text-error">Required</span>
 							</label>
-							<CountrySelect
-								{countries}
-								bind:value={$form.country}
-								error={!!getFormError('country')}
-								disabled={$submitting}
-								onchange={(value) => {
+							<select
+								id="country"
+								name="country"
+								class="select-bordered select w-full"
+								class:select-error={getFormError('country')}
+								value={getFormValue('country')}
+								onchange={(e) => {
 									if ('country' in $form) {
-										$form.country = value;
+										$form.country = e.currentTarget.value;
 									}
 								}}
-							/>
+								disabled={$submitting}
+							>
+								<option value="" disabled selected>Select your country</option>
+								{#each countries as country}
+									<option value={country.code}>{country.name}</option>
+								{/each}
+							</select>
 							{#if getFormError('country')}
 								<label class="label">
 									<span class="label-text-alt flex items-center gap-1 text-error">
@@ -482,7 +494,7 @@
 									</div>
 								{:else}
 									<div class="flex gap-4 p-4">
-										<div class="h-20 w-20 shrink-0 overflow-hidden rounded-lg">
+										<div class="size-20 shrink-0 overflow-hidden rounded-lg">
 											<img src={previewUrl} alt="Preview" class="h-full w-full object-cover" />
 										</div>
 										<div class="flex min-w-0 flex-1 flex-col justify-center text-left">
@@ -493,7 +505,7 @@
 												{Math.round(selectedFile.size / 1024)} KB
 											</p>
 											<div class="mt-1 flex items-center gap-1 text-success">
-												<IconCheckmark class="h-4 w-4" />
+												<IconCheckmark class="size-4" />
 												<span class="text-xs font-medium">Ready to upload</span>
 											</div>
 										</div>
