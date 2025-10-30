@@ -1,11 +1,6 @@
 // src/lib/server/payments/zarinpal.ts
 
-import {
-	ZARINPAL_MERCHANT_ID,
-	ZARINPAL_SANDBOX,
-	FEE_ZARINPAL_MERCHANT_ID,
-	MOCK_PAYMENTS
-} from '$env/static/private';
+import { ZARINPAL_MERCHANT_ID, ZARINPAL_SANDBOX, MOCK_PAYMENTS } from '$env/static/private';
 import { env } from '$env/dynamic/private';
 
 interface ZarinpalRequestResponse {
@@ -45,6 +40,8 @@ const ZARINPAL_PAYMENT_URL =
 export class ZarinpalService {
 	/**
 	 * Request a payment from Zarinpal
+	 * User will be redirected to Zarinpal gateway to complete payment
+	 * Payment goes to our platform merchant account first
 	 */
 	static async requestPayment(params: {
 		amount: number; // Amount in IRR
@@ -54,13 +51,13 @@ export class ZarinpalService {
 		callbackUrl: string;
 		metadata?: Record<string, any>;
 	}): Promise<{ success: boolean; authority?: string; paymentUrl?: string; error?: string }> {
-		// Mock mode
+		// Mock mode - simulate payment gateway
 		if (MOCK_PAYMENTS === 'true') {
 			const mockAuthority = `MOCK_${crypto.randomUUID().substring(0, 8).toUpperCase()}`;
 			return {
 				success: true,
 				authority: mockAuthority,
-				paymentUrl: `${env.PUBLIC_APP_URL}/payments/mock?authority=${mockAuthority}`
+				paymentUrl: `${env.PUBLIC_APP_URL}/payments/mock?authority=${mockAuthority}&amount=${params.amount}`
 			};
 		}
 
@@ -109,12 +106,14 @@ export class ZarinpalService {
 
 	/**
 	 * Verify a payment with Zarinpal
+	 * This confirms the user completed payment on Zarinpal gateway
+	 * Money is now in our platform merchant account
 	 */
 	static async verifyPayment(params: {
 		authority: string;
 		amount: number;
 	}): Promise<{ success: boolean; refId?: number; error?: string }> {
-		// Mock mode
+		// Mock mode - always succeed
 		if (MOCK_PAYMENTS === 'true') {
 			if (params.authority.startsWith('MOCK_')) {
 				return {
@@ -140,6 +139,8 @@ export class ZarinpalService {
 
 			const result: ZarinpalVerifyResponse = await response.json();
 
+			// Code 100 = successful payment
+			// Code 101 = payment already verified
 			if (result.data.code === 100 || result.data.code === 101) {
 				return {
 					success: true,
@@ -161,41 +162,39 @@ export class ZarinpalService {
 	}
 
 	/**
-	 * Split payment - send fee to platform
-	 * Note: Zarinpal doesn't natively support payment splitting,
-	 * so we handle this manually after successful payment
+	 * Transfer business portion from platform account to business IBAN
+	 * This happens after we receive payment and take our fee
+	 * In production, this would use Zarinpal's payout API or bank transfer
 	 */
-	static async transferFee(params: {
+	static async transferToBusiness(params: {
 		amount: number;
+		ibanNumber: string;
 		description: string;
 	}): Promise<{ success: boolean; error?: string }> {
 		if (MOCK_PAYMENTS === 'true') {
-			console.log(`[MOCK] Would transfer fee: ${params.amount} IRR to platform`);
+			console.log(`[MOCK] Transferring ${params.amount} IRR to IBAN ${params.ibanNumber}`);
+			console.log(`[MOCK] Description: ${params.description}`);
 			return { success: true };
 		}
 
-		// In production, you would:
-		// 1. Use Zarinpal's payout API to transfer to platform account
-		// 2. Or handle this through your business logic
-		// 3. Or use Zarinpal's wage feature if available
+		// In production, implement one of these:
+		// 1. Zarinpal Payout API (if available)
+		// 2. Batch bank transfer process
+		// 3. Manual processing queue for admin review
 
-		console.log(`Fee transfer: ${params.amount} IRR - ${params.description}`);
+		// For now, log for manual processing
+		console.log('Business transfer pending:', {
+			amount: params.amount,
+			iban: params.ibanNumber,
+			description: params.description
+		});
+
+		// TODO: Implement actual transfer logic
+		// This could be:
+		// - Automated bank transfer via banking API
+		// - Queue for batch processing
+		// - Admin dashboard for manual approval
+
 		return { success: true };
-	}
-
-	/**
-	 * Calculate fee split (90% to business, 10% to platform)
-	 */
-	static calculateSplit(amount: number): {
-		businessAmount: number;
-		feeAmount: number;
-	} {
-		const feeAmount = Math.round(amount * 0.1);
-		const businessAmount = amount - feeAmount;
-
-		return {
-			businessAmount,
-			feeAmount
-		};
 	}
 }

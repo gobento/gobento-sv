@@ -1,5 +1,5 @@
 // src/routes/(dock)/offers/[id]/+page.server.ts
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import {
@@ -12,10 +12,10 @@ import {
 	businessWallets,
 	payments
 } from '$lib/server/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { PaymentHandler } from '$lib/server/payments/handler';
-import { env } from '$env/dynamic/private';
+import { TetherService } from '$lib/server/payments/tether';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
@@ -139,9 +139,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 export const actions: Actions = {
 	/**
-	 * Initialize payment
+	 * Initialize payment - creates payment record and returns instructions
 	 */
-	initPayment: async ({ params, locals, request, url }) => {
+	initPayment: async ({ params, locals, request }) => {
 		const account = locals.account!;
 
 		if (account.accountType !== 'user') {
@@ -206,10 +206,10 @@ export const actions: Actions = {
 			return fail(400, { error: 'Business does not accept USDT payments' });
 		}
 
-		// Create payment record
-		const currency = paymentMethod === 'tether' ? 'USDT' : 'EUR';
+		// Initiate payment
+		const currency = paymentMethod === 'tether' ? 'USDT' : wallet.ibanEnabled ? 'EUR' : 'IRR';
 
-		const paymentResult = await PaymentHandler.createPayment({
+		const paymentResult = await PaymentHandler.initiatePayment({
 			offerId: params.id,
 			userAccountId: account.id,
 			businessAccountId: offer.businessAccountId,
@@ -219,12 +219,13 @@ export const actions: Actions = {
 			pickupDate,
 			metadata: {
 				pickupDate: pickupDateStr,
-				offerName: offer.name
+				offerName: offer.name,
+				email: account.email
 			}
 		});
 
-		if (!paymentResult.success || !paymentResult.paymentId) {
-			return fail(500, { error: paymentResult.error || 'Failed to create payment' });
+		if (!paymentResult.success) {
+			return fail(500, { error: paymentResult.error || 'Failed to initialize payment' });
 		}
 
 		// Return payment details based on method
@@ -233,10 +234,10 @@ export const actions: Actions = {
 				success: true,
 				paymentId: paymentResult.paymentId,
 				paymentMethod: 'iban',
-				ibanNumber: wallet.ibanNumber,
+				zarinpalAuthority: paymentResult.zarinpalAuthority,
+				zarinpalPaymentUrl: paymentResult.zarinpalPaymentUrl,
 				amount: offer.price,
-				currency: 'EUR',
-				reference: `PAY-${paymentResult.paymentId.substring(0, 8).toUpperCase()}`,
+				currency,
 				pickupDate: pickupDateStr,
 				offerName: offer.name
 			};
@@ -245,9 +246,8 @@ export const actions: Actions = {
 				success: true,
 				paymentId: paymentResult.paymentId,
 				paymentMethod: 'tether',
-				tetherAddress: wallet.tetherAddress,
-				amount: offer.price,
-				currency: 'USDT',
+				platformWalletAddress: paymentResult.platformWalletAddress,
+				amountUsdt: paymentResult.amountUsdt,
 				pickupDate: pickupDateStr,
 				offerName: offer.name
 			};
@@ -257,17 +257,17 @@ export const actions: Actions = {
 	},
 
 	/**
-	 * Confirm payment (manual verification by user)
+	 * Verify Tether payment - checks blockchain and completes payment
 	 */
-	confirmPayment: async ({ params, locals, request }) => {
+	verifyTetherPayment: async ({ params, locals, request }) => {
 		const account = locals.account!;
 
 		const formData = await request.formData();
 		const paymentId = formData.get('paymentId') as string;
-		const transactionReference = formData.get('transactionReference') as string;
+		const txHash = formData.get('txHash') as string;
 
-		if (!paymentId) {
-			return fail(400, { error: 'Payment ID is required' });
+		if (!paymentId || !txHash) {
+			return fail(400, { error: 'Payment ID and transaction hash are required' });
 		}
 
 		// Find payment record
@@ -284,18 +284,17 @@ export const actions: Actions = {
 			.limit(1);
 
 		if (!payment) {
-			return fail(400, { error: 'Payment not found' });
+			return fail(400, { error: 'Payment not found or already processed' });
 		}
 
-		// Update payment with reference
+		// Complete payment (verifies blockchain and creates reservation)
 		const completeResult = await PaymentHandler.completePayment({
 			paymentId: payment.id,
-			ibanReference: payment.paymentMethod === 'iban' ? transactionReference : undefined,
-			tetherTxHash: payment.paymentMethod === 'tether' ? transactionReference : undefined
+			tetherTxHash: txHash
 		});
 
 		if (!completeResult.success) {
-			return fail(500, { error: completeResult.error || 'Failed to complete payment' });
+			return fail(500, { error: completeResult.error || 'Failed to verify payment' });
 		}
 
 		return {
