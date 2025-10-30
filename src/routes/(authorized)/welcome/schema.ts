@@ -25,15 +25,15 @@ const businessSchema = v.pipe(
 		),
 		tetherAddress: v.optional(
 			v.pipe(
-				v.string()
+				v.string(),
 				v.minLength(42, 'Invalid Tether address'),
 				v.maxLength(42, 'Invalid Tether address'),
-			v.startsWith('0x', 'Tether address must start with 0x')
+				v.startsWith('0x', 'Tether address must start with 0x')
 			)
 		)
 	}),
 	v.check((data) => {
-		if (data.paymentMethod === 'zarinpal' && !data.zarinpalMerchantId) {
+		if (data.paymentMethod === 'iban' && !data.zarinpalMerchantId) {
 			return false;
 		}
 		if (data.paymentMethod === 'tether' && !data.tetherAddress) {
