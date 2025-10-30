@@ -39,7 +39,7 @@ export const userProfiles = pgTable('user_profiles', {
 		.primaryKey()
 		.references(() => accounts.id, { onDelete: 'cascade' }),
 
-	// Payment configuration - ALL users need at least one
+	// Payment configuration - users can have optional payment methods
 	ibanNumber: text('iban_number'),
 	ibanEnabled: boolean('iban_enabled').notNull().default(false),
 	tetherAddress: text('tether_address'),
@@ -277,11 +277,12 @@ export const payments = pgTable('payments', {
 	expiresAt: timestamp('expires_at', { withTimezone: true })
 });
 
-// Payment wallet configurations for businesses
+// Payment wallet configurations - BUSINESSES MUST HAVE AT LEAST ONE
 export const businessWallets = pgTable('business_wallets', {
 	accountId: text('account_id')
 		.primaryKey()
 		.references(() => accounts.id, { onDelete: 'cascade' }),
+	// At least one must be provided and enabled
 	ibanNumber: text('iban_number'),
 	ibanEnabled: boolean('iban_enabled').notNull().default(false),
 	tetherAddress: text('tether_address'),
