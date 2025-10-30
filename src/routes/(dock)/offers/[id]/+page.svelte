@@ -11,6 +11,7 @@
 	import { formatDate, formatTime } from '$lib/util.js';
 	import LocationCard from '$lib/components/LocationCard.svelte';
 	import OfferStatusCard from './OfferStatusCard.svelte';
+	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
 
 	let { data, form } = $props();
 
@@ -130,15 +131,14 @@
 	{data.offer.name}
 </h1>
 
-<!-- Price -->
-<div class="flex flex-col items-end gap-2 px-6">
-	<div class="text-base text-base-content/50 line-through">
-		{formatPrice(data.offer.displayOriginalValue, data.business.country)}
-	</div>
-	<div class="text-4xl font-bold text-primary">
-		{formatPrice(data.offer.displayPrice, data.business.country)}
-	</div>
-</div>
+<PriceDisplay
+	originalValue={data.offer.displayOriginalValue}
+	price={data.offer.displayPrice}
+	country={data.business.country}
+	paymentFeePercent={5}
+	showFinalPrice={true}
+	size="lg"
+/>
 
 <!-- Pickup Location -->
 {#if data.location}

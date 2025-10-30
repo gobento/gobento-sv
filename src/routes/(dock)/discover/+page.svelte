@@ -18,6 +18,7 @@
 	import { browser } from '$app/environment';
 	import { Map, TileLayer, Marker, Popup } from 'sveaflet';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -519,11 +520,14 @@
 										</div>
 									{/if}
 
-									<div class="mb-3 flex items-center justify-between">
-										<span class="text-lg font-bold text-primary">
-											{formatPrice(offer.price, offer.currency)}
-										</span>
-									</div>
+									<PriceDisplay
+										originalValue={offer.originalValue}
+										price={offer.price}
+										country={offer.business.country}
+										paymentFeePercent={5}
+										showFinalPrice={false}
+										size="sm"
+									/>
 
 									<a href="/offers/{offer.id}" class="btn w-full btn-sm btn-primary">
 										View Offer
