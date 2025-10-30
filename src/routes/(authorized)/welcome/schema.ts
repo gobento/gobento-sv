@@ -25,10 +25,10 @@ const businessSchema = v.pipe(
 		),
 		tetherAddress: v.optional(
 			v.pipe(
-				v.string(),
+				v.string()
 				v.minLength(42, 'Invalid Tether address'),
 				v.maxLength(42, 'Invalid Tether address'),
-				v.startsWith('0x', 'Tether address must start with 0x')
+			v.startsWith('0x', 'Tether address must start with 0x')
 			)
 		)
 	}),

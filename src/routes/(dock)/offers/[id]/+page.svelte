@@ -135,7 +135,7 @@
 	originalValue={data.offer.displayOriginalValue}
 	price={data.offer.displayPrice}
 	country={data.business.country}
-	paymentFeePercent={5}
+	paymentFeePercent={data.feePercentage}
 	size="lg"
 />
 

@@ -206,13 +206,6 @@
 		goto(`/map?${params.toString()}`);
 	}
 
-	function formatPrice(price: number, currency: string) {
-		return new Intl.NumberFormat('de-DE', {
-			style: 'currency',
-			currency: currency
-		}).format(price);
-	}
-
 	function getPickupTimeRemaining(pickupTimeUntil: string, currentTime: Date) {
 		const now = currentTime;
 		const todayDateStr = now.toISOString().split('T')[0];
@@ -411,11 +404,13 @@
 							</div>
 
 							<div class="flex items-center justify-between pt-4">
-								<div class="flex items-baseline gap-2">
-									<span class="text-xl font-bold text-primary">
-										{formatPrice(offer.price, offer.currency)}
-									</span>
-								</div>
+								<PriceDisplay
+									originalValue={offer.originalValue}
+									price={offer.price}
+									country={offer.business.country}
+									paymentFeePercent={data.feePercentage}
+									size="sm"
+								/>
 
 								<IconFluentArrowRight24Regular
 									class="size-5 text-primary transition-transform group-hover:translate-x-1"

@@ -1,6 +1,5 @@
 // src/lib/server/payments/tether.ts
-
-import { ethers } from 'ethers';
+import { Contract, ethers, JsonRpcProvider, Wallet } from 'ethers';
 import {
 	TETHER_CONTRACT_ADDRESS,
 	ETHEREUM_RPC_URL,
@@ -19,17 +18,17 @@ const USDT_ABI = [
 ];
 
 export class TetherService {
-	private provider: ethers.JsonRpcProvider;
-	private contract: ethers.Contract;
-	private platformWallet: ethers.Wallet | null = null;
+	private provider: JsonRpcProvider;
+	private contract: Contract;
+	private platformWallet: Wallet | null = null;
 
 	constructor() {
-		this.provider = new ethers.JsonRpcProvider(ETHEREUM_RPC_URL);
-		this.contract = new ethers.Contract(TETHER_CONTRACT_ADDRESS, USDT_ABI, this.provider);
+		this.provider = new JsonRpcProvider(ETHEREUM_RPC_URL);
+		this.contract = new Contract(TETHER_CONTRACT_ADDRESS, USDT_ABI, this.provider);
 
 		// Initialize platform wallet if private key available
 		if (TETHER_PRIVATE_KEY && TETHER_PRIVATE_KEY !== 'your_platform_wallet_private_key') {
-			this.platformWallet = new ethers.Wallet(TETHER_PRIVATE_KEY, this.provider);
+			this.platformWallet = new Wallet(TETHER_PRIVATE_KEY, this.provider);
 		}
 	}
 

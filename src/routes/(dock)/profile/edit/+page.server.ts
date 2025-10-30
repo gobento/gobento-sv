@@ -13,95 +13,111 @@ import { eq } from 'drizzle-orm';
 import { uploadFileFromForm, getSignedDownloadUrl } from '$lib/server/backblaze';
 import { randomUUID } from 'crypto';
 
+// Helper functions
+async function getProfilePictureUrl(profilePictureId: string | null): Promise<string | null> {
+	if (!profilePictureId) return null;
+
+	const [file] = await db.select().from(files).where(eq(files.id, profilePictureId)).limit(1);
+
+	return file ? await getSignedDownloadUrl(file.key) : null;
+}
+
+async function uploadProfilePicture(
+	picture: File,
+	accountId: string
+): Promise<{ success: true; fileId: string } | { success: false; error: string }> {
+	if (!picture.type.startsWith('image/')) {
+		return { success: false, error: 'Only images are allowed' };
+	}
+
+	const maxSize = 5 * 1024 * 1024;
+	if (picture.size > maxSize) {
+		return { success: false, error: 'File size must be less than 5MB' };
+	}
+
+	const uploadResult = await uploadFileFromForm(picture);
+	if (!uploadResult.success) {
+		return { success: false, error: uploadResult.error || 'Failed to upload profile picture' };
+	}
+
+	const fileId = randomUUID();
+	await db.insert(files).values({
+		id: fileId,
+		key: uploadResult.key,
+		fileName: picture.name,
+		contentType: picture.type,
+		sizeBytes: picture.size,
+		uploadedBy: accountId
+	});
+
+	return { success: true, fileId };
+}
+
+async function loadBusinessProfile(accountId: string) {
+	const [profile] = await db
+		.select()
+		.from(businessProfiles)
+		.where(eq(businessProfiles.accountId, accountId))
+		.limit(1);
+
+	const profilePictureUrl = await getProfilePictureUrl(profile?.profilePictureId);
+
+	const [wallet] = await db
+		.select()
+		.from(businessWallets)
+		.where(eq(businessWallets.accountId, accountId))
+		.limit(1);
+
+	return { profile, profilePictureUrl, wallet };
+}
+
+async function loadCharityProfile(accountId: string) {
+	const [profile] = await db
+		.select()
+		.from(charityProfiles)
+		.where(eq(charityProfiles.accountId, accountId))
+		.limit(1);
+
+	const profilePictureUrl = await getProfilePictureUrl(profile?.profilePictureId);
+
+	return { profile, profilePictureUrl, wallet: null };
+}
+
+async function loadUserProfile(accountId: string) {
+	const [profile] = await db
+		.select()
+		.from(userProfiles)
+		.where(eq(userProfiles.accountId, accountId))
+		.limit(1);
+
+	return { profile, profilePictureUrl: null, wallet: null };
+}
+
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;
 
-	if (
-		account.accountType !== 'business' &&
-		account.accountType !== 'charity' &&
-		account.accountType !== 'user'
-	) {
+	if (!['business', 'charity', 'user'].includes(account.accountType)) {
 		throw error(403, 'Profile editing not available for this account type');
 	}
 
-	let profile = null;
-	let profilePictureUrl = null;
-	let wallet = null;
-
+	let result;
 	if (account.accountType === 'business') {
-		const [businessProfile] = await db
-			.select()
-			.from(businessProfiles)
-			.where(eq(businessProfiles.accountId, account.id))
-			.limit(1);
-
-		profile = businessProfile;
-
-		if (profile?.profilePictureId) {
-			const [file] = await db
-				.select()
-				.from(files)
-				.where(eq(files.id, profile.profilePictureId))
-				.limit(1);
-			profilePictureUrl = file ? await getSignedDownloadUrl(file.key) : null;
-		}
-
-		const [walletConfig] = await db
-			.select()
-			.from(businessWallets)
-			.where(eq(businessWallets.accountId, account.id))
-			.limit(1);
-
-		wallet = walletConfig;
+		result = await loadBusinessProfile(account.id);
 	} else if (account.accountType === 'charity') {
-		const [charityProfile] = await db
-			.select()
-			.from(charityProfiles)
-			.where(eq(charityProfiles.accountId, account.id))
-			.limit(1);
-
-		profile = charityProfile;
-
-		if (profile?.profilePictureId) {
-			const [file] = await db
-				.select()
-				.from(files)
-				.where(eq(files.id, profile.profilePictureId))
-				.limit(1);
-			profilePictureUrl = file ? await getSignedDownloadUrl(file.key) : null;
-		}
-	} else if (account.accountType === 'user') {
-		const [userProfile] = await db
-			.select()
-			.from(userProfiles)
-			.where(eq(userProfiles.accountId, account.id))
-			.limit(1);
-
-		profile = userProfile;
+		result = await loadCharityProfile(account.id);
+	} else {
+		result = await loadUserProfile(account.id);
 	}
 
-	if (!profile && account.accountType !== 'user') {
+	if (!result.profile && account.accountType !== 'user') {
 		throw error(404, 'Profile not found');
 	}
 
 	return {
 		account,
-		profile,
-		profilePictureUrl,
-		wallet
+		...result
 	};
 };
-
-function validateIBAN(iban: string): boolean {
-	const trimmed = iban.replace(/\s/g, '');
-	if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/.test(trimmed)) return false;
-	if (trimmed.length < 15 || trimmed.length > 34) return false;
-	return true;
-}
-
-function validateTetherAddress(address: string): boolean {
-	return /^0x[a-fA-F0-9]{40}$/.test(address.trim());
-}
 
 export const actions: Actions = {
 	updateProfile: async ({ request, locals }) => {
@@ -119,49 +135,6 @@ export const actions: Actions = {
 		const tetherAddress = formData.get('tetherAddress') as string;
 		const preferredPaymentMethod = formData.get('preferredPaymentMethod') as 'iban' | 'tether';
 
-		// Validate at least one payment method is enabled
-		if (!ibanEnabled && !tetherEnabled) {
-			return fail(400, { error: 'At least one payment method must be enabled' });
-		}
-
-		// Validate IBAN if enabled
-		if (ibanEnabled) {
-			if (!ibanNumber?.trim()) {
-				return fail(400, { error: 'IBAN number is required when Bank Transfer is enabled' });
-			}
-			if (!validateIBAN(ibanNumber.trim())) {
-				return fail(400, { error: 'Invalid IBAN format' });
-			}
-		}
-
-		// Validate Tether if enabled
-		if (tetherEnabled) {
-			if (!tetherAddress?.trim()) {
-				return fail(400, { error: 'USDT wallet address is required when Crypto is enabled' });
-			}
-			if (!validateTetherAddress(tetherAddress.trim())) {
-				return fail(400, { error: 'Invalid USDT wallet address format (must start with 0x)' });
-			}
-		}
-
-		// Validate preferred method is enabled
-		if (preferredPaymentMethod === 'iban' && !ibanEnabled) {
-			return fail(400, { error: 'Cannot set Bank Transfer as preferred when it is disabled' });
-		}
-		if (preferredPaymentMethod === 'tether' && !tetherEnabled) {
-			return fail(400, { error: 'Cannot set Crypto as preferred when it is disabled' });
-		}
-
-		// Validate required fields for business/charity
-		if (accountType === 'business' || accountType === 'charity') {
-			if (!name?.trim()) {
-				return fail(400, { error: 'Name is required' });
-			}
-			if (!description?.trim()) {
-				return fail(400, { error: 'Description is required' });
-			}
-		}
-
 		try {
 			if (accountType === 'business' || accountType === 'charity') {
 				const profileTable = accountType === 'business' ? businessProfiles : charityProfiles;
@@ -174,39 +147,18 @@ export const actions: Actions = {
 
 				let profilePictureId = currentProfile?.profilePictureId;
 
+				// Handle profile picture upload
 				if (profilePicture && profilePicture.size > 0) {
-					if (!profilePicture.type.startsWith('image/')) {
-						return fail(400, { error: 'Only images are allowed' });
-					}
-
-					const maxSize = 5 * 1024 * 1024;
-					if (profilePicture.size > maxSize) {
-						return fail(400, { error: 'File size must be less than 5MB' });
-					}
-
-					const uploadResult = await uploadFileFromForm(profilePicture);
-
+					const uploadResult = await uploadProfilePicture(profilePicture, accountId);
 					if (!uploadResult.success) {
-						return fail(500, { error: uploadResult.error || 'Failed to upload profile picture' });
+						return fail(400, { error: uploadResult.error });
 					}
-
-					const fileId = randomUUID();
-					const storageKey = uploadResult.key;
-
-					await db.insert(files).values({
-						id: fileId,
-						key: storageKey,
-						fileName: profilePicture.name,
-						contentType: profilePicture.type,
-						sizeBytes: profilePicture.size,
-						uploadedBy: accountId
-					});
-
-					profilePictureId = fileId;
+					profilePictureId = uploadResult.fileId;
 				} else if (!profilePictureId) {
 					return fail(400, { error: 'Profile picture is required' });
 				}
 
+				// Update profile
 				await db
 					.update(profileTable)
 					.set({
@@ -216,6 +168,7 @@ export const actions: Actions = {
 					})
 					.where(eq(profileTable.accountId, accountId));
 
+				// Update wallet for business accounts
 				if (accountType === 'business') {
 					const [existingWallet] = await db
 						.select()

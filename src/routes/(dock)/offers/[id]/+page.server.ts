@@ -16,6 +16,7 @@ import { eq, and } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { PaymentHandler } from '$lib/server/payments/handler';
 import { TetherService } from '$lib/server/payments/tether';
+import { FEE_PERCENTAGE } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
@@ -133,7 +134,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			ibanEnabled: wallet.ibanEnabled,
 			tetherEnabled: wallet.tetherEnabled,
 			preferredMethod: wallet.preferredPaymentMethod
-		}
+		},
+		feePercentage: parseFloat(FEE_PERCENTAGE)
 	};
 };
 
@@ -246,7 +248,7 @@ export const actions: Actions = {
 				success: true,
 				paymentId: paymentResult.paymentId,
 				paymentMethod: 'tether',
-				platformWalletAddress: paymentResult.platformWalletAddress,
+				platformWalletAddress: TETHER_CONTRACT_ADDRESS,
 				amountUsdt: paymentResult.amountUsdt,
 				pickupDate: pickupDateStr,
 				offerName: offer.name
