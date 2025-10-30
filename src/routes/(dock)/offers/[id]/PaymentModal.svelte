@@ -1,18 +1,17 @@
-<!-- src/lib/components/PaymentModal.svelte -->
+<!-- src/routes/(dock)/offers/[id]/PaymentModal.svelte -->
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import IconClose from '~icons/fluent/dismiss-24-regular';
 	import IconBank from '~icons/fluent/building-bank-24-regular';
 	import IconWallet from '~icons/fluent/wallet-24-regular';
-	import IconCopy from '~icons/fluent/copy-24-regular';
-	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-regular';
 	import IconError from '~icons/fluent/error-circle-24-regular';
 	import IconSuccess from '~icons/fluent/checkmark-circle-24-filled';
 	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
+	import IconArrowRight from '~icons/fluent/arrow-right-24-filled';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
-	import { schedulePickupNotifications } from '$lib/client/schedulePickupNotifications';
+	import IconCopy from '~icons/fluent/copy-24-regular';
+	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
 
 	interface Props {
 		show: boolean;
@@ -47,17 +46,16 @@
 		onClose
 	}: Props = $props();
 
+	type PaymentStep = 'select' | 'initiated' | 'waiting' | 'success';
+
+	let step = $state<PaymentStep>('select');
 	let selectedMethod = $state<'iban' | 'tether' | null>(null);
 	let processing = $state(false);
-	let paymentDetails = $state<any>(null);
+	let paymentData = $state<any>(null);
 	let copiedField = $state<string | null>(null);
-	let transactionReference = $state('');
-	let showPaymentForm = $state(false);
 	let errorMessage = $state<string | null>(null);
-	let successMessage = $state<string | null>(null);
 	let localPickupDate = $state(pickupDate);
 
-	// Keep local date in sync with prop
 	$effect(() => {
 		localPickupDate = pickupDate;
 	});
@@ -99,7 +97,6 @@
 
 	const clearMessages = () => {
 		errorMessage = null;
-		successMessage = null;
 	};
 
 	const handleMethodSelect = async (method: 'iban' | 'tether') => {
@@ -107,21 +104,28 @@
 		selectedMethod = method;
 		processing = true;
 
-		const formData = new FormData();
-		formData.append('paymentMethod', method);
-		formData.append('pickupDate', localPickupDate);
-
 		try {
 			const response = await fetch(`/offers/${offer.id}?/initPayment`, {
 				method: 'POST',
-				body: formData
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: new URLSearchParams({
+					paymentMethod: method,
+					pickupDate: localPickupDate
+				})
 			});
 
 			const result = await response.json();
 
 			if (result.type === 'success' && result.data) {
-				paymentDetails = result.data;
-				showPaymentForm = true;
+				paymentData = result.data;
+
+				if (method === 'iban') {
+					// For IBAN, redirect to Zarinpal gateway immediately
+					window.location.href = result.data.zarinpalPaymentUrl;
+				} else {
+					// For Tether, show payment instructions
+					step = 'initiated';
+				}
 			} else if (result.type === 'failure') {
 				errorMessage = result.data?.error || 'Payment initialization failed';
 				selectedMethod = null;
@@ -137,69 +141,50 @@
 
 	const handleBack = () => {
 		clearMessages();
+		step = 'select';
 		selectedMethod = null;
-		showPaymentForm = false;
-		paymentDetails = null;
-		transactionReference = '';
+		paymentData = null;
 	};
 
-	const handleConfirmPayment = async () => {
-		if (!transactionReference.trim()) {
-			errorMessage = 'Please enter the transaction reference';
-			return;
-		}
-
+	const handleConfirmTetherPayment = async () => {
 		clearMessages();
 		processing = true;
-		const formData = new FormData();
-		formData.append('paymentId', paymentDetails.paymentId);
-		formData.append('transactionReference', transactionReference);
 
 		try {
-			const response = await fetch(`/offers/${offer.id}?/confirmPayment`, {
+			const txHash = (document.getElementById('tetherTxHash') as HTMLInputElement)?.value;
+
+			if (!txHash || !txHash.trim()) {
+				errorMessage = 'Please enter the transaction hash';
+				processing = false;
+				return;
+			}
+
+			step = 'waiting';
+
+			const response = await fetch(`/offers/${offer.id}?/verifyTetherPayment`, {
 				method: 'POST',
-				body: formData
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: new URLSearchParams({
+					paymentId: paymentData.paymentId,
+					txHash: txHash.trim()
+				})
 			});
 
 			const result = await response.json();
 
 			if (result.type === 'success') {
-				// Payment successful - schedule pickup notifications
-				try {
-					const notificationResult = await schedulePickupNotifications({
-						reservationId: result.data.reservationId,
-						pickupDate: localPickupDate,
-						offerName: offer.name,
-						locationName: locationName
-					});
-
-					if (notificationResult.success) {
-						console.log(
-							`Scheduled ${notificationResult.scheduledCount} notification(s) for pickup`
-						);
-						successMessage = `Payment confirmed! ${notificationResult.scheduledCount} pickup reminder(s) scheduled.`;
-					} else {
-						console.warn('Failed to schedule notifications:', notificationResult.error);
-						successMessage =
-							'Payment confirmed! Your reservation has been created. (Reminders could not be scheduled)';
-					}
-				} catch (notifError) {
-					// Don't fail the whole payment if notification scheduling fails
-					console.error('Notification scheduling error:', notifError);
-					successMessage =
-						'Payment confirmed! Your reservation has been created. (Reminders could not be scheduled)';
-				}
-
-				// Redirect after a short delay
+				step = 'success';
 				setTimeout(() => {
 					window.location.href = `/reservations/${result.data.reservationId}`;
 				}, 2000);
 			} else if (result.type === 'failure') {
-				errorMessage = result.data?.error || 'Payment confirmation failed';
+				step = 'initiated';
+				errorMessage = result.data?.error || 'Payment verification failed';
 			}
 		} catch (err) {
-			console.error('Confirmation error:', err);
-			errorMessage = 'Failed to confirm payment. Please try again.';
+			console.error('Verification error:', err);
+			step = 'initiated';
+			errorMessage = 'Failed to verify payment. Please try again.';
 		} finally {
 			processing = false;
 		}
@@ -208,10 +193,9 @@
 	$effect(() => {
 		if (!show) {
 			clearMessages();
+			step = 'select';
 			selectedMethod = null;
-			showPaymentForm = false;
-			paymentDetails = null;
-			transactionReference = '';
+			paymentData = null;
 		}
 	});
 </script>
@@ -221,7 +205,7 @@
 		<!-- Header -->
 		<div class="mb-6 flex items-start justify-between">
 			<div class="flex items-center gap-3">
-				{#if selectedMethod}
+				{#if step !== 'select' && step !== 'success'}
 					<button
 						onclick={handleBack}
 						disabled={processing}
@@ -231,28 +215,28 @@
 					</button>
 				{/if}
 				<div>
-					<h3 class="text-xl font-semibold">Complete Payment</h3>
+					<h3 class="text-xl font-semibold">
+						{#if step === 'select'}
+							Complete Payment
+						{:else if step === 'initiated'}
+							Payment Instructions
+						{:else if step === 'waiting'}
+							Verifying Payment...
+						{:else}
+							Payment Successful!
+						{/if}
+					</h3>
 					<p class="mt-1 text-sm opacity-60">{offer.name}</p>
 				</div>
 			</div>
-			<button onclick={onClose} disabled={processing} class="btn btn-circle btn-ghost btn-sm">
+			<button
+				onclick={onClose}
+				disabled={processing || step === 'waiting'}
+				class="btn btn-circle btn-ghost btn-sm"
+			>
 				<IconClose class="size-5" />
 			</button>
 		</div>
-
-		<!-- Success Message -->
-		{#if successMessage}
-			<div class="mb-6 rounded-2xl bg-success/10 p-5">
-				<div class="flex gap-3">
-					<IconSuccess class="mt-0.5 size-6 shrink-0 text-success" />
-					<div class="flex-1">
-						<p class="font-medium text-success">Success!</p>
-						<p class="mt-1 text-sm text-success/80">{successMessage}</p>
-						<p class="mt-2 text-xs text-success/60">Redirecting to your reservation...</p>
-					</div>
-				</div>
-			</div>
-		{/if}
 
 		<!-- Error Message -->
 		{#if errorMessage}
@@ -269,7 +253,6 @@
 
 		<!-- Order Summary -->
 		<div class="mb-6 space-y-4">
-			<!-- Price -->
 			<div class="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5">
 				<div class="flex items-baseline justify-between">
 					<span class="text-sm font-medium text-primary">Total Amount</span>
@@ -279,7 +262,6 @@
 				</div>
 			</div>
 
-			<!-- Pickup Date -->
 			{#if isRecurring}
 				<div
 					class="rounded-2xl bg-gradient-to-br from-secondary/10 via-secondary/5 to-transparent p-5"
@@ -303,9 +285,9 @@
 			{/if}
 		</div>
 
-		{#if !selectedMethod}
+		{#if step === 'select'}
 			<!-- Payment Method Selection -->
-			<div class="mb-6 space-y-3">
+			<div class="space-y-3">
 				<h4 class="mb-4 text-sm font-medium opacity-60">Select Payment Method</h4>
 
 				{#if businessPaymentMethods.ibanEnabled}
@@ -318,10 +300,14 @@
 							<IconBank class="size-6 text-primary" />
 						</div>
 						<div class="flex-1">
-							<div class="font-semibold">Bank Transfer</div>
-							<div class="text-sm opacity-60">Shetab card payment</div>
+							<div class="font-semibold">Bank Transfer (Zarinpal)</div>
+							<div class="text-sm opacity-60">Secure payment gateway</div>
 						</div>
-						<span class="text-primary">→</span>
+						{#if processing && selectedMethod === 'iban'}
+							<span class="loading loading-sm loading-spinner text-primary"></span>
+						{:else}
+							<span class="text-primary">→</span>
+						{/if}
 					</button>
 				{/if}
 
@@ -336,177 +322,142 @@
 						</div>
 						<div class="flex-1">
 							<div class="font-semibold">Tether (USDT)</div>
-							<div class="text-sm opacity-60">Cryptocurrency wallet</div>
+							<div class="text-sm opacity-60">Cryptocurrency payment</div>
 						</div>
-						<span class="text-secondary">→</span>
+						{#if processing && selectedMethod === 'tether'}
+							<span class="loading loading-sm loading-spinner text-secondary"></span>
+						{:else}
+							<span class="text-secondary">→</span>
+						{/if}
 					</button>
 				{/if}
+
+				<div class="mt-6 rounded-2xl bg-info/10 p-5">
+					<div class="flex gap-3">
+						<IconInfo class="mt-0.5 size-5 flex-shrink-0 text-info" />
+						<div class="text-sm">
+							<p class="font-medium text-info">Secure Payment Process</p>
+							<ol class="mt-2 ml-4 list-decimal space-y-1 opacity-80">
+								<li>Payment goes to our secure platform wallet</li>
+								<li>Your reservation is created immediately</li>
+								<li>We transfer the business portion automatically</li>
+								<li>You receive your surprise bag at pickup time</li>
+							</ol>
+						</div>
+					</div>
+				</div>
 			</div>
-		{:else if processing && !paymentDetails}
-			<!-- Loading State -->
-			<div class="flex flex-col items-center gap-4 py-12">
-				<span class="loading loading-lg loading-spinner text-primary"></span>
-				<p class="opacity-60">Initializing payment...</p>
-			</div>
-		{:else if showPaymentForm && paymentDetails}
-			<!-- Payment Form -->
+		{:else if step === 'initiated' && selectedMethod === 'tether'}
+			<!-- Tether Payment Instructions -->
 			<div class="space-y-6">
-				{#if paymentDetails.paymentMethod === 'iban'}
-					<!-- Bank Transfer Instructions -->
-					<div class="rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 p-5">
-						<div class="flex gap-3">
-							<IconInfo class="mt-0.5 size-5 flex-shrink-0 text-primary" />
-							<div class="text-sm">
-								<p class="font-medium">Bank Transfer Instructions</p>
-								<p class="mt-1 opacity-70">
-									Transfer the exact amount to the card number below and include the reference.
-								</p>
-							</div>
+				<div class="rounded-2xl bg-gradient-to-br from-warning/10 to-warning/5 p-5">
+					<div class="flex gap-3">
+						<IconWarning class="mt-0.5 size-5 flex-shrink-0 text-warning" />
+						<div class="text-sm">
+							<p class="font-medium">Important Instructions</p>
+							<p class="mt-1 opacity-80">
+								Send exactly <span class="font-semibold text-secondary"
+									>{paymentData.amountUsdt} USDT</span
+								>
+								to the platform wallet on the Ethereum network (ERC-20). Double-check the address before
+								sending.
+							</p>
 						</div>
 					</div>
+				</div>
 
-					<div>
-						<label class="mb-2 block text-sm font-medium text-primary">Shetab Card Number</label>
-						<div class="flex gap-2">
-							<input
-								type="text"
-								value={paymentDetails.ibanNumber}
-								readonly
-								class="input-bordered input flex-1 rounded-xl bg-base-200 font-mono text-sm focus:border-primary"
-							/>
-							<button
-								type="button"
-								onclick={() => copyToClipboard(paymentDetails.ibanNumber, 'iban')}
-								class="btn btn-square rounded-xl btn-primary"
-							>
-								{#if copiedField === 'iban'}
-									<IconCheckmark class="size-5" />
-								{:else}
-									<IconCopy class="size-5" />
-								{/if}
-							</button>
-						</div>
-					</div>
-
-					<div>
-						<label class="mb-2 block text-sm font-medium text-primary">Payment Reference</label>
-						<div class="flex gap-2">
-							<input
-								type="text"
-								value={paymentDetails.reference}
-								readonly
-								class="input-bordered input flex-1 rounded-xl bg-base-200 font-mono focus:border-primary"
-							/>
-							<button
-								type="button"
-								onclick={() => copyToClipboard(paymentDetails.reference, 'reference')}
-								class="btn btn-square rounded-xl btn-primary"
-							>
-								{#if copiedField === 'reference'}
-									<IconCheckmark class="size-5" />
-								{:else}
-									<IconCopy class="size-5" />
-								{/if}
-							</button>
-						</div>
-						<p class="mt-2 text-xs opacity-50">Include this in your transfer description</p>
-					</div>
-				{:else if paymentDetails.paymentMethod === 'tether'}
-					<!-- Tether Transfer Instructions -->
-					<div class="rounded-2xl bg-gradient-to-br from-warning/10 to-warning/5 p-5">
-						<div class="flex gap-3">
-							<IconWarning class="mt-0.5 size-5 flex-shrink-0 text-warning" />
-							<div class="text-sm">
-								<p class="font-medium">Important</p>
-								<p class="mt-1 opacity-80">
-									Send exactly <span class="font-semibold text-secondary">
-										{paymentDetails.amount} USDT</span
-									> on the Ethereum network (ERC-20). Double-check the address.
-								</p>
-							</div>
-						</div>
-					</div>
-
-					<div>
-						<label class="mb-2 block text-sm font-medium text-secondary">
-							Wallet Address (ERC-20)
-						</label>
-						<div class="flex gap-2">
-							<input
-								type="text"
-								value={paymentDetails.tetherAddress}
-								readonly
-								class="input-bordered input flex-1 rounded-xl bg-base-200 font-mono text-xs focus:border-secondary"
-							/>
-							<button
-								type="button"
-								onclick={() => copyToClipboard(paymentDetails.tetherAddress, 'address')}
-								class="btn btn-square rounded-xl btn-secondary"
-							>
-								{#if copiedField === 'address'}
-									<IconCheckmark class="size-5" />
-								{:else}
-									<IconCopy class="size-5" />
-								{/if}
-							</button>
-						</div>
-					</div>
-
-					<div class="rounded-2xl bg-gradient-to-br from-secondary/10 to-secondary/5 p-5">
-						<p class="mb-3 text-sm font-medium text-secondary">Steps:</p>
-						<ol class="ml-5 list-decimal space-y-2 text-sm opacity-80">
-							<li>Copy the wallet address above</li>
-							<li>Open your crypto wallet (MetaMask, Trust Wallet, etc.)</li>
-							<li>Send exactly {paymentDetails.amount} USDT on ERC-20 network</li>
-							<li>Copy the transaction hash and paste it below</li>
-						</ol>
-					</div>
-				{/if}
-
-				<!-- Transaction Reference Input -->
 				<div>
-					<label class="mb-2 block text-sm font-medium">
-						{paymentDetails.paymentMethod === 'iban'
-							? 'Your Transaction Reference'
-							: 'Transaction Hash'}
+					<label class="mb-2 block text-sm font-medium text-secondary">
+						Platform Wallet Address (ERC-20)
+					</label>
+					<div class="flex gap-2">
+						<input
+							type="text"
+							value={paymentData.platformWalletAddress}
+							readonly
+							class="input-bordered input flex-1 rounded-xl bg-base-200 font-mono text-xs focus:border-secondary"
+						/>
+						<button
+							type="button"
+							onclick={() => copyToClipboard(paymentData.platformWalletAddress, 'address')}
+							class="btn btn-square rounded-xl btn-secondary"
+						>
+							{#if copiedField === 'address'}
+								<IconCheckmark class="size-5" />
+							{:else}
+								<IconCopy class="size-5" />
+							{/if}
+						</button>
+					</div>
+				</div>
+
+				<div class="rounded-2xl bg-linear-to-br from-secondary/10 to-secondary/5 p-5">
+					<p class="mb-3 text-sm font-medium text-secondary">Payment Steps:</p>
+					<ol class="ml-5 list-decimal space-y-2 text-sm opacity-80">
+						<li>Copy the platform wallet address above</li>
+						<li>Open your crypto wallet (MetaMask, Trust Wallet, etc.)</li>
+						<li>Send exactly {paymentData.amountUsdt} USDT on ERC-20 network</li>
+						<li>Copy the transaction hash from your wallet</li>
+						<li>Paste it below and click "Verify Payment"</li>
+					</ol>
+				</div>
+
+				<div>
+					<label for="tetherTxHash" class="mb-2 block text-sm font-medium">
+						Transaction Hash
 					</label>
 					<input
+						id="tetherTxHash"
 						type="text"
-						bind:value={transactionReference}
-						placeholder={paymentDetails.paymentMethod === 'iban' ? 'Enter reference' : '0x...'}
-						disabled={processing || !!successMessage}
+						placeholder="0x..."
+						disabled={processing}
 						class="input-bordered input w-full rounded-xl bg-base-200 font-mono text-sm"
 					/>
-					<p class="mt-2 text-xs opacity-50">
-						{paymentDetails.paymentMethod === 'iban'
-							? 'Enter the reference from your bank transfer'
-							: 'Paste the transaction hash from your wallet'}
-					</p>
+					<p class="mt-2 text-xs opacity-50">Paste the transaction hash from your wallet</p>
 				</div>
 
 				<button
 					type="button"
-					onclick={handleConfirmPayment}
-					disabled={processing || !transactionReference.trim() || !!successMessage}
-					class="btn w-full rounded-xl"
-					class:btn-primary={paymentDetails.paymentMethod === 'iban'}
-					class:btn-secondary={paymentDetails.paymentMethod === 'tether'}
+					onclick={handleConfirmTetherPayment}
+					disabled={processing}
+					class="btn w-full rounded-xl btn-secondary"
 				>
 					{#if processing}
 						<span class="loading loading-sm loading-spinner"></span>
 						Verifying...
-					{:else if successMessage}
-						<IconCheckmark class="size-5" />
-						Payment Confirmed
 					{:else}
-						Confirm Payment
+						Verify Payment
+						<IconArrowRight class="size-5" />
 					{/if}
 				</button>
+			</div>
+		{:else if step === 'waiting'}
+			<!-- Verification in Progress -->
+			<div class="py-12 text-center">
+				<div class="mb-6 flex justify-center">
+					<span class="loading loading-lg loading-spinner text-secondary"></span>
+				</div>
+				<h2 class="mb-2 text-2xl font-bold">Verifying Your Payment</h2>
+				<p class="text-base-content/70">
+					Please wait while we confirm your transaction on the blockchain...
+				</p>
+				<p class="mt-4 text-sm text-base-content/50">This may take a few moments</p>
+			</div>
+		{:else if step === 'success'}
+			<!-- Success State -->
+			<div class="py-12 text-center">
+				<div class="mb-6 flex justify-center">
+					<div class="rounded-full bg-success/20 p-6">
+						<IconSuccess class="size-16 text-success" />
+					</div>
+				</div>
+				<h2 class="mb-2 text-2xl font-bold text-success">Payment Successful!</h2>
+				<p class="text-base-content/70">Your reservation has been created. Redirecting...</p>
 			</div>
 		{/if}
 	</div>
 
 	<form method="dialog" class="modal-backdrop">
-		<button onclick={onClose} disabled={processing}>close</button>
+		<button onclick={onClose} disabled={processing || step === 'waiting'}>close</button>
 	</form>
 </dialog>

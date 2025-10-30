@@ -4,7 +4,6 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { payments } from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
-import { ZarinpalService } from '$lib/server/payments/zarinpal';
 import { PaymentHandler } from '$lib/server/payments/handler';
 import { MOCK_PAYMENTS } from '$env/static/private';
 
@@ -16,70 +15,64 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const status = url.searchParams.get('Status');
 	const paymentId = url.searchParams.get('paymentId');
 
-	if (!authority || !paymentId) {
-		throw error(400, 'Invalid callback parameters');
-	}
+	console.log('Payment callback:', { authority, status, paymentId });
 
-	// Check if payment was cancelled (skip in mock mode)
-	if (status === 'NOK' && MOCK_PAYMENTS !== 'true') {
-		await PaymentHandler.failPayment(paymentId, 'Payment cancelled by user');
-		throw redirect(303, '/offers?error=payment_cancelled');
+	if (!authority || !paymentId) {
+		console.error('Missing callback parameters');
+		throw error(400, 'Invalid callback parameters');
 	}
 
 	// Get payment record
 	const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
 
 	if (!payment) {
+		console.error('Payment not found:', paymentId);
 		throw error(404, 'Payment not found');
 	}
 
 	// Verify payment is from correct user
 	if (payment.userAccountId !== account.id) {
+		console.error('Unauthorized payment access');
 		throw error(403, 'Unauthorized');
 	}
 
-	// Verify payment with Zarinpal (always succeeds in mock mode)
-	let verifyResult;
-
-	if (MOCK_PAYMENTS === 'true') {
-		// Mock verification always succeeds
-		verifyResult = {
-			success: true,
-			refId: Math.floor(Math.random() * 1000000)
-		};
-	} else {
-		verifyResult = await ZarinpalService.verifyPayment({
-			authority,
-			amount: payment.amount
-		});
+	// Check if payment was cancelled by user
+	if (status === 'NOK') {
+		console.log('Payment cancelled by user');
+		await PaymentHandler.failPayment(paymentId, 'Payment cancelled by user');
+		throw redirect(303, `/offers/${payment.offerId}?error=payment_cancelled`);
 	}
 
-	if (!verifyResult.success) {
-		await PaymentHandler.failPayment(
-			paymentId,
-			verifyResult.error || 'Payment verification failed'
-		);
+	// Check if already processed
+	if (payment.status === 'completed') {
+		console.log('Payment already completed, redirecting to reservation');
+		if (payment.reservationId) {
+			throw redirect(303, `/reservations/${payment.reservationId}?success=true`);
+		}
+		throw redirect(303, `/offers/${payment.offerId}?error=already_processed`);
+	}
+
+	if (payment.status === 'failed') {
+		console.log('Payment previously failed');
 		throw redirect(303, `/offers/${payment.offerId}?error=payment_failed`);
 	}
 
-	// Complete payment and create reservation
+	// Complete payment (verifies with Zarinpal and creates reservation)
+	console.log('Completing payment...');
 	const completeResult = await PaymentHandler.completePayment({
 		paymentId: payment.id,
-		zarinpalAuthority: authority,
-		zarinpalRefId: verifyResult.refId
+		zarinpalAuthority: authority
 	});
 
 	if (!completeResult.success) {
-		throw redirect(303, `/offers/${payment.offerId}?error=reservation_failed`);
+		console.error('Payment completion failed:', completeResult.error);
+		throw redirect(
+			303,
+			`/offers/${payment.offerId}?error=${completeResult.error || 'payment_failed'}`
+		);
 	}
 
-	// Transfer platform fee (10%)
-	if (payment.feeAmount > 0) {
-		await ZarinpalService.transferFee({
-			amount: payment.feeAmount,
-			description: `Platform fee for payment ${paymentId}`
-		});
-	}
+	console.log('Payment completed successfully, reservation:', completeResult.reservationId);
 
 	// Success! Redirect to reservation
 	throw redirect(303, `/reservations/${completeResult.reservationId}?success=true`);
