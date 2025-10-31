@@ -1,9 +1,5 @@
 const sw = /** @type {ServiceWorkerGlobalScope} */ (/** @type {unknown} */ (self));
 
-import { build, files, version } from '$service-worker';
-
-const CACHE = `cache-${version}`;
-const ASSETS = [...build, ...files];
 const DB_NAME = 'scheduled-notifications';
 const DB_VERSION = 1;
 const STORE_NAME = 'notifications';
@@ -108,58 +104,6 @@ function startNotificationChecker() {
 	// Check immediately
 	checkScheduledNotifications();
 }
-
-// Install event - cache assets
-sw.addEventListener('install', (event) => {
-	async function addFilesToCache() {
-		const cache = await caches.open(CACHE);
-		await cache.addAll(ASSETS);
-	}
-
-	event.waitUntil(addFilesToCache());
-});
-
-// Activate event - delete old caches and start notification checker
-sw.addEventListener('activate', (event) => {
-	async function setup() {
-		for (const key of await caches.keys()) {
-			if (key !== CACHE) await caches.delete(key);
-		}
-		startNotificationChecker();
-	}
-
-	event.waitUntil(setup());
-});
-
-// Fetch event - serve from cache, fallback to network
-sw.addEventListener('fetch', (event) => {
-	if (event.request.method !== 'GET') return;
-
-	async function respond() {
-		const url = new URL(event.request.url);
-		const cache = await caches.open(CACHE);
-
-		// Try cache first
-		if (ASSETS.includes(url.pathname)) {
-			const response = await cache.match(url.pathname);
-			if (response) return response;
-		}
-
-		// Try network
-		try {
-			const response = await fetch(event.request);
-			if (response.status === 200) {
-				cache.put(event.request, response.clone());
-			}
-			return response;
-		} catch {
-			const response = await cache.match(url.pathname);
-			if (response) return response;
-		}
-	}
-
-	event.respondWith(respond());
-});
 
 // Listen for messages from clients
 let ntfyConnection = null;
