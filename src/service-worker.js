@@ -4,6 +4,9 @@ const DB_NAME = 'scheduled-notifications';
 const DB_VERSION = 1;
 const STORE_NAME = 'notifications';
 
+const IMAGE_CACHE_NAME = 'image-cache-v1';
+const MAX_IMAGE_CACHE_SIZE = 50; // Maximum number of images to cache
+
 // IndexedDB helper functions
 async function openDB() {
 	return new Promise((resolve, reject) => {
@@ -58,6 +61,70 @@ async function deleteScheduledNotification(id) {
 	});
 }
 
+// Image caching utilities
+async function cleanupImageCache() {
+	try {
+		const cache = await caches.open(IMAGE_CACHE_NAME);
+		const keys = await cache.keys();
+
+		if (keys.length > MAX_IMAGE_CACHE_SIZE) {
+			// Remove oldest entries (first in, first out)
+			const toDelete = keys.slice(0, keys.length - MAX_IMAGE_CACHE_SIZE);
+			await Promise.all(toDelete.map((key) => cache.delete(key)));
+		}
+	} catch (error) {
+		console.error('Cache cleanup failed:', error);
+	}
+}
+
+// Intercept fetch requests for images
+sw.addEventListener('fetch', (event) => {
+	const url = new URL(event.request.url);
+
+	// Cache images from Backblaze or image endpoints
+	if (
+		event.request.destination === 'image' ||
+		url.pathname.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)$/i) ||
+		url.hostname.includes('backblazeb2.com') ||
+		url.hostname.includes('b2-api.com')
+	) {
+		event.respondWith(
+			caches.open(IMAGE_CACHE_NAME).then(async (cache) => {
+				try {
+					// Try cache first
+					const cached = await cache.match(event.request);
+					if (cached) {
+						// Return cached version immediately
+						return cached;
+					}
+
+					// Fetch from network
+					const response = await fetch(event.request);
+
+					// Only cache successful responses
+					if (response.ok) {
+						// Clone the response before caching
+						cache.put(event.request, response.clone());
+
+						// Cleanup old entries
+						cleanupImageCache();
+					}
+
+					return response;
+				} catch (error) {
+					// If network fails, try to return cached version
+					const cached = await cache.match(event.request);
+					if (cached) {
+						return cached;
+					}
+					throw error;
+				}
+			})
+		);
+		return;
+	}
+});
+
 // Check and show due notifications
 async function checkScheduledNotifications() {
 	const now = Date.now();
@@ -111,6 +178,17 @@ let currentTopic = null;
 let ntfyServerUrl = 'http://localhost:8080';
 
 sw.addEventListener('message', (event) => {
+	// Clear image cache
+	if (event.data && event.data.type === 'CLEAR_IMAGE_CACHE') {
+		event.waitUntil(
+			caches.delete(IMAGE_CACHE_NAME).then(() => {
+				console.log('Image cache cleared');
+				event.ports[0]?.postMessage({ success: true });
+			})
+		);
+		return;
+	}
+
 	// Schedule a notification
 	if (event.data && event.data.type === 'SCHEDULE_NOTIFICATION') {
 		const { id, title, body, scheduledTime, data, icon, badge, tag, requireInteraction, vibrate } =
@@ -134,7 +212,6 @@ sw.addEventListener('message', (event) => {
 		event.waitUntil(
 			saveScheduledNotification(notification).then(() => {
 				console.log('Notification scheduled for:', new Date(scheduledTime));
-				// Send confirmation back to client
 				event.ports[0]?.postMessage({ success: true, id: notification.id });
 			})
 		);
@@ -250,6 +327,22 @@ sw.addEventListener('notificationclick', (event) => {
 			if (sw.clients.openWindow) {
 				return sw.clients.openWindow(urlToOpen);
 			}
+		})
+	);
+});
+
+// Clean up old caches on activation
+sw.addEventListener('activate', (event) => {
+	event.waitUntil(
+		caches.keys().then((cacheNames) => {
+			return Promise.all(
+				cacheNames.map((cacheName) => {
+					// Keep current image cache, delete old versions
+					if (cacheName.startsWith('image-cache-') && cacheName !== IMAGE_CACHE_NAME) {
+						return caches.delete(cacheName);
+					}
+				})
+			);
 		})
 	);
 });
