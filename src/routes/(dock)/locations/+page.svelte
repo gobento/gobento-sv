@@ -7,6 +7,7 @@
 	import IconBuilding from '~icons/fluent/building-24-regular';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
 	import NotFound from '$lib/components/NotFound.svelte';
+	import OptimizedImage from '$lib/components/images/OptimizedImage.svelte';
 
 	let { data } = $props();
 
@@ -81,19 +82,12 @@
 					<a href="/locations/{location.id}">
 						<!-- Image Header -->
 						<div class="relative h-32 bg-linear-to-br from-primary/20 via-primary/10 to-base-200">
-							{#if location.imageUrl}
-								<img
-									src={location.imageUrl}
-									alt={location.name}
-									class="absolute inset-0 h-full w-full object-cover"
-								/>
-								<div class="absolute inset-0 bg-linear-to-t from-base-100/60 to-transparent"></div>
-							{:else}
-								<!-- Fallback gradient with icon -->
-								<div class="absolute inset-0 flex items-center justify-center">
-									<IconLocation class="size-12 text-primary/30" />
-								</div>
-							{/if}
+							<OptimizedImage
+								src={location.imageUrl}
+								alt={location.name}
+								class="absolute inset-0 h-full w-full object-cover"
+							/>
+							<div class="absolute inset-0 bg-linear-to-t from-base-100/60 to-transparent"></div>
 						</div>
 
 						<!-- Content -->

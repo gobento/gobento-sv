@@ -15,8 +15,7 @@ import {
 import { eq, and } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { PaymentHandler } from '$lib/server/payments/handler';
-import { TetherService } from '$lib/server/payments/tether';
-import { FEE_PERCENTAGE } from '$env/static/private';
+import { FEE_PERCENTAGE, TETHER_CONTRACT_ADDRESS } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;

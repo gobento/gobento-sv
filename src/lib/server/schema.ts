@@ -83,7 +83,9 @@ export const businessLocations = pgTable('business_locations', {
 	country: text('country').notNull(),
 	latitude: doublePrecision('latitude').notNull(),
 	longitude: doublePrecision('longitude').notNull(),
-	imageId: text('image_id').references(() => files.id, { onDelete: 'set null' }),
+	imageId: text('image_id')
+		.notNull()
+		.references(() => files.id, { onDelete: 'set null' }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
 

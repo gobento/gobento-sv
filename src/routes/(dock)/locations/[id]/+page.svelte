@@ -1,15 +1,16 @@
 <!-- src/routes/(dock)/locations/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconEdit from '~icons/fluent/edit-24-regular';
 	import IconTag from '~icons/fluent/tag-24-regular';
 	import IconAdd from '~icons/fluent/add-24-regular';
-	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconMapPin from '~icons/fluent/location-24-regular';
 	import IconHeart from '~icons/fluent/heart-24-regular';
 	import IconHeartFilled from '~icons/fluent/heart-24-filled';
+	import LocationCard from '$lib/components/LocationCard.svelte';
+	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
+	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
 
 	let { data, form } = $props();
 
@@ -22,25 +23,23 @@
 <div class="card mb-8 overflow-hidden border-2 border-base-300 bg-base-100">
 	<!-- Background Image Section -->
 	<div class="relative h-64 bg-linear-to-br from-primary/20 via-primary/10 to-base-200">
-		{#if data.location.imageId && data.locationImage}
-			<img
-				src={data.locationImage.url}
-				alt={data.location.name}
-				class="absolute inset-0 h-full w-full object-cover"
-			/>
-			<div class="absolute inset-0 bg-linear-to-t from-base-100/60 to-transparent"></div>
-		{:else}
-			<!-- Placeholder gradient background -->
-			<div class="absolute inset-0 bg-linear-to-br from-primary/30 to-base-300/50"></div>
-		{/if}
+		<OptimizedLocationImage
+			src={data.locationImage.url}
+			alt={data.location.name}
+			priority={true}
+			class="h-full w-full"
+		/>
+		<div class="absolute inset-0 bg-linear-to-t from-base-100/60 to-transparent"></div>
 
 		<!-- Business Logo Overlay -->
 		<div class="absolute bottom-0 left-8 translate-y-1/2">
-			<div class="avatar">
-				<div class="size-32 rounded-xl border-4 border-base-100 bg-base-100">
-					<img src={data.business.logo.url} alt={data.business.name} />
-				</div>
-			</div>
+			<OptimizedLogoImage
+				src={data.business.logo.url}
+				alt={data.business.name}
+				size="md"
+				shape="square"
+				priority={true}
+			/>
 		</div>
 
 		<!-- Action Buttons (Top Right) -->
@@ -96,21 +95,6 @@
 			<div class="min-w-0 flex-1">
 				<h1 class="mb-4 text-lg font-bold tracking-tight">{data.business.name}</h1>
 
-				<!-- Address Section -->
-				<div class="mb-6 flex items-start gap-3">
-					<IconMapPin class="mt-0.5 size-5 shrink-0 text-base-content/60" />
-					<div class="space-y-1 text-base text-base-content/70">
-						<p class="font-medium">{data.location.address}</p>
-						<p>
-							{data.location.city}{#if data.location.province}, {data.location.province}{/if}
-							{#if data.location.zipCode}
-								{data.location.zipCode}
-							{/if}
-						</p>
-						<p>{data.location.country}</p>
-					</div>
-				</div>
-
 				<!-- Stats -->
 				<div class="flex flex-wrap items-center gap-6">
 					<div class="flex items-center gap-2 text-base-content/60">
@@ -138,6 +122,17 @@
 		</div>
 	</div>
 </div>
+
+<LocationCard
+	name={data.location.name}
+	address={data.location.address}
+	city={data.location.city}
+	province={data.location.province}
+	zipCode={data.location.zipCode}
+	country={data.location.country}
+	latitude={data.location.latitude}
+	longitude={data.location.longitude}
+/>
 
 <!-- Offers Section -->
 <div class="mb-8">

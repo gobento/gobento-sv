@@ -15,6 +15,7 @@
 	import IconLeaf from '~icons/fluent/leaf-24-regular';
 	import FluentBuildingShop24Regular from '~icons/fluent/building-shop-24-regular';
 	import { formatDate } from '$lib/util';
+	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 
 	interface Props {
 		data: PageData;
@@ -91,7 +92,13 @@
 		<div class="avatar mb-6">
 			<div class="size-28 rounded-full">
 				{#if data.profilePictureUrl && !isUser}
-					<img src={data.profilePictureUrl} alt="Profile" />
+					<OptimizedLogoImage
+						src={data.profilePictureUrl}
+						alt={'Profile'}
+						size="lg"
+						shape="square"
+						priority={true}
+					/>
 				{:else}
 					<div class="flex h-full w-full items-center justify-center bg-base-200">
 						<config.icon class="size-16 text-base-content/20" />
@@ -132,7 +139,7 @@
 			<!-- Email Address -->
 			<div class="flex items-center gap-4">
 				<div
-					class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
+					class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
 				>
 					<IconMail class="size-5" />
 				</div>
@@ -149,7 +156,7 @@
 			<!-- Payment Method -->
 			<div class="flex items-center gap-4">
 				<div
-					class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
+					class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
 				>
 					<IconWallet class="size-5" />
 				</div>
@@ -189,7 +196,7 @@
 			<!-- Saving food since / Member Since / Admin Since -->
 			<div class="flex items-center gap-4">
 				<div
-					class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
+					class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
 				>
 					<IconCalendar class="size-5" />
 				</div>
@@ -207,7 +214,7 @@
 				<!-- Business Type -->
 				<div class="flex items-center gap-4">
 					<div
-						class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
+						class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
 					>
 						<FluentBuildingShop24Regular class="size-5" />
 					</div>
@@ -224,7 +231,7 @@
 				<!-- Country -->
 				<div class="flex items-center gap-4">
 					<div
-						class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
+						class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
 					>
 						<IconLocation class="size-5" />
 					</div>
@@ -238,7 +245,7 @@
 				{#if data.wallet && (data.wallet.zarinpalEnabled || data.wallet.tetherEnabled)}
 					<div class="flex items-center gap-4">
 						<div
-							class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
+							class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
 						>
 							<IconWallet class="size-5" />
 						</div>
@@ -271,7 +278,7 @@
 				<!-- Country -->
 				<div class="flex items-center gap-4">
 					<div
-						class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
+						class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
 					>
 						<IconLocation class="size-5" />
 					</div>
@@ -285,7 +292,7 @@
 			{#if isAdmin}
 				<div class="flex items-center gap-4">
 					<div
-						class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
+						class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
 					>
 						<IconShield class="size-5" />
 					</div>
