@@ -49,6 +49,8 @@ export async function uploadFile(
 			Key: uniqueKey,
 			Body: buffer,
 			ContentType: contentType,
+			// Add cache control headers for better performance
+			CacheControl: 'public, max-age=31536000, immutable',
 			// Optional: Add metadata
 			Metadata: {
 				originalName: fileName,
@@ -106,17 +108,44 @@ export async function getPresignedUploadUrl(key: string, contentType: string): P
 	const command = new PutObjectCommand({
 		Bucket: BACKBLAZE_BUCKET_NAME,
 		Key: key,
-		ContentType: contentType
+		ContentType: contentType,
+		CacheControl: 'public, max-age=31536000, immutable'
 	});
 
 	return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
 }
 
-export async function getSignedDownloadUrl(key: string, expiresIn: number = 3600): Promise<string> {
+/**
+ * Get signed download URL with extended expiration for caching
+ * @param key - File key in B2
+ * @param expiresIn - Expiration time in seconds (default: 7 days for better caching)
+ * @returns Signed URL
+ */
+export async function getSignedDownloadUrl(
+	key: string,
+	expiresIn: number = 604800 // 7 days
+): Promise<string> {
 	const command = new GetObjectCommand({
 		Bucket: BACKBLAZE_BUCKET_NAME,
-		Key: key
+		Key: key,
+		// Add response headers for better caching
+		ResponseCacheControl: 'public, max-age=604800, immutable'
 	});
 
 	return await getSignedUrl(s3Client, command, { expiresIn });
+}
+
+/**
+ * Get signed download URL with short expiration (for sensitive content)
+ * @param key - File key in B2
+ * @returns Signed URL with 1 hour expiration
+ */
+export async function getSignedDownloadUrlShort(key: string): Promise<string> {
+	const command = new GetObjectCommand({
+		Bucket: BACKBLAZE_BUCKET_NAME,
+		Key: key,
+		ResponseCacheControl: 'public, max-age=3600'
+	});
+
+	return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
 }
