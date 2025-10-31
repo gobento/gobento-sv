@@ -8,11 +8,11 @@
 	import IconLocation from '~icons/fluent/location-24-regular';
 
 	import PaymentModal from './PaymentModal.svelte';
-	import { formatDate, formatTime } from '$lib/util.js';
 	import LocationCard from '$lib/components/LocationCard.svelte';
 	import OfferStatusCard from './OfferStatusCard.svelte';
 	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
-	import ImageLoader from '$lib/components/ImageLoader.svelte';
+	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
+	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 
 	let { data, form } = $props();
 
@@ -80,40 +80,29 @@
 <!-- Location Photo Header (if location exists) -->
 {#if data.location}
 	<div
-		class="relative -mx-4 -mt-4 mb-6 h-48 overflow-hidden bg-linear-to-br from-primary/20 via-secondary/10 to-accent/10 sm:-mx-6 sm:-mt-6 lg:h-56"
+		class="relative -mx-4 -mt-4 mb-6 h-48 overflow-hidden bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/10 sm:-mx-6 sm:-mt-6 lg:h-56"
 	>
-		{#if data.location.imageUrl}
-			<ImageLoader
-				src={data.location.imageUrl}
-				alt={data.location.name}
-				class="h-full w-full"
-				priority={true}
-				objectFit="cover"
-			/>
-			<div
-				class="absolute inset-0 bg-linear-to-t from-base-100 via-base-100/70 to-base-100/20"
-			></div>
-		{:else}
-			<!-- Fallback gradient with icon -->
-			<div class="absolute inset-0 flex items-center justify-center">
-				<IconLocation class="size-20 text-primary/20" />
-			</div>
-			<div
-				class="absolute inset-0 bg-linear-to-t from-base-100 via-base-100/50 to-transparent"
-			></div>
-		{/if}
+		<OptimizedLocationImage
+			src={data.location.imageUrl}
+			alt={data.location.name}
+			priority={true}
+			class="h-full w-full"
+		/>
+		<div
+			class="absolute inset-0 bg-gradient-to-t from-base-100 via-base-100/70 to-base-100/20"
+		></div>
 	</div>
 {/if}
 
 <!-- Business Info -->
 <div class="flex items-center gap-4 px-6">
 	<div class="size-14 shrink-0 overflow-hidden rounded-lg shadow-md">
-		<ImageLoader
+		<OptimizedLogoImage
 			src={data.logo.url}
 			alt={data.business.name}
-			class="h-full w-full"
+			size="md"
+			shape="square"
 			priority={true}
-			objectFit="cover"
 		/>
 	</div>
 	<div class="min-w-0 flex-1">
@@ -164,7 +153,7 @@
 	</div>
 {:else}
 	<div class="flex items-center gap-3 px-6">
-		<div class="rounded-lg bg-linear-to-br from-primary/20 to-primary/10 p-2.5">
+		<div class="rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 p-2.5">
 			<IconStore class="size-6 text-primary" />
 		</div>
 		<div>
@@ -177,7 +166,7 @@
 <!-- Error Message -->
 {#if form?.error}
 	<div
-		class="mx-6 my-2 rounded-lg border border-error bg-linear-to-br from-error/10 to-error/5 p-4"
+		class="mx-6 my-2 rounded-lg border border-error bg-gradient-to-br from-error/10 to-error/5 p-4"
 	>
 		<div class="flex items-center gap-2">
 			<IconCancel class="size-5 text-error" />

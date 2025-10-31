@@ -1,14 +1,14 @@
 <!-- src/routes/(dock)/map/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
-	import IconFluentTimer24Regular from '~icons/fluent/timer-24-regular';
-	import IconFluentLocation24Regular from '~icons/fluent/location-24-regular';
-	import IconFluentSearch24Regular from '~icons/fluent/search-24-regular';
-	import IconFluentClock24Regular from '~icons/fluent/clock-24-regular';
-	import IconFluentArrowRight24Regular from '~icons/fluent/arrow-right-24-regular';
-	import IconFluentDismiss24Regular from '~icons/fluent/dismiss-24-regular';
-	import IconFluentMap24Regular from '~icons/fluent/map-24-regular';
-	import IconFluentFilter24Regular from '~icons/fluent/filter-24-regular';
+	import IconTimer from '~icons/fluent/timer-24-regular';
+	import IconLocation from '~icons/fluent/location-24-regular';
+	import IconSearch from '~icons/fluent/search-24-regular';
+	import IconClock from '~icons/fluent/clock-24-regular';
+	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
+	import IconDismiss from '~icons/fluent/dismiss-24-regular';
+	import IconMap from '~icons/fluent/map-24-regular';
+	import IconFilter from '~icons/fluent/filter-24-regular';
 
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -17,6 +17,7 @@
 	import { Map, TileLayer, Marker } from 'sveaflet';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
 	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
+	import OptimizedLogoImage from '$lib/components/OptimizedLogoImage.svelte';
 	import { formatDistance } from '$lib/util';
 
 	let { data }: { data: PageData } = $props();
@@ -256,11 +257,11 @@
 	const activeFilterCount = $derived(selectedTypes.includes('all') ? 0 : selectedTypes.length);
 
 	const timeRemaining = $derived(
-		getPickupTimeRemaining(selectedOffer.pickupTimeUntil, currentTime)
+		selectedOffer ? getPickupTimeRemaining(selectedOffer.pickupTimeUntil, currentTime) : null
 	);
 </script>
 
-<BaseLayout title="Map View" description="Browse offers on a map" icon={IconFluentMap24Regular}>
+<BaseLayout title="Map View" description="Browse offers on a map" icon={IconMap}>
 	<!-- Location Search & Filters -->
 	<div class="mb-4 rounded-lg bg-base-200 p-4">
 		<div class="flex flex-col gap-4">
@@ -277,7 +278,7 @@
 							if (searchResults.length > 0) showResults = true;
 						}}
 					/>
-					<IconFluentSearch24Regular
+					<IconSearch
 						class="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-base-content/40"
 					/>
 
@@ -292,7 +293,7 @@
 									onclick={() => selectLocation(result)}
 								>
 									<div class="flex items-start gap-2">
-										<IconFluentLocation24Regular class="mt-0.5 size-5 shrink-0 text-primary" />
+										<IconLocation class="mt-0.5 size-5 shrink-0 text-primary" />
 										<span class="text-sm">{result.display_name}</span>
 									</div>
 								</button>
@@ -307,13 +308,13 @@
 					onclick={useCurrentLocation}
 					title="Use current location"
 				>
-					<IconFluentLocation24Regular class="size-5" />
+					<IconLocation class="size-5" />
 				</button>
 			</div>
 
 			{#if selectedLocation}
 				<div class="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2">
-					<IconFluentLocation24Regular class="size-4 text-success" />
+					<IconLocation class="size-4 text-success" />
 					<span class="flex-1 text-sm text-base-content/80">{selectedLocation.name}</span>
 					<button type="button" class="btn btn-ghost btn-xs" onclick={clearLocation}>
 						Clear
@@ -324,7 +325,7 @@
 			<!-- Filter Dropdown -->
 			<div class="dropdown dropdown-end w-full">
 				<div tabindex="0" role="button" class="btn w-full btn-outline">
-					<IconFluentFilter24Regular class="size-5" />
+					<IconFilter class="size-5" />
 					Business Type
 					{#if activeFilterCount > 0}
 						<span class="badge badge-sm badge-primary">{activeFilterCount}</span>
@@ -356,7 +357,7 @@
 	{#if mapOffers.length === 0}
 		<div class="rounded-xl bg-info/5 p-6">
 			<div class="flex items-center gap-3">
-				<IconFluentLocation24Regular class="size-6 text-info" />
+				<IconLocation class="size-6 text-info" />
 				<span class="text-base-content/80"
 					>No offers with location data available. Try adjusting your filters.</span
 				>
@@ -446,15 +447,17 @@
 						class="btn absolute top-4 right-4 btn-circle btn-ghost btn-sm"
 						onclick={closeBottomSheet}
 					>
-						<IconFluentDismiss24Regular class="size-5" />
+						<IconDismiss class="size-5" />
 					</button>
 
 					<!-- Business Header -->
 					<div class="mb-6 flex items-center gap-4">
-						<img
+						<OptimizedLogoImage
 							src={selectedOffer.business.logo.url}
 							alt={selectedOffer.business.name}
-							class="size-16 rounded-full object-cover"
+							size="md"
+							shape="circle"
+							priority={true}
 						/>
 						<div class="flex-1">
 							<h2 class="text-xl font-bold text-base-content">{selectedOffer.name}</h2>
@@ -465,7 +468,7 @@
 					<!-- Details -->
 					<div class="mb-6 space-y-3">
 						<div class="flex items-center gap-3 text-base-content/80">
-							<IconFluentLocation24Regular class="size-5 text-primary" />
+							<IconLocation class="size-5 text-primary" />
 							<div class="flex-1">
 								<div class="font-medium">{selectedOffer.location.city}</div>
 								<div class="text-sm text-base-content/60">
@@ -480,7 +483,7 @@
 						</div>
 
 						<div class="flex items-center gap-3 text-base-content/80">
-							<IconFluentClock24Regular class="size-5 text-primary" />
+							<IconClock class="size-5 text-primary" />
 							<span class="font-medium"
 								>{selectedOffer.pickupTimeFrom.slice(0, 5)} - {selectedOffer.pickupTimeUntil.slice(
 									0,
@@ -489,12 +492,12 @@
 							>
 						</div>
 
-						{#if timeRemaining.diff > 0 && timeRemaining.totalMinutes <= 30}
+						{#if timeRemaining && timeRemaining.diff > 0 && timeRemaining.totalMinutes <= 30}
 							<div class="alert alert-error shadow-lg">
-								<IconFluentTimer24Regular class="size-5" />
+								<IconTimer class="size-5" />
 								<span class="font-medium">Only {timeRemaining.totalMinutes} minutes left!</span>
 							</div>
-						{:else if timeRemaining.diff <= 0}
+						{:else if timeRemaining && timeRemaining.diff <= 0}
 							<div class="alert alert-error shadow-lg">
 								<span class="font-medium">Pickup time has ended</span>
 							</div>
@@ -519,7 +522,7 @@
 						onclick={closeBottomSheet}
 					>
 						View Full Offer
-						<IconFluentArrowRight24Regular class="size-5" />
+						<IconArrowRight class="size-5" />
 					</a>
 				</div>
 			</div>
