@@ -17,8 +17,9 @@
 	import { Map, TileLayer, Marker } from 'sveaflet';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
 	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
-	import OptimizedLogoImage from '$lib/components/OptimizedLogoImage.svelte';
+	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 	import { formatDistance } from '$lib/util';
+	import NotFound from '$lib/components/NotFound.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -355,14 +356,11 @@
 	</div>
 
 	{#if mapOffers.length === 0}
-		<div class="rounded-xl bg-info/5 p-6">
-			<div class="flex items-center gap-3">
-				<IconLocation class="size-6 text-info" />
-				<span class="text-base-content/80"
-					>No offers with location data available. Try adjusting your filters.</span
-				>
-			</div>
-		</div>
+		<NotFound
+			icon={IconLocation}
+			title="No matching offers found"
+			description="No offers with location data available. Try adjusting your filters."
+		/>
 	{:else if browser}
 		<!-- Map View -->
 		<div class="relative overflow-hidden rounded-xl border border-base-300">

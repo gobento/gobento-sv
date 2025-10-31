@@ -1,11 +1,8 @@
 <!-- src/routes/(dock)/offers/[id]/+page.svelte -->
 <script lang="ts">
-	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
 	import IconStore from '~icons/fluent/building-retail-24-regular';
-	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
-	import IconLocation from '~icons/fluent/location-24-regular';
 
 	import PaymentModal from './PaymentModal.svelte';
 	import LocationCard from '$lib/components/LocationCard.svelte';
@@ -43,16 +40,6 @@
 		}
 	});
 
-	const formatPrice = (price: number, country: string) => {
-		if (country === 'Iran') {
-			return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
-		}
-		return new Intl.NumberFormat('de-DE', {
-			style: 'currency',
-			currency: 'EUR'
-		}).format(price);
-	};
-
 	const getBusinessTypeLabel = (businessType: string) => {
 		const labels = {
 			bakery: 'Bakery',
@@ -80,31 +67,32 @@
 <!-- Location Photo Header (if location exists) -->
 {#if data.location}
 	<div
-		class="relative -mx-4 -mt-4 mb-6 h-48 overflow-hidden bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/10 sm:-mx-6 sm:-mt-6 lg:h-56"
+		class="relative -mx-4 -mt-4 mb-6 h-48 overflow-hidden bg-linear-to-br from-primary/20 via-secondary/10 to-accent/10 sm:-mx-6 sm:-mt-6 lg:h-56"
 	>
-		<OptimizedLocationImage
-			src={data.location.imageUrl}
-			alt={data.location.name}
-			priority={true}
-			class="h-full w-full"
-		/>
-		<div
-			class="absolute inset-0 bg-gradient-to-t from-base-100 via-base-100/70 to-base-100/20"
-		></div>
+		{#if data.location.imageUrl}
+			<OptimizedLocationImage
+				src={data.location.imageUrl}
+				alt={data.location.name}
+				priority={true}
+				class="h-full w-full"
+			/>
+			<div
+				class="absolute inset-0 bg-linear-to-t from-base-100 via-base-100/70 to-base-100/20"
+			></div>
+		{/if}
 	</div>
 {/if}
 
 <!-- Business Info -->
 <div class="flex items-center gap-4 px-6">
-	<div class="size-14 shrink-0 overflow-hidden rounded-lg shadow-md">
-		<OptimizedLogoImage
-			src={data.logo.url}
-			alt={data.business.name}
-			size="md"
-			shape="square"
-			priority={true}
-		/>
-	</div>
+	<OptimizedLogoImage
+		src={data.logo.url}
+		alt={data.business.name}
+		size="md"
+		shape="square"
+		priority={true}
+	/>
+
 	<div class="min-w-0 flex-1">
 		{#if data.location}
 			<a
@@ -153,7 +141,7 @@
 	</div>
 {:else}
 	<div class="flex items-center gap-3 px-6">
-		<div class="rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 p-2.5">
+		<div class="rounded-lg bg-linear-to-br from-primary/20 to-primary/10 p-2.5">
 			<IconStore class="size-6 text-primary" />
 		</div>
 		<div>
@@ -166,7 +154,7 @@
 <!-- Error Message -->
 {#if form?.error}
 	<div
-		class="mx-6 my-2 rounded-lg border border-error bg-gradient-to-br from-error/10 to-error/5 p-4"
+		class="mx-6 my-2 rounded-lg border border-error bg-linear-to-br from-error/10 to-error/5 p-4"
 	>
 		<div class="flex items-center gap-2">
 			<IconCancel class="size-5 text-error" />
