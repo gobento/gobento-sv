@@ -1,4 +1,4 @@
-// src/lib/imagePreload.ts
+// src/lib/utils/imagePreload.ts
 
 /**
  * Preload critical images and cache them

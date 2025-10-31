@@ -1,15 +1,15 @@
 <!-- src/routes/(dock)/discover/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
-	import IconFluentCalendar24Regular from '~icons/fluent/calendar-24-regular';
-	import IconFluentTag24Regular from '~icons/fluent/tag-24-regular';
-	import IconFluentTimer24Regular from '~icons/fluent/timer-24-regular';
-	import IconFluentLocation24Regular from '~icons/fluent/location-24-regular';
-	import IconFluentSearch24Regular from '~icons/fluent/search-24-regular';
-	import IconFluentClock24Regular from '~icons/fluent/clock-24-regular';
-	import IconFluentArrowRight24Regular from '~icons/fluent/arrow-right-24-regular';
-	import IconFluentMap24Regular from '~icons/fluent/map-24-regular';
-	import CompassIcon from '~icons/fluent/compass-northwest-24-regular';
+	import IconCalendar from '~icons/fluent/calendar-24-regular';
+	import IconTag from '~icons/fluent/tag-24-regular';
+	import IconTimer from '~icons/fluent/timer-24-regular';
+	import IconLocation from '~icons/fluent/location-24-regular';
+	import IconSearch from '~icons/fluent/search-24-regular';
+	import IconClock from '~icons/fluent/clock-24-regular';
+	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
+	import IconMap from '~icons/fluent/map-24-regular';
+	import IconCompass from '~icons/fluent/compass-northwest-24-regular';
 
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -18,14 +18,19 @@
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
 	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
 	import NotFound from '$lib/components/NotFound.svelte';
+	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
+
 	import { formatDistance } from '$lib/util';
+	import { useImagePreloader, extractImageUrls } from '$lib/utils/imagePreloader.svelte';
 
 	let { data }: { data: PageData } = $props();
+
+	// Preload images from offers
+	useImagePreloader(() => extractImageUrls(data.offers));
 
 	let currentTime = $state(new Date());
 	let interval: ReturnType<typeof setInterval>;
 
-	// Location search state
 	let searchQuery = $state('');
 	let searchResults = $state<any[]>([]);
 	let isSearching = $state(false);
@@ -34,7 +39,6 @@
 	let selectedLocation = $state<{ name: string; lat: number; lon: number } | null>(null);
 	let selectedTypes = $state<string[]>(['all']);
 
-	// Business type options
 	const businessTypes = [
 		{ value: 'all', label: 'All Types' },
 		{ value: 'bakery', label: 'Bakery' },
@@ -52,18 +56,12 @@
 			currentTime = new Date();
 		}, 1000);
 
-		// Load saved location
 		if (browser) {
 			const saved = localStorage.getItem('userLocation');
-			if (saved) {
-				selectedLocation = JSON.parse(saved);
-			}
+			if (saved) selectedLocation = JSON.parse(saved);
 
-			// Load saved filter types
 			const savedTypes = localStorage.getItem('filterTypes');
-			if (savedTypes) {
-				selectedTypes = JSON.parse(savedTypes);
-			}
+			if (savedTypes) selectedTypes = JSON.parse(savedTypes);
 		}
 	});
 
@@ -87,8 +85,7 @@
 				const response = await fetch(
 					`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5`
 				);
-				const results = await response.json();
-				searchResults = results;
+				searchResults = await response.json();
 				showResults = true;
 			} catch (error) {
 				console.error('Search error:', error);
@@ -109,7 +106,6 @@
 		if (browser) localStorage.setItem('userLocation', JSON.stringify(location));
 		searchQuery = result.display_name;
 		showResults = false;
-
 		updateUrl();
 	}
 
@@ -118,22 +114,15 @@
 			navigator.geolocation.getCurrentPosition(
 				async (position) => {
 					const { latitude, longitude } = position.coords;
-
 					try {
 						const response = await fetch(
 							`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
 						);
 						const result = await response.json();
-
-						const location = {
-							name: result.display_name,
-							lat: latitude,
-							lon: longitude
-						};
+						const location = { name: result.display_name, lat: latitude, lon: longitude };
 						selectedLocation = location;
 						if (browser) localStorage.setItem('userLocation', JSON.stringify(location));
 						searchQuery = result.display_name;
-
 						updateUrl();
 					} catch (error) {
 						console.error('Reverse geocoding error:', error);
@@ -180,7 +169,6 @@
 			selectedTypes = ['all'];
 		} else {
 			const filtered = selectedTypes.filter((t) => t !== 'all');
-
 			if (filtered.includes(type)) {
 				const newTypes = filtered.filter((t) => t !== type);
 				selectedTypes = newTypes.length === 0 ? ['all'] : newTypes;
@@ -200,9 +188,7 @@
 			params.set('lon', selectedLocation.lon.toString());
 		}
 		const typesToSend = selectedTypes.includes('all') ? [] : selectedTypes;
-		if (typesToSend.length > 0) {
-			params.set('types', typesToSend.join(','));
-		}
+		if (typesToSend.length > 0) params.set('types', typesToSend.join(','));
 		goto(`/map?${params.toString()}`);
 	}
 
@@ -212,19 +198,12 @@
 		const pickupEndTime = new Date(`${todayDateStr}T${pickupTimeUntil}`);
 		const diff = pickupEndTime.getTime() - now.getTime();
 		const totalMinutes = Math.floor(diff / (1000 * 60));
-
 		return { diff, totalMinutes };
 	}
 
 	const hasMapData = $derived(
 		data.offers.some(
-			(offer) =>
-				offer &&
-				offer.location &&
-				offer.distance !== null &&
-				offer.business &&
-				offer.business.logo &&
-				offer.business.logo.url
+			(offer) => offer?.location && offer.distance !== null && offer.business?.logo?.url
 		)
 	);
 </script>
@@ -232,7 +211,7 @@
 <BaseLayout
 	title="Discover Offers"
 	description="Find great deals from businesses near you"
-	icon={CompassIcon}
+	icon={IconCompass}
 >
 	<!-- Location Search -->
 	<div class="mb-8 rounded-lg bg-base-200 p-4">
@@ -251,7 +230,7 @@
 									if (searchResults.length > 0) showResults = true;
 								}}
 							/>
-							<IconFluentSearch24Regular
+							<IconSearch
 								class="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-base-content/40"
 							/>
 
@@ -266,7 +245,7 @@
 											onclick={() => selectLocation(result)}
 										>
 											<div class="flex items-start gap-2">
-												<IconFluentLocation24Regular class="mt-0.5 size-5 shrink-0 text-primary" />
+												<IconLocation class="mt-0.5 size-5 shrink-0 text-primary" />
 												<span class="text-sm">{result.display_name}</span>
 											</div>
 										</button>
@@ -281,7 +260,7 @@
 							onclick={useCurrentLocation}
 							title="Use current location"
 						>
-							<IconFluentLocation24Regular class="size-5" />
+							<IconLocation class="size-5" />
 						</button>
 
 						{#if hasMapData}
@@ -291,14 +270,14 @@
 								onclick={goToMap}
 								title="View map"
 							>
-								<IconFluentMap24Regular class="size-5" />
+								<IconMap class="size-5" />
 							</button>
 						{/if}
 					</div>
 
 					{#if selectedLocation}
 						<div class="mt-3 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2">
-							<IconFluentLocation24Regular class="size-4 text-success" />
+							<IconLocation class="size-4 text-success" />
 							<span class="flex-1 text-sm text-base-content/80">{selectedLocation.name}</span>
 							<button type="button" class="btn btn-ghost btn-xs" onclick={clearLocation}>
 								Clear
@@ -332,41 +311,40 @@
 	<!-- Content -->
 	{#if data.offers.length === 0}
 		<NotFound
-			icon={IconFluentTag24Regular}
-			title={'No matching offers found'}
-			description={'No offers available at the moment. Check back soon!'}
+			icon={IconTag}
+			title="No matching offers found"
+			description="No offers available at the moment. Check back soon!"
 		/>
 	{:else}
-		<!-- Grid View -->
 		<div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 			{#each data.offers as offer (offer.id)}
-				{#if offer && offer.business && offer.business.logo}
+				{#if offer?.business?.logo}
 					{@const timeRemaining = getPickupTimeRemaining(offer.pickupTimeUntil, currentTime)}
 					<a
 						href="/offers/{offer.id}"
 						class="group block bg-base-100 p-5 transition-all hover:bg-base-200"
 					>
 						<div class="mb-4 flex justify-center">
-							<div class="size-20 overflow-hidden rounded-full">
-								<img
-									src={offer.business.logo.url}
-									alt={offer.business.name}
-									class="h-full w-full object-cover"
-								/>
-							</div>
+							<OptimizedLogoImage
+								src={offer.business.logo.url}
+								alt={offer.business.name}
+								size="lg"
+								shape="circle"
+								priority={false}
+							/>
 						</div>
 
 						<div>
 							<h2 class="mb-2 text-lg leading-tight font-semibold">{offer.name}</h2>
 
 							<div class="mb-2 flex items-center gap-2 text-sm text-base-content/60">
-								<IconFluentTag24Regular class="size-4" />
+								<IconTag class="size-4" />
 								<span class="truncate">{offer.business.name}</span>
 							</div>
 
 							{#if offer.location}
 								<div class="mb-3 flex items-center gap-2 text-sm text-base-content/60">
-									<IconFluentLocation24Regular class="size-4" />
+									<IconLocation class="size-4" />
 									<span class="truncate">{offer.location.city}</span>
 									{#if offer.distance !== null}
 										<span class="bg-base-200 px-2 py-0.5 text-xs font-medium">
@@ -378,7 +356,7 @@
 
 							<div class="mb-4 flex flex-wrap gap-2">
 								<div class="flex items-center gap-2 text-sm text-base-content/60">
-									<IconFluentClock24Regular class="size-4" />
+									<IconClock class="size-4" />
 									<span
 										>{offer.pickupTimeFrom.slice(0, 5)} - {offer.pickupTimeUntil.slice(0, 5)}</span
 									>
@@ -386,14 +364,14 @@
 
 								{#if offer.isRecurring}
 									<div class="bg-secondary/10 px-2.5 py-1 text-xs font-medium text-secondary">
-										<IconFluentCalendar24Regular class="mr-1 inline size-3" />
+										<IconCalendar class="mr-1 inline size-3" />
 										Recurring
 									</div>
 								{/if}
 
 								{#if timeRemaining.diff > 0 && timeRemaining.totalMinutes <= 30}
 									<div class="bg-error/10 px-2.5 py-1 text-xs font-medium text-error">
-										<IconFluentTimer24Regular class="mr-1 inline size-3" />
+										<IconTimer class="mr-1 inline size-3" />
 										{timeRemaining.totalMinutes}min left
 									</div>
 								{:else if timeRemaining.diff <= 0}
@@ -412,7 +390,7 @@
 									size="sm"
 								/>
 
-								<IconFluentArrowRight24Regular
+								<IconArrowRight
 									class="size-5 text-primary transition-transform group-hover:translate-x-1"
 								/>
 							</div>
