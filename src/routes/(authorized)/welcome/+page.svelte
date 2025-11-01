@@ -169,32 +169,29 @@
 		const ibanNumber = 'ibanNumber' in $form ? $form.ibanNumber : undefined;
 		const tetherAddress = 'tetherAddress' in $form ? $form.tetherAddress : undefined;
 
-		// For businesses and charities, require at least one payment method
+		// All account types require payment method
 		const hasPaymentMethod =
 			paymentMethod &&
 			((paymentMethod === 'iban' && ibanNumber) || (paymentMethod === 'tether' && tetherAddress));
+
+		if (!hasPaymentMethod) {
+			return false;
+		}
 
 		if ($form.accountType === 'business') {
 			const name = 'name' in $form ? $form.name : '';
 			const description = 'description' in $form ? $form.description : '';
 			const country = 'country' in $form ? $form.country : '';
 			const businessType = 'businessType' in $form ? $form.businessType : undefined;
-			return !!(
-				name &&
-				description &&
-				country &&
-				businessType &&
-				selectedFile &&
-				!fileError &&
-				hasPaymentMethod
-			);
+			return !!(name && description && country && businessType && selectedFile && !fileError);
 		} else if ($form.accountType === 'charity') {
 			const name = 'name' in $form ? $form.name : '';
 			const description = 'description' in $form ? $form.description : '';
 			const country = 'country' in $form ? $form.country : '';
-			return !!(name && description && country && selectedFile && !fileError && hasPaymentMethod);
+			return !!(name && description && country && selectedFile && !fileError);
 		}
-		// Users don't require payment method
+
+		// Users just need payment method
 		return true;
 	}
 
@@ -286,7 +283,7 @@
 			<p class="text-base-content/70">
 				{needsProfileData()
 					? 'Help users discover and trust your food-saving offerings'
-					: 'Set up your account preferences'}
+					: 'Set up your account to start saving food and money'}
 			</p>
 		</div>
 
@@ -524,129 +521,136 @@
 					</div>
 				{/if}
 
-				<!-- Payment Configuration (required for businesses/charities) -->
-				{#if needsProfileData()}
-					<div class="space-y-4">
+				<!-- Payment Configuration (required for all account types) -->
+				<div class="space-y-4">
+					{#if needsProfileData()}
 						<div class="divider">Payment Information</div>
+					{:else}
+						<div class="divider">Payment Configuration</div>
+						<p class="text-sm text-base-content/60">
+							Set up your payment method to complete purchases securely
+						</p>
+					{/if}
 
-						<!-- Payment Method Selection -->
+					<!-- Payment Method Selection -->
+					<div class="form-control">
+						<label class="label" for="paymentMethod">
+							<span class="label-text font-medium">Payment Method</span>
+							<span class="label-text-alt text-error">Required</span>
+						</label>
+						<select
+							id="paymentMethod"
+							name="paymentMethod"
+							class="select-bordered select w-full"
+							class:select-error={getFormError('paymentMethod')}
+							value={getFormValue('paymentMethod')}
+							onchange={(e) => {
+								if ('paymentMethod' in $form) {
+									$form.paymentMethod = e.currentTarget.value as any;
+								}
+								if ('ibanNumber' in $form) {
+									$form.ibanNumber = undefined;
+								}
+								if ('tetherAddress' in $form) {
+									$form.tetherAddress = undefined;
+								}
+							}}
+							disabled={$submitting}
+						>
+							<option value="" disabled selected>Select payment method</option>
+							<option value="iban">🏦 IBAN (Bank Transfer)</option>
+							<option value="tether">₮ Tether (USDT)</option>
+						</select>
+						{#if getFormError('paymentMethod')}
+							<label class="label">
+								<span class="label-text-alt flex items-center gap-1 text-error">
+									<IconWarning class="size-3" />
+									{getFormError('paymentMethod')}
+								</span>
+							</label>
+						{/if}
+					</div>
+
+					<!-- IBAN Number -->
+					{#if getFormValue('paymentMethod') === 'iban'}
 						<div class="form-control">
-							<label class="label" for="paymentMethod">
-								<span class="label-text font-medium">Payment Method</span>
+							<label class="label" for="ibanNumber">
+								<span class="label-text font-medium">IBAN Number</span>
 								<span class="label-text-alt text-error">Required</span>
 							</label>
-							<select
-								id="paymentMethod"
-								name="paymentMethod"
-								class="select-bordered select w-full"
-								class:select-error={getFormError('paymentMethod')}
-								value={getFormValue('paymentMethod')}
-								onchange={(e) => {
-									if ('paymentMethod' in $form) {
-										$form.paymentMethod = e.currentTarget.value as any;
-									}
+							<input
+								id="ibanNumber"
+								name="ibanNumber"
+								type="text"
+								placeholder="DE89 3704 0044 0532 0130 00"
+								class="input-bordered input w-full font-mono"
+								class:input-error={getFormError('ibanNumber')}
+								value={getFormValue('ibanNumber')}
+								oninput={(e) => {
 									if ('ibanNumber' in $form) {
-										$form.ibanNumber = undefined;
-									}
-									if ('tetherAddress' in $form) {
-										$form.tetherAddress = undefined;
+										$form.ibanNumber = e.currentTarget.value;
 									}
 								}}
 								disabled={$submitting}
-							>
-								<option value="" disabled selected>Select payment method</option>
-								<option value="iban">🏦 IBAN (Bank Transfer)</option>
-								<option value="tether">₮ Tether (USDT)</option>
-							</select>
-							{#if getFormError('paymentMethod')}
+							/>
+							{#if getFormError('ibanNumber')}
 								<label class="label">
 									<span class="label-text-alt flex items-center gap-1 text-error">
 										<IconWarning class="size-3" />
-										{getFormError('paymentMethod')}
+										{getFormError('ibanNumber')}
+									</span>
+								</label>
+							{:else}
+								<label class="label">
+									<span class="label-text-alt text-base-content/50">
+										International Bank Account Number for {needsProfileData()
+											? 'receiving'
+											: 'making'} payments
 									</span>
 								</label>
 							{/if}
 						</div>
+					{/if}
 
-						<!-- IBAN Number -->
-						{#if getFormValue('paymentMethod') === 'iban'}
-							<div class="form-control">
-								<label class="label" for="ibanNumber">
-									<span class="label-text font-medium">IBAN Number</span>
-									<span class="label-text-alt text-error">Required</span>
+					<!-- Tether Address -->
+					{#if getFormValue('paymentMethod') === 'tether'}
+						<div class="form-control">
+							<label class="label" for="tetherAddress">
+								<span class="label-text font-medium">Tether (USDT) Wallet Address</span>
+								<span class="label-text-alt text-error">Required</span>
+							</label>
+							<input
+								id="tetherAddress"
+								name="tetherAddress"
+								type="text"
+								placeholder="0x..."
+								class="input-bordered input w-full font-mono"
+								class:input-error={getFormError('tetherAddress')}
+								value={getFormValue('tetherAddress')}
+								oninput={(e) => {
+									if ('tetherAddress' in $form) {
+										$form.tetherAddress = e.currentTarget.value;
+									}
+								}}
+								disabled={$submitting}
+							/>
+							{#if getFormError('tetherAddress')}
+								<label class="label">
+									<span class="label-text-alt flex items-center gap-1 text-error">
+										<IconWarning class="size-3" />
+										{getFormError('tetherAddress')}
+									</span>
 								</label>
-								<input
-									id="ibanNumber"
-									name="ibanNumber"
-									type="text"
-									placeholder="DE89 3704 0044 0532 0130 00"
-									class="input-bordered input w-full font-mono"
-									class:input-error={getFormError('ibanNumber')}
-									value={getFormValue('ibanNumber')}
-									oninput={(e) => {
-										if ('ibanNumber' in $form) {
-											$form.ibanNumber = e.currentTarget.value;
-										}
-									}}
-									disabled={$submitting}
-								/>
-								{#if getFormError('ibanNumber')}
-									<label class="label">
-										<span class="label-text-alt flex items-center gap-1 text-error">
-											<IconWarning class="size-3" />
-											{getFormError('ibanNumber')}
-										</span>
-									</label>
-								{:else}
-									<label class="label">
-										<span class="label-text-alt text-base-content/50">
-											International Bank Account Number for receiving payments
-										</span>
-									</label>
-								{/if}
-							</div>
-						{/if}
-
-						<!-- Tether Address -->
-						{#if getFormValue('paymentMethod') === 'tether'}
-							<div class="form-control">
-								<label class="label" for="tetherAddress">
-									<span class="label-text font-medium">Tether (USDT) Wallet Address</span>
-									<span class="label-text-alt text-error">Required</span>
+							{:else}
+								<label class="label">
+									<span class="label-text-alt text-base-content/50">
+										ERC-20 USDT address on Ethereum network
+									</span>
 								</label>
-								<input
-									id="tetherAddress"
-									name="tetherAddress"
-									type="text"
-									placeholder="0x..."
-									class="input-bordered input w-full font-mono"
-									class:input-error={getFormError('tetherAddress')}
-									value={getFormValue('tetherAddress')}
-									oninput={(e) => {
-										if ('tetherAddress' in $form) {
-											$form.tetherAddress = e.currentTarget.value;
-										}
-									}}
-									disabled={$submitting}
-								/>
-								{#if getFormError('tetherAddress')}
-									<label class="label">
-										<span class="label-text-alt flex items-center gap-1 text-error">
-											<IconWarning class="size-3" />
-											{getFormError('tetherAddress')}
-										</span>
-									</label>
-								{:else}
-									<label class="label">
-										<span class="label-text-alt text-base-content/50">
-											ERC-20 USDT address on Ethereum network
-										</span>
-									</label>
-								{/if}
-							</div>
-						{/if}
-					</div>
-				{/if}
+							{/if}
+						</div>
+					{/if}
+				</div>
 			</div>
 
 			<!-- Navigation -->

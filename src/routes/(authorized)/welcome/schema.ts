@@ -20,9 +20,7 @@ const businessSchema = v.pipe(
 			'Please select a valid business type'
 		),
 		paymentMethod: v.picklist(['iban', 'tether'], 'Please select a payment method'),
-		zarinpalMerchantId: v.optional(
-			v.pipe(v.string(), v.minLength(1, 'Zarinpal Merchant ID is required'))
-		),
+		ibanNumber: v.optional(v.pipe(v.string(), v.minLength(1, 'IBAN number is required'))),
 		tetherAddress: v.optional(
 			v.pipe(
 				v.string(),
@@ -33,7 +31,7 @@ const businessSchema = v.pipe(
 		)
 	}),
 	v.check((data) => {
-		if (data.paymentMethod === 'iban' && !data.zarinpalMerchantId) {
+		if (data.paymentMethod === 'iban' && !data.ibanNumber) {
 			return false;
 		}
 		if (data.paymentMethod === 'tether' && !data.tetherAddress) {
@@ -57,10 +55,8 @@ const charitySchema = v.pipe(
 			v.maxLength(500, 'Description must be less than 500 characters')
 		),
 		country: v.pipe(v.string('Country is required'), v.minLength(1, 'Please select a country')),
-		paymentMethod: v.picklist(['zarinpal', 'tether'], 'Please select a payment method'),
-		zarinpalMerchantId: v.optional(
-			v.pipe(v.string(), v.minLength(1, 'Zarinpal Merchant ID is required'))
-		),
+		paymentMethod: v.picklist(['iban', 'tether'], 'Please select a payment method'),
+		ibanNumber: v.optional(v.pipe(v.string(), v.minLength(1, 'IBAN number is required'))),
 		tetherAddress: v.optional(
 			v.pipe(
 				v.string(),
@@ -71,7 +67,7 @@ const charitySchema = v.pipe(
 		)
 	}),
 	v.check((data) => {
-		if (data.paymentMethod === 'zarinpal' && !data.zarinpalMerchantId) {
+		if (data.paymentMethod === 'iban' && !data.ibanNumber) {
 			return false;
 		}
 		if (data.paymentMethod === 'tether' && !data.tetherAddress) {
@@ -84,10 +80,8 @@ const charitySchema = v.pipe(
 const userSchema = v.pipe(
 	v.object({
 		accountType: v.literal('user'),
-		paymentMethod: v.picklist(['zarinpal', 'tether'], 'Please select a payment method'),
-		zarinpalMerchantId: v.optional(
-			v.pipe(v.string(), v.minLength(1, 'Zarinpal Merchant ID is required'))
-		),
+		paymentMethod: v.picklist(['iban', 'tether'], 'Please select a payment method'),
+		ibanNumber: v.optional(v.pipe(v.string(), v.minLength(1, 'IBAN number is required'))),
 		tetherAddress: v.optional(
 			v.pipe(
 				v.string(),
@@ -98,7 +92,7 @@ const userSchema = v.pipe(
 		)
 	}),
 	v.check((data) => {
-		if (data.paymentMethod === 'zarinpal' && !data.zarinpalMerchantId) {
+		if (data.paymentMethod === 'iban' && !data.ibanNumber) {
 			return false;
 		}
 		if (data.paymentMethod === 'tether' && !data.tetherAddress) {
@@ -109,5 +103,4 @@ const userSchema = v.pipe(
 );
 
 export const welcomeSchema = v.union([userSchema, businessSchema, charitySchema]);
-
 export type WelcomeSchema = v.InferOutput<typeof welcomeSchema>;
