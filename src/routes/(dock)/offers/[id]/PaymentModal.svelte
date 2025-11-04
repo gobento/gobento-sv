@@ -15,7 +15,8 @@
 	import IconSend from '~icons/fluent/send-24-filled';
 	import { superForm } from 'sveltekit-superforms';
 	import { valibot } from 'sveltekit-superforms/adapters';
-	import { txHashSchema } from './schema';
+	import { txHashSchema, initPaymentSchema } from './schema';
+	import type { TxHashSchema, InitPaymentSchema } from './schema';
 
 	interface Props {
 		show: boolean;
@@ -55,7 +56,7 @@
 	type PaymentStep = 'select' | 'tether-send' | 'tether-verify' | 'waiting' | 'success';
 
 	interface IbanPaymentData {
-		success: boolean;
+		success: true;
 		paymentId: string;
 		paymentMethod: 'iban';
 		zarinpalAuthority: string;
@@ -67,11 +68,11 @@
 	}
 
 	interface TetherPaymentData {
-		success: boolean;
+		success: true;
 		paymentId: string;
 		paymentMethod: 'tether';
 		platformWalletAddress: string;
-		amountUsdt: number;
+		amountUsdt: string;
 		pickupDate: string;
 		offerName: string;
 	}
@@ -80,42 +81,134 @@
 
 	let step = $state<PaymentStep>('select');
 	let selectedMethod = $state<'iban' | 'tether' | null>(null);
-	let processing = $state(false);
 	let paymentData = $state<PaymentData | null>(null);
 	let copiedField = $state<string | null>(null);
 	let errorMessage = $state<string | null>(null);
 	let localPickupDate = $state(pickupDate);
 	let transactionSent = $state(false);
 
-	// Valibot schema for transaction hash
+	// Init Payment Form
+	const initPaymentInitialData: InitPaymentSchema = {
+		paymentMethod: 'iban',
+		pickupDate: pickupDate
+	};
 
-	const form = superForm(
-		{ txHash: '' },
-		{
-			validators: valibot(txHashSchema),
-			resetForm: false,
-			onSubmit: () => {
-				errorMessage = null;
-			},
-			onResult: async ({ result }) => {
-				if (result.type === 'success' && result.data) {
-					step = 'success';
-					setTimeout(() => {
-						window.location.href = `/reservations/${result.data.reservationId}`;
-					}, 2000);
-				} else if (result.type === 'failure') {
-					errorMessage = result.data?.error || 'Payment verification failed';
-				} else if (result.type === 'error') {
-					errorMessage = result.error?.message || 'An error occurred';
+	const initPaymentForm = superForm(initPaymentInitialData, {
+		validators: valibot(initPaymentSchema),
+		resetForm: false,
+		onSubmit: () => {
+			errorMessage = null;
+		},
+		onResult: async ({ result }) => {
+			console.log('=== INIT PAYMENT RESULT ===');
+			console.log('Result:', result);
+
+			if (result.type === 'success') {
+				const data = result.data as any;
+				console.log('Success data:', data);
+
+				if (data?.success && data?.paymentMethod) {
+					paymentData = data as PaymentData;
+
+					if (data.paymentMethod === 'iban' && 'zarinpalPaymentUrl' in data) {
+						// Redirect to Zarinpal
+						window.location.href = data.zarinpalPaymentUrl;
+					} else if (data.paymentMethod === 'tether') {
+						// Show tether payment instructions
+						step = 'tether-send';
+					}
+				} else {
+					errorMessage = 'Invalid payment response';
+					selectedMethod = null;
 				}
+			} else if (result.type === 'failure') {
+				const data = result.data as any;
+				console.log('Failure data:', data);
+				// SuperForms sets the error on the form, check for form-level errors
+				if (data?.form?.errors?.['']) {
+					errorMessage = Array.isArray(data.form.errors[''])
+						? data.form.errors[''][0]
+						: data.form.errors[''];
+				} else {
+					errorMessage = 'Payment initialization failed';
+				}
+				selectedMethod = null;
+			} else if (result.type === 'error') {
+				console.log('Error:', result.error);
+				errorMessage = result.error?.message || 'An error occurred';
+				selectedMethod = null;
 			}
 		}
-	);
+	});
 
-	const { form: formData, errors, enhance, delayed } = form;
+	const {
+		form: initPaymentFormData,
+		errors: initPaymentErrors,
+		enhance: initPaymentEnhance,
+		delayed: initPaymentDelayed
+	} = initPaymentForm;
+
+	// Verify Transaction Form
+	const verifyInitialData: TxHashSchema = { txHash: '' };
+
+	const verifyForm = superForm(verifyInitialData, {
+		validators: valibot(txHashSchema),
+		resetForm: false,
+		onSubmit: () => {
+			errorMessage = null;
+			step = 'waiting';
+		},
+		onResult: async ({ result }) => {
+			console.log('=== VERIFY FORM RESULT ===');
+			console.log('Result:', result);
+
+			if (result.type === 'success') {
+				const data = result.data as any;
+				console.log('Success data:', data);
+
+				if (data?.success && data?.reservationId) {
+					step = 'success';
+					setTimeout(() => {
+						window.location.href = `/reservations/${data.reservationId}`;
+					}, 2000);
+				} else {
+					errorMessage = 'Verification succeeded but no reservation ID received';
+					step = 'tether-verify';
+				}
+			} else if (result.type === 'failure') {
+				const data = result.data as any;
+				console.log('Failure data:', data);
+				// SuperForms sets the error on the form, check for form-level errors
+				if (data?.form?.errors?.['']) {
+					errorMessage = Array.isArray(data.form.errors[''])
+						? data.form.errors[''][0]
+						: data.form.errors[''];
+				} else if (data?.form?.errors?.txHash) {
+					errorMessage = Array.isArray(data.form.errors.txHash)
+						? data.form.errors.txHash[0]
+						: data.form.errors.txHash;
+				} else {
+					errorMessage = 'Payment verification failed';
+				}
+				step = 'tether-verify';
+			} else if (result.type === 'error') {
+				console.log('Error:', result.error);
+				errorMessage = result.error?.message || 'An error occurred';
+				step = 'tether-verify';
+			}
+		}
+	});
+
+	const {
+		form: verifyFormData,
+		errors: verifyErrors,
+		enhance: verifyEnhance,
+		delayed: verifyDelayed
+	} = verifyForm;
 
 	$effect(() => {
 		localPickupDate = pickupDate;
+		$initPaymentFormData.pickupDate = pickupDate;
 	});
 
 	const formatPrice = (price: number, currency: string) => {
@@ -157,54 +250,10 @@
 		errorMessage = null;
 	};
 
-	const handleMethodSelect = async (method: 'iban' | 'tether') => {
+	const handleMethodSelect = (method: 'iban' | 'tether') => {
 		clearMessages();
 		selectedMethod = method;
-		processing = true;
-
-		try {
-			const response = await fetch(`/offers/${offer.id}?/initPayment`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-				body: new URLSearchParams({
-					paymentMethod: method,
-					pickupDate: localPickupDate
-				})
-			});
-
-			const result = await response.json();
-			console.log('=== INIT PAYMENT RESPONSE ===');
-			console.log('Full result:', result);
-			console.log('Result type:', result.type);
-			console.log('Result data:', result.data);
-
-			// SvelteKit wraps action responses: { type: 'success'|'failure'|'error', data?: {...}, status?: number }
-			if (result.type === 'success' && result.data) {
-				paymentData = result.data as PaymentData;
-				console.log('Payment data set:', paymentData);
-				console.log('Payment ID:', paymentData.paymentId);
-
-				if (method === 'iban' && paymentData.paymentMethod === 'iban') {
-					// For IBAN, redirect to Zarinpal gateway immediately
-					window.location.href = paymentData.zarinpalPaymentUrl;
-				} else if (method === 'tether' && paymentData.paymentMethod === 'tether') {
-					// For Tether, show payment instructions
-					step = 'tether-send';
-				}
-			} else if (result.type === 'failure') {
-				errorMessage = result.data?.error || 'Payment initialization failed';
-				selectedMethod = null;
-			} else if (result.type === 'error') {
-				errorMessage = result.error?.message || 'An error occurred';
-				selectedMethod = null;
-			}
-		} catch (err) {
-			console.error('Payment error:', err);
-			errorMessage = 'Failed to initialize payment. Please try again.';
-			selectedMethod = null;
-		} finally {
-			processing = false;
-		}
+		$initPaymentFormData.paymentMethod = method;
 	};
 
 	const handleBack = () => {
@@ -217,22 +266,13 @@
 			selectedMethod = null;
 			paymentData = null;
 			transactionSent = false;
-			$formData.txHash = '';
+			$verifyFormData.txHash = '';
 		}
 	};
 
 	const handleTransactionSent = () => {
 		transactionSent = true;
 		step = 'tether-verify';
-	};
-
-	const handleVerifySubmit = async () => {
-		if (!paymentData || paymentData.paymentMethod !== 'tether') {
-			errorMessage = 'Payment data missing. Please restart the payment process.';
-			return;
-		}
-
-		step = 'waiting';
 	};
 
 	$effect(() => {
@@ -242,9 +282,11 @@
 			selectedMethod = null;
 			paymentData = null;
 			transactionSent = false;
-			$formData.txHash = '';
+			$verifyFormData.txHash = '';
 		}
 	});
+
+	const isProcessing = $derived($initPaymentDelayed || $verifyDelayed);
 </script>
 
 <dialog class="modal z-1002" class:modal-open={show}>
@@ -255,7 +297,7 @@
 				{#if step !== 'select' && step !== 'success' && step !== 'waiting'}
 					<button
 						onclick={handleBack}
-						disabled={processing || $delayed}
+						disabled={isProcessing}
 						class="btn btn-circle btn-ghost btn-sm"
 					>
 						<IconArrowLeft class="size-5" />
@@ -280,7 +322,7 @@
 			</div>
 			<button
 				onclick={onClose}
-				disabled={processing || step === 'waiting' || $delayed}
+				disabled={isProcessing || step === 'waiting'}
 				class="btn btn-circle btn-ghost btn-sm"
 			>
 				<IconClose class="size-5" />
@@ -298,12 +340,38 @@
 					</div>
 				</div>
 			</div>
+		{:else if step === 'select' && $initPaymentErrors['']}
+			<div class="mb-6 rounded-2xl bg-error/10 p-5">
+				<div class="flex gap-3">
+					<IconError class="mt-0.5 size-6 text-error" />
+					<div class="flex-1">
+						<p class="font-medium text-error">Error</p>
+						<p class="mt-1 text-sm text-error/80">
+							{Array.isArray($initPaymentErrors[''])
+								? $initPaymentErrors[''][0]
+								: $initPaymentErrors['']}
+						</p>
+					</div>
+				</div>
+			</div>
+		{:else if step === 'tether-verify' && $verifyErrors['']}
+			<div class="mb-6 rounded-2xl bg-error/10 p-5">
+				<div class="flex gap-3">
+					<IconError class="mt-0.5 size-6 text-error" />
+					<div class="flex-1">
+						<p class="font-medium text-error">Error</p>
+						<p class="mt-1 text-sm text-error/80">
+							{Array.isArray($verifyErrors['']) ? $verifyErrors[''][0] : $verifyErrors['']}
+						</p>
+					</div>
+				</div>
+			</div>
 		{/if}
 
 		{#if step === 'select'}
 			<!-- Order Summary -->
 			<div class="mb-6 space-y-4">
-				<div class="rounded-2xl from-primary/10 via-primary/5 to-transparent p-5">
+				<div class="rounded-2xl p-5">
 					<div class="flex items-baseline justify-between">
 						<span class="text-sm font-medium text-primary">Total Amount</span>
 						<span class="text-2xl font-bold text-primary">
@@ -313,10 +381,10 @@
 				</div>
 
 				{#if isRecurring}
-					<div class="rounded-2xl from-secondary/10 via-secondary/5 to-transparent p-5">
+					<div class="rounded-2xl p-5">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center gap-3">
-								<div class="rounded-lg from-secondary/30 to-secondary/20 p-2">
+								<div class="rounded-lg bg-linear-to-br from-secondary/30 to-secondary/20 p-2">
 									<IconCalendar class="size-5 text-secondary" />
 								</div>
 								<div>
@@ -333,24 +401,33 @@
 				{/if}
 			</div>
 
-			<!-- Payment Method Selection -->
-			<div class="space-y-3">
+			<!-- Payment Method Selection Form -->
+			<form
+				method="POST"
+				action="/offers/{offer.id}?/initPayment"
+				use:initPaymentEnhance
+				class="space-y-3"
+			>
+				<input type="hidden" name="pickupDate" value={$initPaymentFormData.pickupDate} />
+				<input type="hidden" name="paymentMethod" value={$initPaymentFormData.paymentMethod} />
+
 				<h4 class="mb-4 text-sm font-medium opacity-60">Select Payment Method</h4>
 
 				{#if businessPaymentMethods.ibanEnabled}
 					<button
+						type="submit"
 						onclick={() => handleMethodSelect('iban')}
-						disabled={processing}
-						class="to-base-50 flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 from-base-100 p-5 text-left transition-all hover:border-primary hover:from-primary/5 hover:to-primary/10 disabled:opacity-50"
+						disabled={isProcessing}
+						class="to-base-50 flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 bg-linear-to-br from-base-100 p-5 text-left transition-all hover:border-primary hover:from-primary/5 hover:to-primary/10 disabled:opacity-50"
 					>
-						<div class="rounded-xl from-primary/20 to-primary/10 p-3">
+						<div class="rounded-xl bg-linear-to-br from-primary/20 to-primary/10 p-3">
 							<IconBank class="size-6 text-primary" />
 						</div>
 						<div class="flex-1">
 							<div class="font-semibold">Bank Transfer (Zarinpal)</div>
 							<div class="text-sm opacity-60">Secure payment gateway</div>
 						</div>
-						{#if processing && selectedMethod === 'iban'}
+						{#if isProcessing && selectedMethod === 'iban'}
 							<span class="loading loading-sm loading-spinner text-primary"></span>
 						{:else}
 							<span class="text-primary">→</span>
@@ -360,25 +437,26 @@
 
 				{#if businessPaymentMethods.tetherEnabled}
 					<button
+						type="submit"
 						onclick={() => handleMethodSelect('tether')}
-						disabled={processing}
-						class="to-base-50 flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 from-base-100 p-5 text-left transition-all hover:border-secondary hover:from-secondary/5 hover:to-secondary/10 disabled:opacity-50"
+						disabled={isProcessing}
+						class="to-base-50 flex w-full items-center gap-4 rounded-2xl border-2 border-base-300 bg-linear-to-br from-base-100 p-5 text-left transition-all hover:border-secondary hover:from-secondary/5 hover:to-secondary/10 disabled:opacity-50"
 					>
-						<div class="rounded-xl from-secondary/20 to-secondary/10 p-3">
+						<div class="rounded-xl bg-linear-to-br from-secondary/20 to-secondary/10 p-3">
 							<IconWallet class="size-6 text-secondary" />
 						</div>
 						<div class="flex-1">
 							<div class="font-semibold">Tether (USDT)</div>
 							<div class="text-sm opacity-60">Cryptocurrency payment</div>
 						</div>
-						{#if processing && selectedMethod === 'tether'}
+						{#if isProcessing && selectedMethod === 'tether'}
 							<span class="loading loading-sm loading-spinner text-secondary"></span>
 						{:else}
 							<span class="text-secondary">→</span>
 						{/if}
 					</button>
 				{/if}
-			</div>
+			</form>
 		{:else if step === 'tether-send' && paymentData?.paymentMethod === 'tether'}
 			<!-- Tether Step 1: Send Payment -->
 			<div class="space-y-6">
@@ -432,21 +510,6 @@
 					</div>
 				</div>
 
-				<!-- Warning -->
-				<div class="rounded-2xl bg-warning/10 p-5">
-					<div class="flex gap-3">
-						<IconWarning class="mt-0.5 size-5 shrink-0 text-warning" />
-						<div class="text-sm">
-							<p class="font-medium text-warning">Important:</p>
-							<ul class="mt-1 space-y-1 text-warning/80">
-								<li>• Send only on ERC-20 network</li>
-								<li>• Send the exact amount: {paymentData.amountUsdt} USDT</li>
-								<li>• Do not send from an exchange wallet</li>
-							</ul>
-						</div>
-					</div>
-				</div>
-
 				<!-- Confirm Button -->
 				<button
 					type="button"
@@ -462,8 +525,7 @@
 			<form
 				method="POST"
 				action="/offers/{offer.id}?/verifyTetherPayment"
-				use:enhance
-				onsubmit={handleVerifySubmit}
+				use:verifyEnhance
 				class="space-y-6"
 			>
 				<input type="hidden" name="paymentId" value={paymentData.paymentId} />
@@ -491,14 +553,14 @@
 						name="txHash"
 						type="text"
 						placeholder="0x..."
-						bind:value={$formData.txHash}
-						disabled={$delayed}
+						bind:value={$verifyFormData.txHash}
+						disabled={$verifyDelayed}
 						class="input-bordered input rounded-xl bg-base-200 font-mono text-sm"
-						class:input-error={$errors.txHash}
+						class:input-error={$verifyErrors.txHash}
 					/>
-					{#if $errors.txHash}
+					{#if $verifyErrors.txHash}
 						<label class="label">
-							<span class="label-text-alt text-error">{$errors.txHash}</span>
+							<span class="label-text-alt text-error">{$verifyErrors.txHash}</span>
 						</label>
 					{:else}
 						<label class="label">
@@ -525,8 +587,8 @@
 				</div>
 
 				<!-- Submit Button -->
-				<button type="submit" disabled={$delayed} class="btn w-full rounded-xl btn-secondary">
-					{#if $delayed}
+				<button type="submit" disabled={$verifyDelayed} class="btn w-full rounded-xl btn-secondary">
+					{#if $verifyDelayed}
 						<span class="loading loading-sm loading-spinner"></span>
 						Verifying...
 					{:else}
@@ -562,6 +624,6 @@
 	</div>
 
 	<form method="dialog" class="modal-backdrop">
-		<button onclick={onClose} disabled={processing || step === 'waiting' || $delayed}>close</button>
+		<button onclick={onClose} disabled={isProcessing || step === 'waiting'}>close</button>
 	</form>
 </dialog>

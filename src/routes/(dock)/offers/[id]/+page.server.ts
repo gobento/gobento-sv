@@ -16,6 +16,9 @@ import { eq, and } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { PaymentHandler } from '$lib/server/payments/handler';
 import { FEE_PERCENTAGE, TETHER_CONTRACT_ADDRESS } from '$env/static/private';
+import { superValidate, setError } from 'sveltekit-superforms';
+import { valibot } from 'sveltekit-superforms/adapters';
+import { initPaymentSchema, txHashSchema } from './schema';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
@@ -150,17 +153,23 @@ export const actions: Actions = {
 			throw error(403, 'Only user accounts can make payments');
 		}
 
-		const formData = await request.formData();
-		const paymentMethod = formData.get('paymentMethod') as 'iban' | 'tether';
-		const pickupDateStr = formData.get('pickupDate') as string;
+		// Validate form data with SuperForms
+		const form = await superValidate(request, valibot(initPaymentSchema));
 
-		if (!paymentMethod || !pickupDateStr) {
-			return fail(400, { error: 'Missing required fields' });
+		console.log('=== INIT PAYMENT DEBUG ===');
+		console.log('Form valid:', form.valid);
+		console.log('Form data:', form.data);
+		console.log('Form errors:', form.errors);
+
+		if (!form.valid) {
+			return fail(400, { form });
 		}
+
+		const { paymentMethod, pickupDate: pickupDateStr } = form.data;
 
 		const pickupDate = new Date(pickupDateStr);
 		if (isNaN(pickupDate.getTime())) {
-			return fail(400, { error: 'Invalid pickup date' });
+			return setError(form, 'pickupDate', 'Invalid pickup date');
 		}
 
 		// Get offer
@@ -175,7 +184,7 @@ export const actions: Actions = {
 		}
 
 		if (!offer.isActive) {
-			return fail(400, { error: 'Offer is not active' });
+			return setError(form, '', 'Offer is not active');
 		}
 
 		// Check if already reserved
@@ -186,7 +195,7 @@ export const actions: Actions = {
 			.limit(1);
 
 		if (existingReservation.length > 0) {
-			return fail(400, { error: 'Offer is already reserved' });
+			return setError(form, '', 'Offer is already reserved');
 		}
 
 		// Verify business accepts this payment method
@@ -197,15 +206,15 @@ export const actions: Actions = {
 			.limit(1);
 
 		if (!wallet) {
-			return fail(500, { error: 'Business payment configuration not found' });
+			return setError(form, '', 'Business payment configuration not found');
 		}
 
 		if (paymentMethod === 'iban' && !wallet.ibanEnabled) {
-			return fail(400, { error: 'Business does not accept IBAN payments' });
+			return setError(form, 'paymentMethod', 'Business does not accept IBAN payments');
 		}
 
 		if (paymentMethod === 'tether' && !wallet.tetherEnabled) {
-			return fail(400, { error: 'Business does not accept USDT payments' });
+			return setError(form, 'paymentMethod', 'Business does not accept USDT payments');
 		}
 
 		// Initiate payment
@@ -226,13 +235,17 @@ export const actions: Actions = {
 			}
 		});
 
+		console.log('=== PAYMENT RESULT ===');
+		console.log('Payment result:', paymentResult);
+
 		if (!paymentResult.success) {
-			return fail(500, { error: paymentResult.error || 'Failed to initialize payment' });
+			return setError(form, '', paymentResult.error || 'Failed to initialize payment');
 		}
 
 		// Return payment details based on method
 		if (paymentMethod === 'iban') {
 			return {
+				form,
 				success: true,
 				paymentId: paymentResult.paymentId,
 				paymentMethod: 'iban',
@@ -245,6 +258,7 @@ export const actions: Actions = {
 			};
 		} else if (paymentMethod === 'tether') {
 			return {
+				form,
 				success: true,
 				paymentId: paymentResult.paymentId,
 				paymentMethod: 'tether',
@@ -255,28 +269,38 @@ export const actions: Actions = {
 			};
 		}
 
-		return fail(400, { error: 'Invalid payment method' });
+		return setError(form, 'paymentMethod', 'Invalid payment method');
 	},
 
 	/**
 	 * Verify Tether payment - checks blockchain and completes payment
 	 */
 	verifyTetherPayment: async ({ params, locals, request }) => {
+		const account = locals.account!;
+
+		// Validate form data with SuperForms
+		const form = await superValidate(request, valibot(txHashSchema));
+
+		console.log('=== VERIFY TETHER PAYMENT DEBUG ===');
+		console.log('Form valid:', form.valid);
+		console.log('Form data:', form.data);
+		console.log('Form errors:', form.errors);
+
+		if (!form.valid) {
+			return fail(400, { form });
+		}
+
 		try {
-			const account = locals.account!;
 			const formData = await request.formData();
 			const paymentId = formData.get('paymentId') as string;
-			const txHash = formData.get('txHash') as string;
+			const { txHash } = form.data;
 
-			console.log('=== VERIFY TETHER PAYMENT DEBUG ===');
 			console.log('Payment ID:', paymentId);
 			console.log('TX Hash:', txHash);
 			console.log('User Account ID:', account.id);
-			console.log('FormData keys:', Array.from(formData.keys()));
 
-			if (!paymentId || !txHash) {
-				console.error('Missing required fields');
-				return fail(400, { error: 'Payment ID and transaction hash are required' });
+			if (!paymentId) {
+				return setError(form, '', 'Payment ID is required');
 			}
 
 			// Find payment record
@@ -287,34 +311,33 @@ export const actions: Actions = {
 				console.log('Payment status:', payment.status);
 				console.log('Payment user:', payment.userAccountId);
 				console.log('Current user:', account.id);
-				console.log('Match:', payment.userAccountId === account.id);
 			}
 
 			if (!payment) {
 				console.error('Payment not found for ID:', paymentId);
-				return fail(400, { error: 'Payment not found' });
+				return setError(form, '', 'Payment not found');
 			}
 
 			// Verify ownership
 			if (payment.userAccountId !== account.id) {
 				console.error('User mismatch');
-				return fail(403, { error: 'Payment does not belong to this user' });
+				return setError(form, '', 'Payment does not belong to this user');
 			}
 
 			// Check status
 			console.log('Checking payment status:', payment.status);
 
 			if (payment.status === 'completed') {
-				return fail(400, { error: 'Payment already processed' });
+				return setError(form, '', 'Payment already processed');
 			}
 
 			if (payment.status === 'failed') {
-				return fail(400, { error: 'Payment has failed. Please try again.' });
+				return setError(form, '', 'Payment has failed. Please try again.');
 			}
 
 			if (payment.status !== 'pending' && payment.status !== 'processing') {
 				console.error('Invalid status for verification:', payment.status);
-				return fail(400, { error: `Cannot verify payment in ${payment.status} status` });
+				return setError(form, '', `Cannot verify payment in ${payment.status} status`);
 			}
 
 			// Complete payment
@@ -328,20 +351,19 @@ export const actions: Actions = {
 
 			if (!completeResult.success) {
 				console.error('Payment completion failed:', completeResult.error);
-				return fail(500, { error: completeResult.error || 'Failed to verify payment' });
+				return setError(form, 'txHash', completeResult.error || 'Failed to verify payment');
 			}
 
 			return {
+				form,
 				success: true,
 				reservationId: completeResult.reservationId
 			};
-		} catch (error) {
+		} catch (err) {
 			console.error('=== VERIFY TETHER PAYMENT ERROR ===');
-			console.error('Error:', error);
-			console.error('Stack:', error instanceof Error ? error.stack : 'N/A');
-			return fail(500, {
-				error: error instanceof Error ? error.message : 'Unknown error occurred'
-			});
+			console.error('Error:', err);
+			console.error('Stack:', err instanceof Error ? err.stack : 'N/A');
+			return setError(form, '', err instanceof Error ? err.message : 'Unknown error occurred');
 		}
 	}
 };

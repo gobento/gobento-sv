@@ -3,6 +3,7 @@
 	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
 	import IconStore from '~icons/fluent/building-retail-24-regular';
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
+	import IconFluentArrowRight24Filled from '~icons/fluent/arrow-right-24-filled';
 
 	import PaymentModal from './PaymentModal.svelte';
 	import LocationCard from '$lib/components/LocationCard.svelte';
@@ -84,7 +85,10 @@
 {/if}
 
 <!-- Business Info -->
-<div class="flex items-center gap-4 px-6">
+<a
+	href="/locations/{data.location?.id ?? data.business.id}"
+	class="group flex cursor-pointer items-center gap-4 p-6 transition-colors"
+>
 	<OptimizedLogoImage
 		src={data.logo.url}
 		alt={data.business.name}
@@ -95,12 +99,9 @@
 
 	<div class="min-w-0 flex-1">
 		{#if data.location}
-			<a
-				href="/locations/{data.location.id}"
-				class="block truncate text-lg font-bold transition-colors hover:text-primary"
-			>
+			<div class="block truncate text-lg font-bold transition-colors group-hover:text-primary">
 				{data.business.name} - {data.location.name}
-			</a>
+			</div>
 		{:else}
 			<h2 class="truncate text-lg font-bold">
 				{data.business.name}
@@ -110,20 +111,26 @@
 			{getBusinessTypeLabel(data.business.businessType)}
 		</div>
 	</div>
-</div>
+
+	<IconFluentArrowRight24Filled
+		class="text-xl text-base-content/40 transition-all group-hover:translate-x-1 group-hover:text-primary"
+	/>
+</a>
 
 <!-- Offer Name -->
 <h1 class="px-6 pt-6 text-3xl leading-tight font-bold lg:text-4xl">
 	{data.offer.name}
 </h1>
 
-<PriceDisplay
-	originalValue={data.offer.displayOriginalValue}
-	price={data.offer.displayPrice}
-	country={data.business.country}
-	paymentFeePercent={data.feePercentage}
-	size="lg"
-/>
+<div class="px-6">
+	<PriceDisplay
+		originalValue={data.offer.displayOriginalValue}
+		price={data.offer.displayPrice}
+		country={data.business.country}
+		paymentFeePercent={data.feePercentage}
+		size="lg"
+	/>
+</div>
 
 <!-- Pickup Location -->
 {#if data.location}
