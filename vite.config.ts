@@ -17,7 +17,7 @@ export default defineConfig({
 			}
 		}),
 		SvelteKitPWA({
-			strategies: 'injectManifest',
+			/*	strategies: 'injectManifest',
 			srcDir: 'src',
 			filename: 'service-worker.ts',
 			registerType: 'autoUpdate',
@@ -45,9 +45,9 @@ export default defineConfig({
 					}
 				]
 			},
-			injectManifest: {
-				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}']
-			},
+			injectManifest: { */
+			//			globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}']
+			//	},
 			devOptions: {
 				enabled: true,
 				type: 'module'
