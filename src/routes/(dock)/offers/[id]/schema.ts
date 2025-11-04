@@ -6,6 +6,11 @@ export const txHashSchema = v.object({
 		v.string(),
 		v.minLength(1, 'Transaction hash is required'),
 		v.regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash format')
+	),
+	paymentId: v.pipe(
+		v.string(),
+		v.minLength(1, 'Payment ID is required'),
+		v.uuid('Invalid payment ID format')
 	)
 });
 
