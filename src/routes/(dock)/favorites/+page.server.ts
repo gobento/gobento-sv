@@ -7,7 +7,7 @@ import {
 	businessOffers,
 	files
 } from '$lib/server/schema';
-import { eq, and, count } from 'drizzle-orm';
+import { eq, and, count, inArray } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
@@ -39,17 +39,27 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.orderBy(favoriteLocations.createdAt);
 
 	// Fetch location images for all favorites
-	const locationImages = await db
-		.select({
-			locationId: businessLocations.id,
-			image: files
-		})
-		.from(businessLocations)
-		.innerJoin(files, eq(businessLocations.imageId, files.id))
-		.where(eq(businessLocations.id, favorites.length > 0 ? favorites[0].locationId : ''));
+	const locationIds = favorites.map((f) => f.locationId);
+	const locationImages =
+		locationIds.length > 0
+			? await db
+					.select({
+						locationId: businessLocations.id,
+						image: files
+					})
+					.from(businessLocations)
+					.innerJoin(files, eq(businessLocations.imageId, files.id))
+					.where(inArray(businessLocations.id, locationIds))
+			: [];
 
-	// Create a map of location images
-	const imageMap = new Map(locationImages.map((img) => [img.locationId, img.image]));
+	// Create a map of location images with signed URLs
+	const imageEntries = await Promise.all(
+		locationImages.map(async (img) => {
+			const url = await getSignedDownloadUrl(img.image.key, 3600);
+			return [img.locationId, url] as const;
+		})
+	);
+	const imageMap = new Map(imageEntries);
 
 	// Fetch offer counts for each location
 	const offerCounts = await Promise.all(
@@ -57,7 +67,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			const result = await db
 				.select({ count: count() })
 				.from(businessOffers)
-
 				.where(eq(businessOffers.locationId, fav.locationId));
 
 			return {
