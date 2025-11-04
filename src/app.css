@@ -22,3 +22,11 @@
 :global(.leaflet-container a.leaflet-popup-close-button) {
 	@apply text-base-content/60 hover:text-base-content;
 }
+
+@font-face {
+	font-family: ‘CustomFont’;
+	src: url(‘/font.woff2’) format(‘woff2’);
+
+	font-weight: normal;
+	font-style: normal;
+}

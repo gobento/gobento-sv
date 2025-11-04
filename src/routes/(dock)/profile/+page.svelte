@@ -89,23 +89,19 @@
 <div class="card-body items-center text-center">
 	<!-- Profile Picture -->
 	{#if isBusiness || isCharity}
-		<div class="avatar mb-6">
-			<div class="size-28 rounded-full">
-				{#if data.profilePictureUrl && !isUser}
-					<OptimizedLogoImage
-						src={data.profilePictureUrl}
-						alt={'Profile'}
-						size="lg"
-						shape="square"
-						priority={true}
-					/>
-				{:else}
-					<div class="flex h-full w-full items-center justify-center bg-base-200">
-						<config.icon class="size-16 text-base-content/20" />
-					</div>
-				{/if}
+		{#if data.profilePictureUrl && !isUser}
+			<OptimizedLogoImage
+				src={data.profilePictureUrl}
+				alt={'Profile'}
+				size="lg"
+				shape="square"
+				priority={true}
+			/>
+		{:else}
+			<div class="flex h-full w-full items-center justify-center bg-base-200">
+				<config.icon class="size-16 text-base-content/20" />
 			</div>
-		</div>
+		{/if}
 	{/if}
 
 	<!-- Name/Title -->

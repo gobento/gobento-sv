@@ -5,8 +5,8 @@
 </script>
 
 <div
-	class="flex min-h-dvh max-w-lvw items-center justify-center"
-	style="font-family:'HP Simplified'"
+	class="flex min-h-lvh max-w-lvw items-center justify-center"
+	style="font-family:'‘CustomFont’'"
 >
 	{@render children()}
 </div>
