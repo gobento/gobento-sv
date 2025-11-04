@@ -277,7 +277,7 @@
 					</label>
 				</div>
 
-				{#if !isRecurring}
+				{#if isRecurring}
 					<div class="form-control">
 						<label class="label" for="validUntil">
 							<span class="label-text">Valid Until (Optional)</span>
