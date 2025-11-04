@@ -13,13 +13,3 @@ services:
     ports:
       - '8080:80'
     restart: unless-stopped
-  mailrelay:
-    image: bytemark/smtp
-    container_name: smtp-relay
-    environment:
-      RELAY_NETWORKS: ':127.0.0.0/8 :172.0.0.0/8'
-      MAILNAME: 'yourdomain.com'
-      SMARTHOST: '[smtp.gmail.com]:587'
-      AUTH_USER: '${MAIL_USER}'
-      AUTH_PASS: '${MAIL_PASS}'
-    restart: always
