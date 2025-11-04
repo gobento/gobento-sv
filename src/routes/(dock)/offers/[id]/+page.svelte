@@ -6,7 +6,6 @@
 	import IconFluentArrowRight24Filled from '~icons/fluent/arrow-right-24-filled';
 
 	import PaymentModal from './PaymentModal.svelte';
-	import LocationCard from '$lib/components/LocationCard.svelte';
 	import OfferStatusCard from './OfferStatusCard.svelte';
 	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
 	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
@@ -63,6 +62,20 @@
 	const handleReserve = () => {
 		showPaymentModal = true;
 	};
+
+	import { browser } from '$app/environment';
+
+	let LocationCard = $state<typeof import('$lib/components/LocationCard.svelte').default | null>(
+		null
+	);
+
+	$effect(() => {
+		if (browser) {
+			import('$lib/components/LocationCard.svelte').then((m) => {
+				LocationCard = m.default;
+			});
+		}
+	});
 </script>
 
 <!-- Location Photo Header (if location exists) -->
@@ -135,16 +148,18 @@
 <!-- Pickup Location -->
 {#if data.location}
 	<div class="px-6">
-		<LocationCard
-			name={data.location.name}
-			address={data.location.address}
-			city={data.location.city}
-			province={data.location.province}
-			zipCode={data.location.zipCode}
-			country={data.location.country}
-			latitude={data.location.latitude}
-			longitude={data.location.longitude}
-		/>
+		{#if LocationCard}
+			<LocationCard
+				name={data.location.name}
+				address={data.location.address}
+				city={data.location.city}
+				province={data.location.province}
+				zipCode={data.location.zipCode}
+				country={data.location.country}
+				latitude={data.location.latitude}
+				longitude={data.location.longitude}
+			/>
+		{/if}
 	</div>
 {:else}
 	<div class="flex items-center gap-3 px-6">

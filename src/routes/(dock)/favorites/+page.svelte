@@ -10,15 +10,13 @@
 	import IconMapPin from '~icons/fluent/location-24-filled';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconDelete from '~icons/fluent/delete-24-regular';
+	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
+	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
 
 	let { data } = $props();
 
 	// Track which locations are being removed
 	let removingIds = $state(new Set<string>());
-
-	const getFileUrl = (key: string) => {
-		return `/api/files/${key}`;
-	};
 
 	const handleRemove = (locationId: string) => {
 		return ({ update, result }: any) => {
@@ -67,11 +65,12 @@
 					<!-- Background Image -->
 					<div class="relative h-48 bg-linear-to-br from-primary/20 via-primary/10 to-base-200">
 						{#if favorite.locationImage}
-							<img
-								src={getFileUrl(favorite.locationImage.key)}
+							<OptimizedLocationImage
+								src={favorite.locationImage}
 								alt={favorite.location.name}
-								class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+								class="h-full w-full"
 							/>
+
 							<div class="absolute inset-0 bg-linear-to-t from-base-100 to-transparent"></div>
 						{:else}
 							<div class="absolute inset-0 bg-linear-to-br from-primary/30 to-base-300/50"></div>
@@ -101,15 +100,13 @@
 
 						<!-- Business Logo -->
 						<div class="absolute bottom-0 left-4 translate-y-1/2">
-							<div class="avatar">
-								<div class="size-16 rounded-xl border-4 border-base-100 bg-base-100">
-									<img
-										src={favorite.business.logo!.url}
-										alt={favorite.businessName}
-										class="h-full w-full object-cover"
-									/>
-								</div>
-							</div>
+							<OptimizedLogoImage
+								src={favorite.business.logo!.url}
+								alt={favorite.businessName}
+								size="sm"
+								shape="square"
+								priority={true}
+							/>
 						</div>
 					</div>
 
