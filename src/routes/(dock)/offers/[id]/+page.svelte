@@ -14,7 +14,7 @@
 	let { data, form } = $props();
 
 	let showPaymentModal = $state(false);
-	let pickupDate = $state(new Date());
+	let pickupDate = $state(new Date().toISOString().slice(0, 10));
 	let minDate = $state('');
 	let maxDate = $state('');
 
