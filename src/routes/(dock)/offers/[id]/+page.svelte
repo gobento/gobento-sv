@@ -195,5 +195,6 @@
 	{minDate}
 	{maxDate}
 	isRecurring={data.offer.isRecurring}
+	tetherPaymentAddress={data.tetherContractAddress}
 	onClose={() => (showPaymentModal = false)}
 />

@@ -134,7 +134,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			tetherEnabled: wallet.tetherEnabled,
 			preferredMethod: wallet.preferredPaymentMethod
 		},
-		feePercentage: parseFloat(FEE_PERCENTAGE)
+		feePercentage: parseFloat(FEE_PERCENTAGE),
+		tetherContractAddress: TETHER_CONTRACT_ADDRESS
 	};
 };
 
@@ -261,46 +262,86 @@ export const actions: Actions = {
 	 * Verify Tether payment - checks blockchain and completes payment
 	 */
 	verifyTetherPayment: async ({ params, locals, request }) => {
-		const account = locals.account!;
+		try {
+			const account = locals.account!;
+			const formData = await request.formData();
+			const paymentId = formData.get('paymentId') as string;
+			const txHash = formData.get('txHash') as string;
 
-		const formData = await request.formData();
-		const paymentId = formData.get('paymentId') as string;
-		const txHash = formData.get('txHash') as string;
+			console.log('=== VERIFY TETHER PAYMENT DEBUG ===');
+			console.log('Payment ID:', paymentId);
+			console.log('TX Hash:', txHash);
+			console.log('User Account ID:', account.id);
+			console.log('FormData keys:', Array.from(formData.keys()));
 
-		if (!paymentId || !txHash) {
-			return fail(400, { error: 'Payment ID and transaction hash are required' });
+			if (!paymentId || !txHash) {
+				console.error('Missing required fields');
+				return fail(400, { error: 'Payment ID and transaction hash are required' });
+			}
+
+			// Find payment record
+			const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
+
+			console.log('Payment found:', payment ? 'YES' : 'NO');
+			if (payment) {
+				console.log('Payment status:', payment.status);
+				console.log('Payment user:', payment.userAccountId);
+				console.log('Current user:', account.id);
+				console.log('Match:', payment.userAccountId === account.id);
+			}
+
+			if (!payment) {
+				console.error('Payment not found for ID:', paymentId);
+				return fail(400, { error: 'Payment not found' });
+			}
+
+			// Verify ownership
+			if (payment.userAccountId !== account.id) {
+				console.error('User mismatch');
+				return fail(403, { error: 'Payment does not belong to this user' });
+			}
+
+			// Check status
+			console.log('Checking payment status:', payment.status);
+
+			if (payment.status === 'completed') {
+				return fail(400, { error: 'Payment already processed' });
+			}
+
+			if (payment.status === 'failed') {
+				return fail(400, { error: 'Payment has failed. Please try again.' });
+			}
+
+			if (payment.status !== 'pending' && payment.status !== 'processing') {
+				console.error('Invalid status for verification:', payment.status);
+				return fail(400, { error: `Cannot verify payment in ${payment.status} status` });
+			}
+
+			// Complete payment
+			console.log('Calling PaymentHandler.completePayment...');
+			const completeResult = await PaymentHandler.completePayment({
+				paymentId: payment.id,
+				tetherTxHash: txHash
+			});
+
+			console.log('Complete result:', completeResult);
+
+			if (!completeResult.success) {
+				console.error('Payment completion failed:', completeResult.error);
+				return fail(500, { error: completeResult.error || 'Failed to verify payment' });
+			}
+
+			return {
+				success: true,
+				reservationId: completeResult.reservationId
+			};
+		} catch (error) {
+			console.error('=== VERIFY TETHER PAYMENT ERROR ===');
+			console.error('Error:', error);
+			console.error('Stack:', error instanceof Error ? error.stack : 'N/A');
+			return fail(500, {
+				error: error instanceof Error ? error.message : 'Unknown error occurred'
+			});
 		}
-
-		// Find payment record
-		const [payment] = await db
-			.select()
-			.from(payments)
-			.where(
-				and(
-					eq(payments.id, paymentId),
-					eq(payments.userAccountId, account.id),
-					eq(payments.status, 'pending')
-				)
-			)
-			.limit(1);
-
-		if (!payment) {
-			return fail(400, { error: 'Payment not found or already processed' });
-		}
-
-		// Complete payment (verifies blockchain and creates reservation)
-		const completeResult = await PaymentHandler.completePayment({
-			paymentId: payment.id,
-			tetherTxHash: txHash
-		});
-
-		if (!completeResult.success) {
-			return fail(500, { error: completeResult.error || 'Failed to verify payment' });
-		}
-
-		return {
-			success: true,
-			reservationId: completeResult.reservationId
-		};
 	}
 };
