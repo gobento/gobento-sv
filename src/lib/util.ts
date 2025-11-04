@@ -37,13 +37,16 @@ function toRad(degrees: number): number {
 }
 
 export const formatPrice = (price: number, currency: string) => {
-	if (currency === 'IRR') {
-		return new Intl.NumberFormat('fa-IR', {
-			style: 'currency',
-			currency: 'IRR'
-		}).format(price);
+	if (currency === 'USDT') {
+		return `${price.toFixed(2)} USDT`;
 	}
-	return `${price.toFixed(2)} USDT`;
+	if (currency === 'IRR') {
+		return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
+	}
+	return new Intl.NumberFormat('de-DE', {
+		style: 'currency',
+		currency: currency
+	}).format(price);
 };
 
 export function formatDistance(distance: number | null) {

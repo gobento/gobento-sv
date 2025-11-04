@@ -17,6 +17,7 @@
 	import { valibot } from 'sveltekit-superforms/adapters';
 	import { txHashSchema, initPaymentSchema } from './schema';
 	import type { TxHashSchema, InitPaymentSchema } from './schema';
+	import { formatDate, formatPrice } from '$lib/util';
 
 	interface Props {
 		show: boolean;
@@ -149,7 +150,10 @@
 	} = initPaymentForm;
 
 	// Verify Transaction Form
-	const verifyInitialData: TxHashSchema = { txHash: '' };
+	const verifyInitialData: TxHashSchema = {
+		txHash: '',
+		paymentId: '' // Initialize empty, will be set when payment data is available
+	};
 
 	const verifyForm = superForm(verifyInitialData, {
 		validators: valibot(txHashSchema),
@@ -206,33 +210,12 @@
 		delayed: verifyDelayed
 	} = verifyForm;
 
+	// Add this effect to set paymentId when paymentData is available
 	$effect(() => {
-		localPickupDate = pickupDate;
-		$initPaymentFormData.pickupDate = pickupDate;
+		if (paymentData?.paymentMethod === 'tether') {
+			$verifyFormData.paymentId = paymentData.paymentId;
+		}
 	});
-
-	const formatPrice = (price: number, currency: string) => {
-		if (currency === 'USDT') {
-			return `${price.toFixed(2)} USDT`;
-		}
-		if (currency === 'IRR') {
-			return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
-		}
-		return new Intl.NumberFormat('de-DE', {
-			style: 'currency',
-			currency: currency
-		}).format(price);
-	};
-
-	const formatDateDisplay = (dateStr: string) => {
-		const date = new Date(dateStr);
-		return date.toLocaleDateString('en-US', {
-			weekday: 'long',
-			month: 'long',
-			day: 'numeric',
-			year: 'numeric'
-		});
-	};
 
 	const copyToClipboard = async (text: string, field: string) => {
 		try {
@@ -392,7 +375,7 @@
 										Pickup Date
 									</div>
 									<div class="mt-0.5 font-semibold text-secondary">
-										{formatDateDisplay(localPickupDate)}
+										{localPickupDate}
 									</div>
 								</div>
 							</div>
@@ -528,7 +511,11 @@
 				use:verifyEnhance
 				class="space-y-6"
 			>
-				<input type="hidden" name="paymentId" value={paymentData.paymentId} />
+				<!-- Remove this line - paymentId is now in the schema -->
+				<!-- <input type="hidden" name="paymentId" value={paymentData.paymentId} /> -->
+
+				<!-- Hidden input for paymentId (bound to form data) -->
+				<input type="hidden" name="paymentId" bind:value={$verifyFormData.paymentId} />
 
 				<!-- Success Message -->
 				<div class="rounded-2xl bg-success/10 p-5">

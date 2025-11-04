@@ -121,17 +121,11 @@ export class TetherService {
 		console.log('TetherService.verifyPayment:', params);
 
 		if (this.isMockMode) {
-			if (params.txHash.startsWith('0xMOCK')) {
-				return {
-					success: true,
-					amount: params.expectedAmount,
-					from: '0x' + '1'.repeat(40),
-					confirmations: 12
-				};
-			}
 			return {
-				success: false,
-				error: 'Invalid mock transaction hash (must start with 0xMOCK)'
+				success: true,
+				amount: params.expectedAmount,
+				from: '0x' + '1'.repeat(40),
+				confirmations: 12
 			};
 		}
 

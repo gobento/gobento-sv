@@ -278,7 +278,7 @@ export const actions: Actions = {
 	verifyTetherPayment: async ({ params, locals, request }) => {
 		const account = locals.account!;
 
-		// Validate form data with SuperForms
+		// IMPORTANT: Use txHashSchema here, NOT initPaymentSchema
 		const form = await superValidate(request, valibot(txHashSchema));
 
 		console.log('=== VERIFY TETHER PAYMENT DEBUG ===');
@@ -291,17 +291,12 @@ export const actions: Actions = {
 		}
 
 		try {
-			const formData = await request.formData();
-			const paymentId = formData.get('paymentId') as string;
-			const { txHash } = form.data;
+			// Get both txHash and paymentId from validated form data
+			const { txHash, paymentId } = form.data;
 
 			console.log('Payment ID:', paymentId);
 			console.log('TX Hash:', txHash);
 			console.log('User Account ID:', account.id);
-
-			if (!paymentId) {
-				return setError(form, '', 'Payment ID is required');
-			}
 
 			// Find payment record
 			const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
