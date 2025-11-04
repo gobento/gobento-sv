@@ -1,5 +1,6 @@
 // src/lib/server/mail/sendMailWithAttachments.ts
 import nodemailer from 'nodemailer';
+import { MAIL_USER, MAIL_PASS } from '$env/static/private';
 
 export async function sendEmailWithAttachment(
 	to: string,
@@ -9,15 +10,17 @@ export async function sendEmailWithAttachment(
 	filename = 'receipt.pdf'
 ) {
 	const transporter = nodemailer.createTransport({
-		service: 'gmail', // or SMTP config
+		host: 'smtp.resend.com',
+		secure: true,
+		port: 465,
 		auth: {
-			user: process.env.MAIL_USER,
-			pass: process.env.MAIL_PASS
+			user: MAIL_USER,
+			pass: MAIL_PASS
 		}
 	});
 
 	await transporter.sendMail({
-		from: `"Payments" <${process.env.MAIL_USER}>`,
+		from: `"GoBento Payments" <${MAIL_USER}>`,
 		to,
 		subject,
 		text: body,
