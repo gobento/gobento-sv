@@ -3,7 +3,6 @@ import { Contract, ethers, JsonRpcProvider, Wallet } from 'ethers';
 import {
 	TETHER_CONTRACT_ADDRESS,
 	ETHEREUM_RPC_URL,
-	FEE_TETHER_ADDRESS,
 	TETHER_PRIVATE_KEY,
 	MOCK_PAYMENTS
 } from '$env/static/private';
@@ -15,20 +14,26 @@ const USDT_ABI = [
 	'function decimals() view returns (uint8)',
 	'function allowance(address owner, address spender) view returns (uint256)',
 	'event Transfer(address indexed from, address indexed to, uint256 value)'
-];
+] as const;
 
 export class TetherService {
-	private provider: JsonRpcProvider;
-	private contract: Contract;
+	private provider: JsonRpcProvider | null = null;
+	private contract: Contract | null = null;
 	private platformWallet: Wallet | null = null;
+	private isMockMode: boolean;
 
 	constructor() {
-		this.provider = new JsonRpcProvider(ETHEREUM_RPC_URL);
-		this.contract = new Contract(TETHER_CONTRACT_ADDRESS, USDT_ABI, this.provider);
+		this.isMockMode = MOCK_PAYMENTS === 'true';
 
-		// Initialize platform wallet if private key available
-		if (TETHER_PRIVATE_KEY && TETHER_PRIVATE_KEY !== 'your_platform_wallet_private_key') {
-			this.platformWallet = new Wallet(TETHER_PRIVATE_KEY, this.provider);
+		// Only initialize provider and contract if not in mock mode
+		if (!this.isMockMode) {
+			this.provider = new JsonRpcProvider(ETHEREUM_RPC_URL);
+			this.contract = new Contract(TETHER_CONTRACT_ADDRESS, USDT_ABI, this.provider);
+
+			// Initialize platform wallet if private key available
+			if (TETHER_PRIVATE_KEY && TETHER_PRIVATE_KEY !== 'your_platform_wallet_private_key') {
+				this.platformWallet = new Wallet(TETHER_PRIVATE_KEY, this.provider);
+			}
 		}
 	}
 
@@ -63,10 +68,10 @@ export class TetherService {
 	}> {
 		console.log('TetherService.generatePaymentRequest:', params);
 
-		if (MOCK_PAYMENTS === 'true') {
+		if (this.isMockMode) {
 			return {
 				success: true,
-				recipientAddress: FEE_TETHER_ADDRESS,
+				recipientAddress: TETHER_CONTRACT_ADDRESS,
 				amount: params.amount.toString(),
 				amountWei: this.toWei(params.amount).toString()
 			};
@@ -74,7 +79,7 @@ export class TetherService {
 
 		try {
 			// Validate platform wallet address
-			if (!ethers.isAddress(FEE_TETHER_ADDRESS)) {
+			if (!ethers.isAddress(TETHER_CONTRACT_ADDRESS)) {
 				return {
 					success: false,
 					error: 'Invalid platform wallet address'
@@ -85,7 +90,7 @@ export class TetherService {
 
 			return {
 				success: true,
-				recipientAddress: FEE_TETHER_ADDRESS, // User pays to platform first
+				recipientAddress: TETHER_CONTRACT_ADDRESS, // User pays to platform first
 				amount: params.amount.toString(),
 				amountWei: amountWei.toString()
 			};
@@ -115,7 +120,7 @@ export class TetherService {
 	}> {
 		console.log('TetherService.verifyPayment:', params);
 
-		if (MOCK_PAYMENTS === 'true') {
+		if (this.isMockMode) {
 			if (params.txHash.startsWith('0xMOCK')) {
 				return {
 					success: true,
@@ -124,6 +129,14 @@ export class TetherService {
 					confirmations: 12
 				};
 			}
+			return {
+				success: false,
+				error: 'Invalid mock transaction hash (must start with 0xMOCK)'
+			};
+		}
+
+		if (!this.provider) {
+			return { success: false, error: 'Provider not initialized' };
 		}
 
 		try {
@@ -234,12 +247,16 @@ export class TetherService {
 	}> {
 		console.log('TetherService.transferFromPlatform:', params);
 
-		if (MOCK_PAYMENTS === 'true') {
+		if (this.isMockMode) {
 			console.log(`[MOCK] Transferring ${params.amount} USDT to ${params.toAddress}`);
 			return {
 				success: true,
 				txHash: '0xMOCK' + crypto.randomUUID().replace(/-/g, '')
 			};
+		}
+
+		if (!this.contract || !this.provider) {
+			return { success: false, error: 'Contract or provider not initialized' };
 		}
 
 		try {
@@ -258,7 +275,7 @@ export class TetherService {
 				};
 			}
 
-			const contractWithSigner = this.contract.connect(this.platformWallet);
+			const contractWithSigner = this.contract.connect(this.platformWallet) as any;
 
 			// Check platform wallet balance
 			const balance = await this.contract.balanceOf(this.platformWallet.address);
@@ -310,8 +327,12 @@ export class TetherService {
 		txHash: string,
 		requiredConfirmations: number = 12
 	): Promise<{ success: boolean; confirmations?: number; error?: string }> {
-		if (MOCK_PAYMENTS === 'true') {
+		if (this.isMockMode) {
 			return { success: true, confirmations: requiredConfirmations };
+		}
+
+		if (!this.provider) {
+			return { success: false, error: 'Provider not initialized' };
 		}
 
 		try {
@@ -345,8 +366,12 @@ export class TetherService {
 	 * Get platform wallet balance
 	 */
 	async getPlatformBalance(): Promise<{ success: boolean; balance?: number; error?: string }> {
-		if (MOCK_PAYMENTS === 'true') {
+		if (this.isMockMode) {
 			return { success: true, balance: 10000 }; // Mock balance
+		}
+
+		if (!this.contract) {
+			return { success: false, error: 'Contract not initialized' };
 		}
 
 		try {

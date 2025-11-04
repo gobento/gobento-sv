@@ -5,6 +5,7 @@ import { payments, reservations, businessOffers, businessWallets } from '$lib/se
 import { eq, and } from 'drizzle-orm';
 import { ZarinpalService } from './zarinpal';
 import { TetherService } from './tether';
+import { FEE_TETHER_ADDRESS } from '$env/static/private';
 
 export type PaymentMethod = 'iban' | 'tether';
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
@@ -137,7 +138,7 @@ export class PaymentHandler {
 				// Tether payment - user sends to platform wallet
 				const tetherService = new TetherService();
 				const paymentRequest = await tetherService.generatePaymentRequest({
-					businessWalletAddress: process.env.FEE_TETHER_ADDRESS!, // Platform wallet receives first
+					businessWalletAddress: FEE_TETHER_ADDRESS, // Platform wallet receives first
 					amount: params.amount,
 					orderId: paymentId
 				});
@@ -186,6 +187,8 @@ export class PaymentHandler {
 				.from(payments)
 				.where(eq(payments.id, params.paymentId))
 				.limit(1);
+
+			console.log('completePayment.Payment found by ID only:', payment);
 
 			if (!payment) {
 				return { success: false, error: 'Payment not found' };
