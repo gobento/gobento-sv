@@ -8,7 +8,7 @@
 	import IconMapPin from '~icons/fluent/location-24-regular';
 	import IconHeart from '~icons/fluent/heart-24-regular';
 	import IconHeartFilled from '~icons/fluent/heart-24-filled';
-	import LocationCard from '$lib/components/LocationCard.svelte';
+	import LocationCard from '$lib/components/maps/LocationCard.svelte';
 	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
 
