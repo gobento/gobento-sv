@@ -15,7 +15,7 @@ import {
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { welcomeSchema } from './schema';
-import { uploadFileFromForm } from '$lib/server/backblaze';
+import { uploadImageWithPreset } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async () => {
 	const form = await superValidate(valibot(welcomeSchema));
@@ -163,7 +163,7 @@ export const actions = {
 			}
 
 			// Upload to Backblaze
-			const uploadResult = await uploadFileFromForm(pictureFile);
+			const uploadResult = await uploadImageWithPreset(pictureFile, 'logo');
 
 			if (!uploadResult.success) {
 				return fail(500, {

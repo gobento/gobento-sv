@@ -10,7 +10,7 @@ import {
 	userProfiles
 } from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
-import { uploadFileFromForm, getSignedDownloadUrl } from '$lib/server/backblaze';
+import { uploadImageWithPreset, getSignedDownloadUrl } from '$lib/server/backblaze';
 import { randomUUID } from 'crypto';
 
 // Helper functions
@@ -35,7 +35,7 @@ async function uploadProfilePicture(
 		return { success: false, error: 'File size must be less than 5MB' };
 	}
 
-	const uploadResult = await uploadFileFromForm(picture);
+	const uploadResult = await uploadImageWithPreset(picture, 'logo');
 	if (!uploadResult.success) {
 		return { success: false, error: uploadResult.error || 'Failed to upload profile picture' };
 	}
