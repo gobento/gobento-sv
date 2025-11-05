@@ -5,7 +5,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { Actions, PageServerLoad } from './$types';
-import { uploadFile } from '$lib/server/backblaze';
+import { uploadImageWithPreset } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;
@@ -109,11 +109,7 @@ export const actions = {
 		}
 
 		// Upload the location image first
-		const imageUploadResult = await uploadFile(
-			Buffer.from(await locationImageFile.arrayBuffer()),
-			locationImageFile.name,
-			locationImageFile.type
-		);
+		const imageUploadResult = await uploadImageWithPreset(locationImageFile, 'locationImage');
 
 		if (!imageUploadResult.success) {
 			return fail(500, {

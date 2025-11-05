@@ -20,7 +20,7 @@
 </script>
 
 <!-- Location Header with Background Image -->
-<div class="card mb-8 overflow-hidden border-2 border-base-300 bg-base-100">
+<div class="mb-8 overflow-hidden">
 	<!-- Background Image Section -->
 	<div class="relative h-64 bg-linear-to-br from-primary/20 via-primary/10 to-base-200">
 		<OptimizedLocationImage
@@ -123,19 +123,21 @@
 	</div>
 </div>
 
-<LocationCard
-	name={data.location.name}
-	address={data.location.address}
-	city={data.location.city}
-	province={data.location.province}
-	zipCode={data.location.zipCode}
-	country={data.location.country}
-	latitude={data.location.latitude}
-	longitude={data.location.longitude}
-/>
+<div class="px-6">
+	<LocationCard
+		name={data.location.name}
+		address={data.location.address}
+		city={data.location.city}
+		province={data.location.province}
+		zipCode={data.location.zipCode}
+		country={data.location.country}
+		latitude={data.location.latitude}
+		longitude={data.location.longitude}
+	/>
+</div>
 
 <!-- Offers Section -->
-<div class="mb-8">
+<div class="mb-8 px-6">
 	<div class="mb-6 flex items-center justify-between">
 		<h2 class="text-xl font-bold">
 			{data.offers.length}
