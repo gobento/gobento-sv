@@ -5,6 +5,7 @@
 	import IconQrCode from '~icons/fluent/qr-code-24-regular';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
 	import IconDismiss from '~icons/fluent/dismiss-circle-24-regular';
+	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import Modal from '$lib/components/Modal.svelte';
 
 	let {
@@ -98,7 +99,7 @@
 
 <Modal bind:open size="small" title="Collect Your Food">
 	{#if form?.error && collectLoading === false}
-		<div class="mb-4 rounded-xl border-l-4 border-error bg-base-100 p-4">
+		<div class="mb-4 rounded-xl border-l-4 border-error bg-error/10 p-4">
 			<div class="flex items-center gap-2 text-error">
 				<IconDismiss class="size-5" />
 				<span>{form.error}</span>
@@ -176,9 +177,9 @@
 	></form>
 
 	{#if collectLoading}
-		<div class="mt-4 flex items-center justify-center gap-2 text-base-content/60">
-			<span class="loading loading-md loading-spinner"></span>
-			<span class="text-sm">Processing collection...</span>
+		<div class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-primary/10 p-4">
+			<span class="loading loading-md loading-spinner text-primary"></span>
+			<span class="text-sm font-medium text-primary">Processing collection...</span>
 		</div>
 	{/if}
 </Modal>

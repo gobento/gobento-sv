@@ -7,6 +7,8 @@
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
 	import IconFilter from '~icons/fluent/filter-24-regular';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
+
 	import NotFound from '$lib/components/NotFound.svelte';
 	import { formatDate, formatTime } from '$lib/util.js';
 
@@ -17,10 +19,6 @@
 	const filteredReservations = $derived(
 		showClaimed ? data.reservations : data.reservations.filter((r) => r.status === 'active')
 	);
-
-	function getImageUrl(key: string) {
-		return `/api/files/${key}`;
-	}
 
 	function getStatusBadge(status: string) {
 		const styles = {
@@ -139,14 +137,13 @@
 								class="mt-2 flex items-center justify-between border-t border-base-content/10 pt-4"
 							>
 								<div class="flex items-center gap-3">
-									<div class="avatar">
-										<div class="h-10 w-10 rounded-full ring-2 ring-base-content/10">
-											<img
-												src={getImageUrl(reservation.profilePicture.key)}
-												alt={reservation.business.name}
-											/>
-										</div>
-									</div>
+									<OptimizedLogoImage
+										src={reservation.business.logoUrl}
+										alt={reservation.business.name}
+										size="sm"
+										shape="square"
+									/>
+
 									<div class="text-sm font-medium">{reservation.business.name}</div>
 								</div>
 								<IconArrowRight class="size-5 text-base-content/40" />
