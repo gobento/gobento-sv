@@ -63,7 +63,88 @@
 	const handleReserve = () => {
 		showPaymentModal = true;
 	};
+
+	// Construct full URL for og:url
+	const baseUrl = 'https://yourapp.com'; // Replace with your actual domain
+	const offerUrl = `${baseUrl}/offers/${data.offer.id}`;
+
+	// Format price for display
+	const formatPrice = (price: number, country: string) => {
+		const currency = country === 'Iran' ? 'IRR' : 'EUR';
+		return new Intl.NumberFormat('en-US', {
+			style: 'currency',
+			currency: currency,
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 2
+		}).format(price);
+	};
+
+	// Create description for OG tags
+	const offerDescription = data.offer.description
+		? data.offer.description
+		: `${data.offer.name} from ${data.business.name}. Save food and money! Original value ${formatPrice(data.offer.displayOriginalValue, data.business.country)}, now only ${formatPrice(data.offer.displayPrice, data.business.country)}.`;
+
+	// Calculate savings
+	const savingsPercent = Math.round(
+		((data.offer.displayOriginalValue - data.offer.displayPrice) /
+			data.offer.displayOriginalValue) *
+			100
+	);
+
+	// Determine image for OG
+	const ogImage = data.location?.imageUrl || data.logo.url;
+
+	// Create location string
+	const locationString = data.location
+		? `${data.location.city}, ${data.location.country}`
+		: 'Multiple locations';
 </script>
+
+<svelte:head>
+	<title>{data.offer.name} - {data.business.name}</title>
+	<meta name="description" content={offerDescription} />
+
+	<!-- Open Graph Meta Tags -->
+	<meta property="og:title" content="{data.offer.name} - Save up to {savingsPercent}%" />
+	<meta property="og:site_name" content="YourAppName" />
+	<meta property="og:url" content={offerUrl} />
+	<meta property="og:description" content={offerDescription} />
+	<meta property="og:type" content="product" />
+	<meta property="og:image" content={ogImage} />
+	<meta property="og:image:alt" content="{data.offer.name} at {data.business.name}" />
+
+	<!-- Product-specific OG tags -->
+	<meta property="product:price:amount" content={data.offer.displayPrice.toString()} />
+	<meta
+		property="product:price:currency"
+		content={data.business.country === 'Iran' ? 'IRR' : 'EUR'}
+	/>
+	<meta
+		property="product:availability"
+		content={data.offer.isActive ? 'in stock' : 'out of stock'}
+	/>
+	<meta property="product:condition" content="new" />
+
+	<!-- Additional metadata -->
+	<meta property="og:locale" content="en_US" />
+	{#if data.location}
+		<meta property="og:locality" content={data.location.city} />
+		<meta property="og:country-name" content={data.location.country} />
+	{/if}
+
+	<!-- Twitter Card Tags -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="{data.offer.name} - Save {savingsPercent}%" />
+	<meta name="twitter:description" content={offerDescription} />
+	<meta name="twitter:image" content={ogImage} />
+	<meta name="twitter:label1" content="Price" />
+	<meta
+		name="twitter:data1"
+		content={formatPrice(data.offer.displayPrice, data.business.country)}
+	/>
+	<meta name="twitter:label2" content="Location" />
+	<meta name="twitter:data2" content={locationString} />
+</svelte:head>
 
 <!-- Location Photo Header (if location exists) -->
 {#if data.location}

@@ -17,7 +17,41 @@
 	// State for favorite - initialize from server data
 	let isFavorite = $state(data.isFavorite ?? false);
 	let isTogglingFavorite = $state(false);
+
+	// Construct full URL for og:url
+	const baseUrl = 'https://yourapp.com'; // Replace with your actual domain
+	const locationUrl = `${baseUrl}/locations/${data.location.id}`;
+
+	// Create description for OG tags
+	const locationDescription = `${data.business.name} at ${data.location.address}, ${data.location.city}. ${data.offers.length} ${data.offers.length === 1 ? 'offer' : 'offers'} available.`;
 </script>
+
+<svelte:head>
+	<title>{data.business.name} - {data.location.name}</title>
+	<meta name="description" content={locationDescription} />
+
+	<!-- Open Graph Meta Tags -->
+	<meta property="og:title" content="{data.business.name} - {data.location.name}" />
+	<meta property="og:site_name" content="YourAppName" />
+	<meta property="og:url" content={locationUrl} />
+	<meta property="og:description" content={locationDescription} />
+	<meta property="og:type" content="business.business" />
+	<meta property="og:image" content={data.locationImage.url} />
+	<meta property="og:image:alt" content="{data.business.name} location" />
+
+	<!-- Additional Business-specific OG tags -->
+	<meta property="business:contact_data:street_address" content={data.location.address} />
+	<meta property="business:contact_data:locality" content={data.location.city} />
+	<meta property="business:contact_data:region" content={data.location.province} />
+	<meta property="business:contact_data:postal_code" content={data.location.zipCode} />
+	<meta property="business:contact_data:country_name" content={data.location.country} />
+
+	<!-- Twitter Card Tags -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="{data.business.name} - {data.location.name}" />
+	<meta name="twitter:description" content={locationDescription} />
+	<meta name="twitter:image" content={data.locationImage.url} />
+</svelte:head>
 
 <!-- Location Header with Background Image -->
 <div class="mb-8 overflow-hidden">
