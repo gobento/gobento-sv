@@ -131,19 +131,6 @@
 		<meta property="og:locality" content={data.location.city} />
 		<meta property="og:country-name" content={data.location.country} />
 	{/if}
-
-	<!-- Twitter Card Tags -->
-	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content="{data.offer.name} - Save {savingsPercent}%" />
-	<meta name="twitter:description" content={offerDescription} />
-	<meta name="twitter:image" content={ogImage} />
-	<meta name="twitter:label1" content="Price" />
-	<meta
-		name="twitter:data1"
-		content={formatPrice(data.offer.displayPrice, data.business.country)}
-	/>
-	<meta name="twitter:label2" content="Location" />
-	<meta name="twitter:data2" content={locationString} />
 </svelte:head>
 
 <!-- Location Photo Header (if location exists) -->

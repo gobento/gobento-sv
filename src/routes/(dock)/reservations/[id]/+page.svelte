@@ -15,10 +15,16 @@
 	import IconCopy from '~icons/fluent/copy-24-regular';
 	import IconTimer from '~icons/fluent/timer-24-regular';
 	import IconChevronRight from '~icons/fluent/chevron-right-24-regular';
+	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
+	import IconLink from '~icons/fluent/link-24-regular';
+	import FluentAlert24Regular from '~icons/fluent/alert-24-regular';
 
 	import { formatDate, formatTime } from '$lib/util.js';
 	import { onMount, onDestroy } from 'svelte';
 	import CollectFoodModal from './CollectFoodModal.svelte';
+	import Modal from '$lib/components/Modal.svelte';
+	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
+	import Alert from '$lib/components/Alert.svelte';
 
 	let { data, form } = $props();
 
@@ -110,28 +116,6 @@
 		}
 	}
 
-	function handleSwipeStart(e: MouseEvent | TouchEvent) {
-		isDragging = true;
-		startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-	}
-
-	function handleSwipeEnd() {
-		if (swipeProgress >= 90) {
-			handleCollect();
-		} else {
-			swipeProgress = 0;
-		}
-		isDragging = false;
-	}
-
-	async function handleCollect() {
-		collectLoading = true;
-		const formEl = document.getElementById('collectForm') as HTMLFormElement;
-		if (formEl) {
-			formEl.requestSubmit();
-		}
-	}
-
 	function hapticFeedback(intensity: 'light' | 'medium' | 'heavy' = 'medium') {
 		if (!browser) return;
 		if ('vibrate' in navigator) {
@@ -142,23 +126,6 @@
 			};
 			navigator.vibrate(patterns[intensity]);
 		}
-	}
-
-	function handleSwipeMove(e: MouseEvent | TouchEvent) {
-		if (!isDragging) return;
-
-		const currentX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-		const diff = currentX - startX;
-		const maxWidth = 300;
-		const progress = Math.max(0, Math.min(100, (diff / maxWidth) * 100));
-
-		if (progress >= 90 && swipeProgress < 90) {
-			hapticFeedback('heavy');
-		} else if (progress >= 50 && swipeProgress < 50) {
-			hapticFeedback('light');
-		}
-
-		swipeProgress = progress;
 	}
 
 	async function copyInviteLink() {
@@ -210,27 +177,103 @@
 		data.isOwner && data.invites.some((inv) => inv.status === 'pending')
 	);
 
+	const hasAcceptedInvite = $derived(
+		data.isOwner && data.invites.some((inv) => inv.status === 'accepted')
+	);
+
+	const acceptedInvite = $derived(data.invites.find((inv) => inv.status === 'accepted'));
+
 	const canShare = $derived(
 		browser && data.isOwner && typeof navigator !== 'undefined' && navigator.share !== undefined
 	);
+
+	const baseUrl = 'https://yourapp.com';
+	const reservationUrl = `${baseUrl}/reservations/${data.reservation.id}`;
+
+	const formatPrice = (price: number, currency: string) => {
+		return new Intl.NumberFormat('en-US', {
+			style: 'currency',
+			currency: currency,
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 2
+		}).format(price);
+	};
+
+	const reservationDescription = data.pendingInviteForUser
+		? `You've been invited to collect ${data.offer.name} from ${data.business.name}. Pickup on ${formatDate(data.reservation.pickupFrom)} between ${formatTime(data.reservation.pickupFrom)}–${formatTime(data.reservation.pickupUntil)}.`
+		: `${data.offer.name} reservation at ${data.business.name}. Pickup on ${formatDate(data.reservation.pickupFrom)} between ${formatTime(data.reservation.pickupFrom)}–${formatTime(data.reservation.pickupUntil)}.`;
+
+	const pageTitle = data.pendingInviteForUser
+		? `You're Invited: ${data.offer.name} at ${data.business.name}`
+		: data.reservation.status === 'claimed'
+			? `✓ Collected: ${data.offer.name}`
+			: `Your Reservation: ${data.offer.name}`;
+
+	const statusEmoji =
+		data.reservation.status === 'claimed'
+			? '✓'
+			: data.reservation.status === 'active'
+				? '🎫'
+				: data.reservation.status === 'expired'
+					? '⏰'
+					: '📋';
+
+	const locationString = data.location
+		? `${data.location.city}, ${data.location.country}`
+		: data.business.country;
 </script>
 
-<svelte:window
-	onmousemove={handleSwipeMove}
-	onmouseup={handleSwipeEnd}
-	ontouchmove={handleSwipeMove}
-	ontouchend={handleSwipeEnd}
-/>
+<svelte:head>
+	<title>{pageTitle}</title>
+	<meta name="description" content={reservationDescription} />
+
+	<meta property="og:title" content={pageTitle} />
+	<meta property="og:site_name" content="YourAppName" />
+	<meta property="og:url" content={reservationUrl} />
+	<meta property="og:description" content={reservationDescription} />
+	<meta property="og:type" content={data.pendingInviteForUser ? 'website' : 'article'} />
+	<meta property="og:image" content={data.business.logo.url} />
+	<meta property="og:image:alt" content="{data.business.name} - {data.offer.name}" />
+
+	{#if data.reservation.status === 'active'}
+		<meta
+			property="event:start_time"
+			content={new Date(data.reservation.pickupFrom).toISOString()}
+		/>
+		<meta
+			property="event:end_time"
+			content={new Date(data.reservation.pickupUntil).toISOString()}
+		/>
+	{/if}
+
+	{#if data.location}
+		<meta property="og:locality" content={data.location.city} />
+		<meta property="og:country-name" content={data.location.country} />
+		<meta property="place:location:latitude" content={data.location.latitude?.toString()} />
+		<meta property="place:location:longitude" content={data.location.longitude?.toString()} />
+	{/if}
+
+	<meta property="og:locale" content="en_US" />
+	<meta
+		property="article:published_time"
+		content={new Date(data.reservation.reservedAt).toISOString()}
+	/>
+
+	{#if data.pendingInviteForUser}
+		<meta property="og:type" content="website" />
+		<meta name="robots" content="noindex, nofollow" />
+	{/if}
+</svelte:head>
 
 <div class="mx-auto max-w-2xl space-y-6 p-4">
 	<!-- Invite Accepted Banner -->
 	{#if form?.inviteAccepted}
-		<div class="rounded-2xl border-l-4 border-success bg-base-100 p-6">
+		<div class="rounded-2xl border-l-4 border-success bg-success/10 p-6">
 			<div class="flex items-center gap-4">
-				<IconCheckmark class="h-12 w-12 text-success" />
+				<IconCheckmark class="size-12 text-success" />
 				<div>
 					<h2 class="text-xl font-bold text-success">Invite Accepted</h2>
-					<p class="mt-1 text-sm text-base-content/60">You can now collect this food reservation</p>
+					<p class="mt-1 text-sm text-success/80">You can now collect this food reservation</p>
 				</div>
 			</div>
 		</div>
@@ -238,9 +281,9 @@
 
 	<!-- Invite Declined Banner -->
 	{#if form?.inviteDeclined}
-		<div class="rounded-2xl border-l-4 border-base-300 bg-base-100 p-6">
+		<div class="rounded-2xl border-l-4 border-base-300 bg-base-200 p-6">
 			<div class="flex items-center gap-4">
-				<IconDismiss class="h-12 w-12 text-base-content/40" />
+				<IconDismiss class="size-12 text-base-content/40" />
 				<div>
 					<h2 class="text-xl font-bold">Invite Declined</h2>
 					<p class="mt-1 text-sm text-base-content/60">You've declined this invitation</p>
@@ -251,27 +294,27 @@
 
 	<!-- Countdown Timer -->
 	{#if data.reservation.status === 'active' && !timeRemaining.hasStarted && !data.pendingInviteForUser}
-		<div class="rounded-2xl border-l-4 border-primary bg-base-100 p-6">
+		<div class="rounded-2xl border-l-4 border-primary bg-primary/10 p-6">
 			<div class="mb-4 flex items-center gap-2">
 				<IconTimer class="size-5 text-primary" />
-				<h2 class="text-lg font-bold">Time Until Pickup</h2>
+				<h2 class="text-lg font-bold text-primary">Time Until Pickup</h2>
 			</div>
 			<div class="flex gap-3">
 				{#if timeRemaining.days > 0}
-					<div class="flex flex-1 flex-col items-center rounded-xl bg-base-200 p-4">
+					<div class="flex flex-1 flex-col items-center rounded-xl bg-base-100 p-4">
 						<span class="text-lg font-bold text-primary tabular-nums">{timeRemaining.days}</span>
 						<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Days</span>
 					</div>
 				{/if}
-				<div class="flex flex-1 flex-col items-center rounded-xl bg-base-200 p-4">
+				<div class="flex flex-1 flex-col items-center rounded-xl bg-base-100 p-4">
 					<span class="text-lg font-bold text-primary tabular-nums">{timeRemaining.hours}</span>
 					<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Hours</span>
 				</div>
-				<div class="flex flex-1 flex-col items-center rounded-xl bg-base-200 p-4">
+				<div class="flex flex-1 flex-col items-center rounded-xl bg-base-100 p-4">
 					<span class="text-lg font-bold text-primary tabular-nums">{timeRemaining.minutes}</span>
 					<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Mins</span>
 				</div>
-				<div class="flex flex-1 flex-col items-center rounded-xl bg-base-200 p-4">
+				<div class="flex flex-1 flex-col items-center rounded-xl bg-base-100 p-4">
 					<span class="text-lg font-bold text-primary tabular-nums">{timeRemaining.seconds}</span>
 					<span class="mt-1 text-xs tracking-wide text-base-content/50 uppercase">Secs</span>
 				</div>
@@ -279,8 +322,9 @@
 			{#if browser && 'Notification' in window && Notification.permission === 'default'}
 				<button
 					onclick={requestNotificationPermission}
-					class="btn mt-4 w-full rounded-full btn-outline btn-sm btn-primary"
+					class="btn mt-4 w-full gap-2 btn-outline btn-sm btn-primary"
 				>
+					<FluentAlert24Regular class="size-4" />
 					Enable Notifications
 				</button>
 			{/if}
@@ -289,12 +333,12 @@
 
 	<!-- Pickup Ready Banner -->
 	{#if data.reservation.status === 'active' && timeRemaining.isPickupTime && !data.pendingInviteForUser}
-		<div class="animate-pulse rounded-2xl border-l-4 border-warning bg-base-100 p-6">
+		<div class="animate-pulse rounded-2xl border-l-4 border-warning bg-warning/10 p-6">
 			<div class="flex items-center gap-4">
-				<IconCheckmark class="h-12 w-12 text-warning" />
+				<IconCheckmark class="size-12 text-warning" />
 				<div>
 					<h2 class="text-xl font-bold text-warning">Pickup Time!</h2>
-					<p class="mt-1 text-sm text-base-content/60">Your food is ready to be picked up now</p>
+					<p class="mt-1 text-sm text-warning/80">Your food is ready to be picked up now</p>
 				</div>
 			</div>
 		</div>
@@ -302,26 +346,28 @@
 
 	<!-- Collected Banner -->
 	{#if data.reservation.status === 'claimed'}
-		<div class="rounded-2xl border-l-4 border-success bg-base-100 p-6">
+		<div class="rounded-2xl border-l-4 border-success bg-success/10 p-6">
 			<div class="flex items-center gap-4">
-				<IconCheckmark class="h-12 w-12 text-success" />
+				<IconCheckmark class="size-12 text-success" />
 				<div class="flex-1">
 					<h2 class="text-xl font-bold text-success">Food Collected</h2>
 					{#if data.reservation.claimedAt}
-						<p class="mt-1 text-sm text-base-content/60">
+						<p class="mt-1 text-sm text-success/80">
 							{formatDate(data.reservation.claimedAt)} at {formatTime(data.reservation.claimedAt)}
 						</p>
 					{/if}
 					{#if data.reservation.claimedBy && data.isOwner}
-						{@const claimer = data.invites.find((inv) => inv.userId === data.reservation.claimedBy)}
+						{@const claimer = data.invites.find(
+							(inv) => inv.invitedAccountId === data.reservation.claimedBy
+						)}
 						{#if claimer}
-							<div class="mt-3 flex items-center gap-2 rounded-xl bg-base-200 p-3">
+							<div class="mt-3 flex items-center gap-2 rounded-xl bg-success/20 p-3">
 								<div
-									class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-sm"
+									class="flex h-8 w-8 items-center justify-center rounded-full bg-success/30 text-sm"
 								>
 									👤
 								</div>
-								<span class="text-sm font-medium">Collected by your friend</span>
+								<span class="text-sm font-medium text-success">Collected by your friend</span>
 							</div>
 						{/if}
 					{/if}
@@ -336,11 +382,13 @@
 		class="block rounded-2xl bg-base-100 p-6 transition-all hover:shadow-md"
 	>
 		<div class="flex items-start gap-4">
-			<div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl">
-				<img
+			<div class="size-16 shrink-0 overflow-hidden rounded-2xl">
+				<OptimizedLogoImage
 					src={data.business.logo.url}
 					alt={data.business.name}
-					class="h-full w-full object-cover"
+					size="md"
+					shape="square"
+					priority={true}
 				/>
 			</div>
 			<div class="min-w-0 flex-1">
@@ -405,7 +453,7 @@
 			{#if data.location}
 				<a
 					href="/locations/{data.location.id}"
-					class="flex items-start gap-3 rounded-xl bg-base-200 p-4 transition-colors hover:bg-base-200"
+					class="flex items-start gap-3 rounded-xl bg-base-200 p-4 transition-colors hover:bg-base-300"
 				>
 					<IconLocation class="mt-0.5 size-5 shrink-0 text-base-content/60" />
 					<div class="min-w-0 flex-1">
@@ -442,11 +490,25 @@
 				<h2 class="text-lg font-bold">Pass to Friend</h2>
 			</div>
 
-			{#if hasPendingInvite}
+			{#if hasAcceptedInvite && acceptedInvite}
+				<div class="mb-4 rounded-xl border-l-4 border-info bg-info/10 p-4">
+					<p class="font-medium text-info">Friend Has Access</p>
+					<p class="mt-2 text-sm text-info/80">
+						Your friend can now collect this food. Cancel the invite if you want to collect it
+						yourself instead.
+					</p>
+				</div>
+				<form method="POST" action="?/cancelInvite" use:enhance>
+					<button type="submit" class="btn btn-block gap-2 btn-outline btn-error">
+						<IconDismiss class="size-5" />
+						Cancel Invite
+					</button>
+				</form>
+			{:else if hasPendingInvite}
 				{@const pendingInvite = data.invites.find((inv) => inv.status === 'pending')}
-				<div class="mb-4 rounded-xl border-l-4 border-warning bg-base-100 p-4">
+				<div class="mb-4 rounded-xl border-l-4 border-warning bg-warning/10 p-4">
 					<p class="font-medium text-warning">Invite Link Active</p>
-					<p class="mt-2 text-sm text-base-content/60">
+					<p class="mt-2 text-sm text-warning/80">
 						Share this link with a friend to let them collect this food
 					</p>
 					<div class="mt-3 rounded-lg bg-base-200 p-3 font-mono text-xs break-all">
@@ -459,9 +521,9 @@
 								inviteLink = `${$page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
 								copyInviteLink();
 							}}
-							class="btn flex-1 gap-2 rounded-full btn-sm"
+							class="btn flex-1 gap-2 btn-secondary"
 						>
-							<IconCopy class="h-4 w-4" />
+							<IconCopy class="size-5" />
 							{linkCopied ? 'Copied!' : 'Copy Link'}
 						</button>
 						{#if canShare}
@@ -470,34 +532,26 @@
 									inviteLink = `${$page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
 									shareInviteLink();
 								}}
-								class="btn flex-1 gap-2 rounded-full btn-sm btn-primary"
+								class="btn flex-1 gap-2 btn-primary"
 							>
-								<IconShare class="h-4 w-4" />
+								<IconShare class="size-5" />
 								Share
 							</button>
 						{/if}
 					</div>
 				</div>
 				<form method="POST" action="?/cancelInvite" use:enhance>
-					<button type="submit" class="btn btn-block gap-2 rounded-full btn-ghost btn-sm">
-						<IconDismiss class="h-4 w-4" />
+					<button type="submit" class="btn btn-block gap-2 btn-ghost btn-sm">
+						<IconDismiss class="size-5" />
 						Cancel Invite
 					</button>
 				</form>
-			{:else if data.invites.length > 0 && data.invites[0].status === 'accepted'}
-				<div class="rounded-xl border-l-4 border-success bg-base-100 p-4">
-					<p class="font-medium text-success">Invite Accepted</p>
-					<p class="mt-1 text-sm text-base-content/60">Your friend can now collect this food</p>
-				</div>
 			{:else}
 				<p class="mb-4 text-sm text-base-content/60">
 					Can't make it? Let a friend collect this food instead!
 				</p>
-				<button
-					onclick={() => (showInviteModal = true)}
-					class="btn btn-block gap-2 rounded-full btn-primary"
-				>
-					<IconShare class="h-4 w-4" />
+				<button onclick={() => (showInviteModal = true)} class="btn btn-block gap-2 btn-primary">
+					<IconShare class="size-5" />
 					Create Invite Link
 				</button>
 			{/if}
@@ -506,16 +560,16 @@
 
 	<!-- Pending Invite (for invited user via link) -->
 	{#if data.pendingInviteForUser}
-		<div class="rounded-2xl border-l-4 border-primary bg-base-100 p-6">
+		<div class="rounded-2xl border-l-4 border-primary bg-primary/10 p-6">
 			<div class="mb-6 text-center">
-				<IconPersonAdd class="mx-auto mb-4 h-16 w-16 text-primary" />
+				<IconPersonAdd class="mx-auto mb-4 size-16 text-primary" />
 				<h2 class="text-2xl font-bold text-primary">You've Been Invited</h2>
-				<p class="mt-2 text-sm text-base-content/60">
+				<p class="mt-2 text-sm text-primary/80">
 					Someone wants to pass this food collection to you
 				</p>
 			</div>
 
-			<div class="mb-6 space-y-4 rounded-xl bg-base-200 p-4">
+			<div class="mb-6 space-y-4 rounded-xl bg-base-100 p-4">
 				<div>
 					<p class="mb-1 text-xs tracking-wide text-base-content/40 uppercase">Offer</p>
 					<p class="font-medium">{data.offer.name}</p>
@@ -540,12 +594,9 @@
 			</div>
 
 			{#if form?.error}
-				<div class="mb-4 rounded-xl border-l-4 border-error bg-base-100 p-4">
-					<div class="flex items-center gap-2 text-error">
-						<IconDismiss class="size-5" />
-						<span>{form.error}</span>
-					</div>
-				</div>
+				<Alert type="error" class="mb-4">
+					{form.error}
+				</Alert>
 			{/if}
 
 			<div class="flex gap-3">
@@ -555,7 +606,7 @@
 					use:enhance
 					class="flex-1"
 				>
-					<button type="submit" class="btn btn-block gap-2 rounded-full btn-ghost">
+					<button type="submit" class="btn btn-block gap-2 btn-ghost">
 						<IconDismiss class="size-5" />
 						Decline
 					</button>
@@ -566,7 +617,7 @@
 					use:enhance
 					class="flex-1"
 				>
-					<button type="submit" class="btn btn-block gap-2 rounded-full btn-primary">
+					<button type="submit" class="btn btn-block gap-2 btn-primary">
 						<IconCheckmark class="size-5" />
 						Accept
 					</button>
@@ -575,144 +626,85 @@
 		</div>
 	{:else}
 		<!-- Action Buttons -->
-		{#if data.reservation.status === 'active' && (data.isOwner || data.userInvite?.status === 'accepted')}
-			<button
-				onclick={() => (showCollectModal = true)}
-				class="btn btn-block gap-2 rounded-full btn-success"
-			>
+		{#if data.reservation.status === 'active' && (data.isOwner || data.userInvite?.status === 'accepted') && !hasAcceptedInvite}
+			<button onclick={() => (showCollectModal = true)} class="btn btn-block gap-2 btn-success">
 				<IconCheckmark class="size-5" />
 				Collect Food
 			</button>
 		{/if}
 
 		<!-- Create Invite Modal -->
-		{#if showInviteModal}
-			<div class="modal-open modal">
-				<div class="modal-box rounded-lg">
-					<button
-						onclick={() => {
-							showInviteModal = false;
-							inviteLink = '';
-							linkCopied = false;
-						}}
-						class="btn absolute top-4 right-4 btn-circle btn-ghost btn-sm"
-					>
-						✕
-					</button>
-					<h3 class="mb-6 text-xl font-bold">Invite to Collection</h3>
+		<Modal bind:open={showInviteModal} title="Invite to Collection">
+			{#if form?.error}
+				<Alert type="error" class="mb-4">
+					{form.error}
+				</Alert>
+			{/if}
 
-					{#if form?.error}
-						<div class="mb-4 rounded-xl border-l-4 border-error bg-base-100 p-4">
-							<div class="flex items-center gap-2 text-error">
-								<IconDismiss class="size-5" />
-								<span>{form.error}</span>
-							</div>
-						</div>
-					{/if}
+			{#if inviteLink}
+				<div class="mb-4 rounded-xl border-l-4 border-success bg-success/10 p-4">
+					<div class="flex items-center gap-2 text-success">
+						<IconCheckmark class="size-5" />
+						<span class="font-medium">Invite link created!</span>
+					</div>
+				</div>
 
-					{#if inviteLink}
-						<div class="mb-4 rounded-xl border-l-4 border-success bg-base-100 p-4">
-							<div class="flex items-center gap-2 text-success">
-								<IconCheckmark class="size-5" />
-								<span class="font-medium">Invite link created!</span>
-							</div>
-						</div>
-
-						<div class="mb-6">
-							<label class="mb-2 block font-medium">Share this link</label>
-							<div class="flex gap-2">
-								<input
-									type="text"
-									value={inviteLink}
-									readonly
-									class="input-bordered input flex-1 rounded-xl font-mono text-xs"
-								/>
-								<button onclick={copyInviteLink} class="btn btn-square rounded-xl">
-									<IconCopy class="size-5" />
-								</button>
-							</div>
-							{#if linkCopied}
-								<p class="mt-2 text-sm text-success">Link copied to clipboard!</p>
-							{/if}
-						</div>
-
-						{#if canShare}
-							<button
-								onclick={shareInviteLink}
-								class="btn mb-4 btn-block gap-2 rounded-full btn-primary"
-							>
-								<IconShare class="size-5" />
-								Share via...
-							</button>
-						{/if}
-
-						<button
-							onclick={() => {
-								showInviteModal = false;
-								inviteLink = '';
-								linkCopied = false;
-							}}
-							class="btn btn-block rounded-full"
-						>
-							Done
+				<div class="mb-6">
+					<label class="mb-2 block font-medium">Share this link</label>
+					<div class="flex gap-2">
+						<input
+							type="text"
+							value={inviteLink}
+							readonly
+							class="input-bordered input flex-1 rounded-xl font-mono text-xs"
+						/>
+						<button onclick={copyInviteLink} class="btn btn-square rounded-xl">
+							<IconCopy class="size-5" />
 						</button>
-					{:else}
-						<p class="mb-6 text-sm text-base-content/60">
-							Create a shareable link that allows one person to collect this food reservation on
-							your behalf.
-						</p>
-
-						<div class="mb-6 rounded-xl border-l-4 border-warning bg-base-100 p-4">
-							<p class="text-sm text-base-content/60">
-								⚠️ Only one person can use this invite. Once accepted, they'll be able to collect
-								the food.
-							</p>
-						</div>
-
-						<form
-							method="POST"
-							action="?/createInvite"
-							use:enhance={() => {
-								inviteLoading = true;
-								return async ({ update }) => {
-									await update();
-									inviteLoading = false;
-								};
-							}}
-						>
-							<div class="flex gap-3">
-								<button
-									type="button"
-									onclick={() => (showInviteModal = false)}
-									class="btn flex-1 rounded-full btn-ghost"
-									disabled={inviteLoading}
-								>
-									Cancel
-								</button>
-								<button
-									type="submit"
-									class="btn flex-1 rounded-full btn-primary"
-									disabled={inviteLoading}
-								>
-									{#if inviteLoading}
-										<span class="loading loading-spinner"></span>
-									{/if}
-									Create Link
-								</button>
-							</div>
-						</form>
+					</div>
+					{#if linkCopied}
+						<p class="mt-2 text-sm text-success">Link copied to clipboard!</p>
 					{/if}
 				</div>
-				<div
-					class="modal-backdrop"
-					onclick={() => {
-						showInviteModal = false;
-						inviteLink = '';
-						linkCopied = false;
+
+				{#if canShare}
+					<button onclick={shareInviteLink} class="btn mb-4 btn-block gap-2 btn-primary">
+						<IconShare class="size-5" />
+						Share via...
+					</button>
+				{/if}
+			{:else}
+				<p class="mb-6 text-sm text-base-content/60">
+					Create a shareable link that allows one person to collect this food reservation on your
+					behalf.
+				</p>
+
+				<Alert type="warn" class="mb-6">
+					Only one person can use this invite. Once accepted, they'll be able to collect the food.
+				</Alert>
+
+				<form
+					method="POST"
+					action="?/createInvite"
+					use:enhance={() => {
+						inviteLoading = true;
+						return async ({ update }) => {
+							await update();
+							inviteLoading = false;
+						};
 					}}
-				></div>
-			</div>
-		{/if}
+				>
+					<button type="submit" class="btn flex-1 gap-2 btn-primary" disabled={inviteLoading}>
+						{#if inviteLoading}
+							<span class="loading loading-spinner"></span>
+						{:else}
+							<IconLink class="size-5" />
+						{/if}
+						Create Link
+					</button>
+				</form>
+			{/if}
+		</Modal>
 
 		<CollectFoodModal bind:open={showCollectModal} claimToken={data.reservation.claimToken} />
 	{/if}

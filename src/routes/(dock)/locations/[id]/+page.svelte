@@ -45,12 +45,6 @@
 	<meta property="business:contact_data:region" content={data.location.province} />
 	<meta property="business:contact_data:postal_code" content={data.location.zipCode} />
 	<meta property="business:contact_data:country_name" content={data.location.country} />
-
-	<!-- Twitter Card Tags -->
-	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content="{data.business.name} - {data.location.name}" />
-	<meta name="twitter:description" content={locationDescription} />
-	<meta name="twitter:image" content={data.locationImage.url} />
 </svelte:head>
 
 <!-- Location Header with Background Image -->

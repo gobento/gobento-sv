@@ -11,6 +11,7 @@ import {
 import { eq, and, inArray } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;
@@ -69,7 +70,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 		)
 		.orderBy(reservations.pickupFrom);
 
+	// Generate signed URLs for all business logos
+	const reservationsWithLogos = await Promise.all(
+		userReservations.map(async (reservation) => {
+			return {
+				...reservation,
+				business: {
+					...reservation.business,
+					logoUrl: await getSignedDownloadUrl(reservation.profilePicture.key, 3600)
+				}
+			};
+		})
+	);
+
 	return {
-		reservations: userReservations
+		reservations: reservationsWithLogos
 	};
 };

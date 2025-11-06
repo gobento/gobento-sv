@@ -301,13 +301,13 @@ export const actions: Actions = {
 			return fail(403, { error: 'You do not own this reservation' });
 		}
 
-		// Delete all pending invites
+		// Delete all pending AND accepted invites (owner reclaims ability to collect)
 		await db
 			.delete(reservationInvites)
 			.where(
 				and(
 					eq(reservationInvites.reservationId, reservationId),
-					eq(reservationInvites.status, 'pending')
+					or(eq(reservationInvites.status, 'pending'), eq(reservationInvites.status, 'accepted'))
 				)
 			);
 
