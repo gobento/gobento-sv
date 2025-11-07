@@ -10,6 +10,8 @@ import {
 	accounts,
 	files
 } from '$lib/server/schema';
+import { alias } from 'drizzle-orm/pg-core';
+
 import { eq, and, or } from 'drizzle-orm';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
@@ -29,6 +31,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	}
 
 	const reservationId = params.id;
+	const locationFiles = alias(files, 'locationFiles');
 
 	// Fetch reservation with all related data
 	const [reservation] = await db
@@ -39,7 +42,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			business: businessProfiles,
 			businessAccount: accounts,
 			claim: reservationClaims,
-			logo: files
+			businessLogoKey: files.key,
+			locationImageKey: locationFiles.key
 		})
 		.from(reservations)
 		.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
@@ -47,7 +51,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		.innerJoin(accounts, eq(businessOffers.businessAccountId, accounts.id))
 		.innerJoin(businessProfiles, eq(accounts.id, businessProfiles.accountId))
 		.leftJoin(reservationClaims, eq(reservations.id, reservationClaims.reservationId))
-		.innerJoin(files, eq(businessProfiles.profilePictureId, files.id))
+		.leftJoin(files, eq(businessProfiles.profilePictureId, files.id))
+		.leftJoin(locationFiles, eq(businessLocations.imageId, locationFiles.id))
 		.where(eq(reservations.id, reservationId));
 
 	if (!reservation) {
@@ -129,12 +134,20 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		reservation.reservation.status = 'expired';
 	}
 
-	const logoUrl = await getSignedDownloadUrl(reservation.logo.key);
+	let logoUrl = '';
+	if (reservation.businessLogoKey) {
+		logoUrl = await getSignedDownloadUrl(reservation.businessLogoKey!);
+	}
+
+	let imageUrl = '';
+	if (reservation.locationImageKey) {
+		imageUrl = await getSignedDownloadUrl(reservation.locationImageKey!);
+	}
 
 	return {
 		reservation: reservation.reservation,
 		offer: reservation.offer,
-		location: reservation.location,
+		location: { ...reservation.location, imageUrl: imageUrl },
 		business: {
 			...reservation.business,
 			logo: { url: logoUrl }

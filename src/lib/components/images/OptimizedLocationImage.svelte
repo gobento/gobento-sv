@@ -3,7 +3,7 @@
 	import IconImageOff from '~icons/fluent/image-off-24-regular';
 
 	interface Props {
-		src: string;
+		src: string; // fixme: might be cool to have a fallback if null
 		alt: string;
 		priority?: boolean;
 		class?: string;
