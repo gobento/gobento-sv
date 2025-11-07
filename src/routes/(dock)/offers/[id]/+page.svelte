@@ -1,7 +1,6 @@
 <!-- src/routes/(dock)/offers/[id]/+page.svelte -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
 	import IconStore from '~icons/fluent/building-retail-24-regular';
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
 	import IconFluentArrowRight24Filled from '~icons/fluent/arrow-right-24-filled';
@@ -11,6 +10,7 @@
 	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
 	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 	import LocationCard from '$lib/components/maps/LocationCard.svelte';
+	import { formatPrice } from '$lib/util';
 
 	let { data, form } = $props();
 
@@ -66,17 +66,6 @@
 	// Construct full URL for og:url
 	const baseUrl = 'https://yourapp.com'; // Replace with your actual domain
 	const offerUrl = `${baseUrl}/offers/${data.offer.id}`;
-
-	// Format price for display
-	const formatPrice = (price: number, country: string) => {
-		const currency = country === 'Iran' ? 'IRR' : 'EUR';
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: currency,
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 2
-		}).format(price);
-	};
 
 	// Create description for OG tags
 	const offerDescription = data.offer.description
@@ -193,7 +182,7 @@
 	<PriceDisplay
 		originalValue={data.offer.displayOriginalValue}
 		price={data.offer.displayPrice}
-		currency={data.business.country}
+		country={data.business.country}
 		size="lg"
 	/>
 </div>
@@ -248,6 +237,7 @@
 		{pickupDate}
 		{minDate}
 		{maxDate}
+		availability={data.availability}
 		onPickupDateChange={(date) => (pickupDate = date)}
 		onReserve={handleReserve}
 		onDelete={handleDelete}

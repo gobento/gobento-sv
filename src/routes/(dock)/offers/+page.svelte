@@ -6,6 +6,8 @@
 	import IconGlobe from '~icons/fluent/globe-24-regular';
 	import IconMoney from '~icons/fluent/money-24-regular';
 	import IconEdit from '~icons/fluent/edit-24-regular';
+	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
+
 	import IconDelete from '~icons/fluent/delete-24-regular';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
@@ -128,7 +130,9 @@
 										</div>
 									{/if}
 									{#if offer.isRecurring}
-										<div class="badge badge-outline badge-xs">Recurring</div>
+										<div class="badge badge-outline badge-xs">
+											<IconRepeat class="size-4" /> Recurring
+										</div>
 									{/if}
 								</div>
 
@@ -189,7 +193,7 @@
 
 							<!-- Location Info -->
 							<div class="mb-4 rounded-md border border-info/30 bg-info/10 px-3 py-2">
-								<div class="flex items-start gap-2">
+								<a class="flex items-start gap-2" href="/locations/{offer.locationId}">
 									<IconLocation class="mt-0.5 size-4 shrink-0 text-info" />
 									<div class="min-w-0 text-xs">
 										<div class="font-semibold text-info">{offer.locationName}</div>
@@ -197,7 +201,7 @@
 											{offer.locationCity}{#if offer.locationProvince}, {offer.locationProvince}{/if}
 										</div>
 									</div>
-								</div>
+								</a>
 							</div>
 
 							<!-- Details -->
@@ -227,7 +231,9 @@
 									</div>
 								{/if}
 								{#if offer.isRecurring}
-									<div class="badge badge-outline badge-xs">Recurring</div>
+									<div class="badge badge-outline badge-xs">
+										<IconRepeat class="size-4" /> Recurring
+									</div>
 								{/if}
 							</div>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '$lib/util.js';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
 	import IconLock from '~icons/fluent/lock-closed-24-filled';
 	import IconClock from '~icons/fluent/clock-24-regular';
@@ -8,6 +9,7 @@
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-filled';
 	import IconShoppingBag from '~icons/fluent/shopping-bag-24-filled';
+	import IconFire from '~icons/fluent/fire-24-filled';
 	import { formatTime } from '$lib/util';
 
 	interface Props {
@@ -28,6 +30,13 @@
 		} | null;
 		isReserved: boolean;
 
+		// Availability data
+		availability?: {
+			total: number;
+			reserved: number;
+			available: number;
+		};
+
 		// Date selection for recurring offers
 		isRecurring: boolean;
 		pickupDate: string;
@@ -46,6 +55,7 @@
 		offer,
 		userReservation = null,
 		isReserved,
+		availability,
 		isRecurring,
 		pickupDate,
 		minDate,
@@ -54,6 +64,15 @@
 		onReserve,
 		onDelete
 	}: Props = $props();
+
+	const showUrgency = $derived(
+		availability && availability.available > 0 && availability.available <= 3 && !userReservation
+	);
+
+	const getUrgencyMessage = (available: number) => {
+		if (available === 1) return 'Only 1 left!';
+		return `Only ${available} left!`;
+	};
 </script>
 
 {#if userReservation}
@@ -79,8 +98,8 @@
 		</div>
 	</div>
 {:else if isUser && offer.isActive}
-	{#if isReserved}
-		<!-- Reserved by Another User - Neutral Gray -->
+	{#if availability && availability.available === 0}
+		<!-- Fully Reserved - Neutral Gray -->
 		<div class="rounded-2xl bg-linear-to-br from-base-200 to-base-100 p-4">
 			<div class="flex items-center gap-4">
 				<div class="rounded-xl bg-base-200 p-3">
@@ -90,7 +109,7 @@
 				<div class="flex-1">
 					<h3 class="text-2xl font-bold text-base-content">Currently Reserved</h3>
 					<p class="mt-2 text-sm font-medium text-base-content/70">
-						This surprise bag is reserved. Check back later!
+						All surprise bags are reserved. Check back later!
 					</p>
 				</div>
 			</div>
@@ -100,6 +119,23 @@
 		<div
 			class="rounded-2xl border-2 border-primary bg-linear-to-br from-primary/20 via-primary/10 to-primary/5 p-4"
 		>
+			<!-- Urgency Warning Banner -->
+			{#if showUrgency && availability}
+				<div
+					class="mb-4 flex items-center gap-3 rounded-xl border-2 border-warning bg-linear-to-r from-warning/20 to-warning/10 p-3 shadow-sm"
+				>
+					<div class="rounded-lg bg-warning p-2">
+						<IconFire class="size-6 animate-pulse text-warning-content" />
+					</div>
+					<div class="flex-1">
+						<p class="text-base font-bold text-warning">
+							{getUrgencyMessage(availability.available)}
+						</p>
+						<p class="text-xs font-medium text-warning/80">Hurry before it's gone!</p>
+					</div>
+				</div>
+			{/if}
+
 			<div class="mb-5 space-y-4">
 				<!-- Pickup Time -->
 				<div class="flex items-center gap-3">
@@ -129,7 +165,7 @@
 								for="pickupDate"
 								class="text-xs font-bold tracking-wider text-secondary uppercase"
 							>
-								Select Pickup Date
+								This offer is recurring until {formatDate(maxDate)}. Select Pickup Date
 							</label>
 							<input
 								id="pickupDate"
@@ -163,13 +199,32 @@
 				<div class="rounded-lg bg-info p-2.5">
 					<IconInfo class="size-6 text-info-content" />
 				</div>
-				<span class="font-bold text-info">Currently reserved by a user</span>
+				<div>
+					<span class="font-bold text-info">All bags reserved</span>
+					{#if availability}
+						<p class="text-sm text-info/80">
+							{availability.reserved} of {availability.total} reserved
+						</p>
+					{/if}
+				</div>
 			</div>
 		</div>
 	{:else}
 		<div
 			class="rounded-2xl border-2 border-error/50 bg-linear-to-br from-error/10 via-error/5 to-base-100 p-4"
 		>
+			<!-- Availability Info for Owner -->
+			{#if availability}
+				<div class="mb-4 rounded-xl border border-base-300 bg-base-100 p-3">
+					<div class="flex items-center justify-between">
+						<span class="text-sm font-medium text-base-content/70">Availability</span>
+						<span class="text-base font-bold">
+							{availability.available} of {availability.total} available
+						</span>
+					</div>
+				</div>
+			{/if}
+
 			<button type="button" class="btn w-full transition-all btn-error" onclick={onDelete}>
 				<IconDelete class="size-5" />
 				Delete Offer
