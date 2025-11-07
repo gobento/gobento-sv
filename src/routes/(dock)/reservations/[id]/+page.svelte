@@ -1,7 +1,6 @@
 <!-- /src/routes/(dock)/reservations/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 	import { formatDate, formatTime } from '$lib/util.js';
 	import { onMount, onDestroy } from 'svelte';
@@ -25,6 +24,7 @@
 	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
 	import LocationCard from '$lib/components/maps/LocationCard.svelte';
 	import Alert from '$lib/components/Alert.svelte';
+	import { page } from '$app/state';
 
 	let { data, form } = $props();
 
@@ -613,7 +613,7 @@
 			<div class="flex gap-3">
 				<form
 					method="POST"
-					action="?/declineInvite&invite={$page.url.searchParams.get('invite')}"
+					action="?/declineInvite&invite={page.url.searchParams.get('invite')}"
 					use:enhance
 					class="flex-1"
 				>
@@ -624,7 +624,7 @@
 				</form>
 				<form
 					method="POST"
-					action="?/acceptInvite&invite={$page.url.searchParams.get('invite')}"
+					action="?/acceptInvite&invite={page.url.searchParams.get('invite')}"
 					use:enhance
 					class="flex-1"
 				>
@@ -670,13 +670,12 @@
 						Share this link with a friend to let them collect this food
 					</p>
 					<div class="mt-3 rounded-lg bg-base-200 p-3 font-mono text-xs break-all">
-						{$page.url.origin}/reservations/{data.reservation
-							.id}?invite={pendingInvite?.inviteToken}
+						{page.url.origin}/reservations/{data.reservation.id}?invite={pendingInvite?.inviteToken}
 					</div>
 					<div class="mt-3 flex gap-2">
 						<button
 							onclick={() => {
-								inviteLink = `${$page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
+								inviteLink = `${page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
 								copyInviteLink();
 							}}
 							class="btn flex-1 gap-2 btn-secondary"
@@ -687,7 +686,7 @@
 						{#if canShare}
 							<button
 								onclick={() => {
-									inviteLink = `${$page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
+									inviteLink = `${page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
 									shareInviteLink();
 								}}
 								class="btn flex-1 gap-2 btn-primary"

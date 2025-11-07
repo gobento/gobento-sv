@@ -1,7 +1,6 @@
 <!-- src/routes/(dock)/offers/new/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { page } from '$app/stores';
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconSave from '~icons/fluent/save-24-regular';
 	import IconTag from '~icons/fluent/tag-24-regular';

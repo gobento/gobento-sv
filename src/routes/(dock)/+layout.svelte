@@ -2,10 +2,7 @@
 <script lang="ts">
 	import type { LayoutData } from './$types';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { navigating } from '$app/stores';
-		import * as m from '$lib/paraglide/messages.js'
-
+	import { page, navigating } from '$app/state';
 
 	// User navigation
 	import CompassIcon from '~icons/fluent/compass-northwest-24-regular';
@@ -101,7 +98,7 @@
 		},
 		{
 			path: '/profile',
-			label: m.profile(),
+			label: 'Profile',
 			icon: SettingsIcon,
 			filledIcon: SettingsFilledIcon
 		}
@@ -150,7 +147,7 @@
 	});
 
 	function isActive(path: string) {
-		return $page.url.pathname === path;
+		return page.url.pathname === path;
 	}
 
 	function navigateTo(path: string) {
@@ -180,9 +177,10 @@
 </nav>
 
 <!-- Main Content (with padding for sidebar on desktop) -->
+
 <main class="h-dvh w-full max-w-full overflow-x-hidden pb-16 md:ps-58">
-	{#if $navigating}
-		<div class="fixed inset-0 flex items-center justify-center">
+	{#if navigating.to}
+		<div class="fixed inset-0 z-50 flex items-center justify-center">
 			<span class="loading loading-lg loading-spinner text-primary"></span>
 		</div>
 	{:else}

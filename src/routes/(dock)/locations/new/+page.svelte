@@ -1,7 +1,6 @@
 <!-- src/routes/(dock)/locations/new/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { page } from '$app/stores';
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconSave from '~icons/fluent/save-24-regular';
 	import IconMap from '~icons/fluent/map-24-regular';
@@ -9,9 +8,10 @@
 	import IconImage from '~icons/fluent/image-24-regular';
 	import IconCamera from '~icons/fluent/camera-24-regular';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import { page } from '$app/state';
 
 	let { data } = $props();
-	let form = $page.form;
+	let form = page.form;
 	let isSubmitting = $state(false);
 	let searchQuery = $state('');
 	let searchResults = $state<any[]>([]);

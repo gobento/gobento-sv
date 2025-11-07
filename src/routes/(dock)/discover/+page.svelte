@@ -13,7 +13,6 @@
 
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
 	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
@@ -22,6 +21,7 @@
 
 	import { formatDistance } from '$lib/util';
 	import { useImagePreloader, extractImageUrls } from '$lib/utils/imagePreloader.svelte';
+	import { page } from '$app/state';
 
 	let { data }: { data: PageData } = $props();
 
@@ -144,7 +144,7 @@
 	}
 
 	function updateUrl() {
-		const params = new URLSearchParams($page.url.searchParams);
+		const params = new URLSearchParams(page.url.searchParams);
 
 		if (selectedLocation) {
 			params.set('lat', selectedLocation.lat.toString());
