@@ -1,167 +1,237 @@
 // src/lib/server/payments/handler.ts
-
 import { db } from '$lib/server/db';
-import { payments, reservations, businessOffers, businessWallets } from '$lib/server/schema';
+import { payments, businessWallets, reservations } from '$lib/server/schema';
 import { eq, and } from 'drizzle-orm';
-import { ZarinpalService } from './zarinpal';
 import { TetherService } from './tether';
-import { FEE_TETHER_ADDRESS } from '$env/static/private';
-
-export type PaymentMethod = 'iban' | 'tether';
-export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
-
-interface CreatePaymentParams {
-	offerId: string;
-	userAccountId: string;
-	businessAccountId: string;
-	amount: number;
-	currency: 'IRR' | 'USDT' | 'EUR';
-	paymentMethod: PaymentMethod;
-	pickupDate: Date;
-	metadata?: Record<string, any>;
-}
-
-interface InitiatePaymentResult {
-	success: boolean;
-	paymentId?: string;
-	// For IBAN/Zarinpal
-	zarinpalAuthority?: string;
-	zarinpalPaymentUrl?: string;
-	// For Tether
-	platformWalletAddress?: string;
-	amountUsdt?: string;
-	// Common
-	error?: string;
-}
-
-interface CompletePaymentParams {
-	paymentId: string;
-	// Zarinpal
-	zarinpalAuthority?: string;
-	zarinpalRefId?: number;
-	// Tether
-	tetherTxHash?: string;
-	tetherFromAddress?: string;
-}
+import { ZarinpalService } from './zarinpal';
+import { CurrencyService } from './currency';
+import { SettlementService } from './settlement';
 
 export class PaymentHandler {
+	private static tetherService = new TetherService();
+	private static currencyService = new CurrencyService();
+
 	/**
-	 * Step 1: Initiate payment
-	 * Creates payment record and returns payment instructions
+	 * Calculate platform fee (round UP to ensure we cover costs)
 	 */
-	static async initiatePayment(params: CreatePaymentParams): Promise<InitiatePaymentResult> {
+	private static calculateFee(amount: number, paymentMethod: 'iban' | 'tether'): number {
+		const feePercentage = paymentMethod === 'iban' ? 0.05 : 0.03; // 5% for IBAN, 3% for Tether
+		const fee = amount * feePercentage;
+
+		// Round fee UP to 2 decimal places
+		return Math.ceil(fee * 100) / 100;
+	}
+
+	/**
+	 * Calculate business amount (what they receive after fees)
+	 * Round DOWN to ensure we don't overpay
+	 */
+	private static calculateBusinessAmount(amount: number, fee: number): number {
+		const businessAmount = amount - fee;
+
+		// Round DOWN to 2 decimal places (floor instead of ceil)
+		return Math.floor(businessAmount * 100) / 100;
+	}
+
+	/**
+	 * Generate unique claim token for reservation
+	 */
+	private static generateClaimToken(): string {
+		return `CLAIM-${crypto.randomUUID()}`;
+	}
+
+	static async initiatePayment(params: {
+		offerId: string;
+		userAccountId: string;
+		businessAccountId: string;
+		amount: number;
+		currency: string;
+		paymentMethod: 'iban' | 'tether';
+		pickupDate: Date;
+		metadata?: Record<string, any>;
+	}): Promise<{
+		success: boolean;
+		paymentId?: string;
+		zarinpalAuthority?: string;
+		zarinpalPaymentUrl?: string;
+		tetherAddress?: string;
+		amountUsdt?: number;
+		conversionRate?: number;
+		error?: string;
+	}> {
 		try {
-			console.log('initiatePayment:', params);
+			// Get live conversion to USDT
+			const conversion = await this.currencyService.convertToUsdt(params.amount, params.currency);
 
-			// Get business wallet info
-			const [businessWallet] = await db
-				.select()
-				.from(businessWallets)
-				.where(eq(businessWallets.accountId, params.businessAccountId))
-				.limit(1);
+			// Calculate fees (on original amount)
+			const feeAmount = this.calculateFee(params.amount, params.paymentMethod);
+			const businessAmount = this.calculateBusinessAmount(params.amount, feeAmount);
 
-			if (!businessWallet) {
-				return { success: false, error: 'Business wallet not configured' };
-			}
+			// Calculate fee and business amounts in USDT as well
+			const feeAmountUsdt = this.calculateFee(conversion.amountUsdt, params.paymentMethod);
+			const businessAmountUsdt = this.calculateBusinessAmount(conversion.amountUsdt, feeAmountUsdt);
 
-			// Verify business accepts this payment method
-			if (params.paymentMethod === 'iban' && !businessWallet.ibanEnabled) {
-				return { success: false, error: 'Business does not accept IBAN payments' };
-			}
-
-			if (params.paymentMethod === 'tether' && !businessWallet.tetherEnabled) {
-				return { success: false, error: 'Business does not accept Tether payments' };
-			}
-
-			// Calculate fee split (10% platform fee)
-			const split = this.calculateSplit(params.amount);
-
-			// Create payment record
-			const paymentId = crypto.randomUUID();
-			const expiresAt = new Date();
-			expiresAt.setMinutes(expiresAt.getMinutes() + 30); // 30 minute expiry
-
+			// Create payment record with USDT amount stored
 			const [payment] = await db
 				.insert(payments)
 				.values({
-					id: paymentId,
+					id: crypto.randomUUID(),
 					offerId: params.offerId,
 					userAccountId: params.userAccountId,
 					businessAccountId: params.businessAccountId,
 					amount: params.amount,
 					currency: params.currency,
+					amountUsdt: conversion.amountUsdt, // ALWAYS store USDT equivalent
 					paymentMethod: params.paymentMethod,
-					feeAmount: split.feeAmount,
-					businessAmount: split.businessAmount,
+					feeAmount,
+					businessAmount,
 					status: 'pending',
-					isMock: process.env.MOCK_PAYMENTS === 'true',
-					metadata: params.metadata ? JSON.stringify(params.metadata) : null,
-					expiresAt
+					payoutStatus: 'pending_payout',
+					metadata: JSON.stringify({
+						...params.metadata,
+						pickupDate: params.pickupDate.toISOString(),
+						calculatedAt: new Date().toISOString(),
+						conversionRate: conversion.rate,
+						conversionTimestamp: conversion.timestamp.toISOString(),
+						feeAmountUsdt,
+						businessAmountUsdt,
+						conversionNote:
+							params.currency === 'USDT'
+								? 'Direct USDT payment'
+								: `Converted from ${params.currency} at rate ${conversion.rate.toFixed(6)} (via CoinGecko)`
+					}),
+					expiresAt: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
 				})
 				.returning();
 
-			// Handle payment method specific initialization
+			// Handle payment method
 			if (params.paymentMethod === 'iban') {
-				// Zarinpal payment request
+				// Initiate Zarinpal payment
+				const callbackUrl = `${process.env.PUBLIC_APP_URL || 'http://localhost:5173'}/payments/verify?paymentId=${payment.id}`;
+
 				const zarinpalResult = await ZarinpalService.requestPayment({
 					amount: params.amount,
-					description: `Payment for ${params.metadata?.offerName || 'offer'}`,
+					description: `Payment for offer ${params.offerId}`,
 					email: params.metadata?.email,
-					mobile: params.metadata?.mobile,
-					callbackUrl: `${process.env.PUBLIC_APP_URL}/payments/callback?paymentId=${paymentId}`,
-					metadata: params.metadata
+					callbackUrl,
+					metadata: {
+						paymentId: payment.id,
+						offerId: params.offerId
+					}
 				});
 
 				if (!zarinpalResult.success) {
-					await this.failPayment(
-						paymentId,
-						zarinpalResult.error || 'Payment initialization failed'
-					);
-					return { success: false, error: zarinpalResult.error };
+					// Update payment status to failed
+					await db
+						.update(payments)
+						.set({
+							status: 'failed',
+							errorMessage: zarinpalResult.error
+						})
+						.where(eq(payments.id, payment.id));
+
+					return {
+						success: false,
+						error: zarinpalResult.error
+					};
 				}
 
-				// Update payment with authority
+				// Update payment with Zarinpal reference
 				await db
 					.update(payments)
 					.set({
-						ibanReference: zarinpalResult.authority
+						ibanReference: zarinpalResult.authority,
+						status: 'processing'
 					})
-					.where(eq(payments.id, paymentId));
+					.where(eq(payments.id, payment.id));
 
 				return {
 					success: true,
-					paymentId,
+					paymentId: payment.id,
 					zarinpalAuthority: zarinpalResult.authority,
-					zarinpalPaymentUrl: zarinpalResult.paymentUrl
+					zarinpalPaymentUrl: zarinpalResult.paymentUrl,
+					amountUsdt: conversion.amountUsdt,
+					conversionRate: conversion.rate
 				};
 			} else if (params.paymentMethod === 'tether') {
-				// Tether payment - user sends to platform wallet
-				const tetherService = new TetherService();
-				const paymentRequest = await tetherService.generatePaymentRequest({
-					businessWalletAddress: FEE_TETHER_ADDRESS, // Platform wallet receives first
-					amount: params.amount,
-					orderId: paymentId
+				// Get business wallet for USDT transfers
+				const [wallet] = await db
+					.select()
+					.from(businessWallets)
+					.where(eq(businessWallets.accountId, params.businessAccountId))
+					.limit(1);
+
+				// If business doesn't have USDT wallet, try IBAN fallback
+				if (!wallet?.tetherAddress || !wallet.tetherEnabled) {
+					if (wallet?.ibanNumber && wallet.ibanEnabled) {
+						// Fallback to IBAN payment
+						console.log('Business USDT wallet not configured, falling back to IBAN');
+
+						return await this.initiatePayment({
+							...params,
+							paymentMethod: 'iban'
+						});
+					}
+
+					await db
+						.update(payments)
+						.set({
+							status: 'failed',
+							errorMessage: 'Business wallet not configured for either USDT or IBAN'
+						})
+						.where(eq(payments.id, payment.id));
+
+					return {
+						success: false,
+						error: 'Business wallet not configured'
+					};
+				}
+
+				// Generate payment request (user pays to platform wallet)
+				const tetherResult = await this.tetherService.generatePaymentRequest({
+					businessWalletAddress: wallet.tetherAddress,
+					amount: conversion.amountUsdt, // Use calculated USDT amount
+					orderId: payment.id
 				});
 
-				if (!paymentRequest.success) {
-					await this.failPayment(
-						paymentId,
-						paymentRequest.error || 'Payment initialization failed'
-					);
-					return { success: false, error: paymentRequest.error };
+				if (!tetherResult.success) {
+					await db
+						.update(payments)
+						.set({
+							status: 'failed',
+							errorMessage: tetherResult.error
+						})
+						.where(eq(payments.id, payment.id));
+
+					return {
+						success: false,
+						error: tetherResult.error
+					};
 				}
+
+				// Update payment status
+				await db
+					.update(payments)
+					.set({
+						status: 'processing'
+					})
+					.where(eq(payments.id, payment.id));
 
 				return {
 					success: true,
-					paymentId,
-					platformWalletAddress: paymentRequest.recipientAddress,
-					amountUsdt: paymentRequest.amount
+					paymentId: payment.id,
+					tetherAddress: process.env.TETHER_PLATFORM_ADDRESS,
+					amountUsdt: conversion.amountUsdt,
+					conversionRate: conversion.rate
 				};
 			}
 
-			return { success: false, error: 'Invalid payment method' };
+			return {
+				success: false,
+				error: 'Invalid payment method'
+			};
 		} catch (error) {
-			console.error('Initiate payment error:', error);
+			console.error('Payment initiation error:', error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown error'
@@ -170,170 +240,163 @@ export class PaymentHandler {
 	}
 
 	/**
-	 * Step 2: Verify and complete payment
-	 * Verifies the payment was received, then creates reservation and transfers to business
+	 * Create reservation after payment is completed
 	 */
-	static async completePayment(params: CompletePaymentParams): Promise<{
+	private static async createReservation(params: {
+		paymentId: string;
+		offerId: string;
+		userAccountId: string;
+		pickupDate: Date;
+	}): Promise<{ success: boolean; reservationId?: string; error?: string }> {
+		try {
+			const pickupFrom = params.pickupDate;
+			const pickupUntil = new Date(pickupFrom.getTime() + 3600000); // +1 hour
+
+			const [reservation] = await db
+				.insert(reservations)
+				.values({
+					id: crypto.randomUUID(),
+					offerId: params.offerId,
+					userAccountId: params.userAccountId,
+					status: 'active',
+					pickupFrom,
+					pickupUntil,
+					claimToken: this.generateClaimToken()
+				})
+				.returning();
+
+			// Link payment to reservation
+			await db
+				.update(payments)
+				.set({
+					reservationId: reservation.id
+				})
+				.where(eq(payments.id, params.paymentId));
+
+			return {
+				success: true,
+				reservationId: reservation.id
+			};
+		} catch (error) {
+			console.error('Reservation creation error:', error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	/**
+	 * Complete Zarinpal payment after user returns from gateway
+	 */
+	static async completeZarinpalPayment(params: {
+		paymentId: string;
+		authority: string;
+		status: string;
+	}): Promise<{
 		success: boolean;
 		reservationId?: string;
 		error?: string;
 	}> {
 		try {
-			console.log('completePayment:', params);
+			// Use transaction with row locking to prevent race conditions
+			return await db.transaction(async (tx) => {
+				// Get payment record with row lock
+				const [payment] = await tx
+					.select()
+					.from(payments)
+					.where(eq(payments.id, params.paymentId))
+					.for('UPDATE') // Locks the row
+					.limit(1);
 
-			// Get payment record
-			const [payment] = await db
-				.select()
-				.from(payments)
-				.where(eq(payments.id, params.paymentId))
-				.limit(1);
-
-			console.log('completePayment.Payment found by ID only:', payment);
-
-			if (!payment) {
-				return { success: false, error: 'Payment not found' };
-			}
-
-			if (payment.status === 'completed') {
-				return { success: false, error: 'Payment already completed' };
-			}
-
-			if (payment.status === 'failed') {
-				return { success: false, error: 'Payment has failed' };
-			}
-
-			// Update to processing
-			await db
-				.update(payments)
-				.set({ status: 'processing' })
-				.where(eq(payments.id, params.paymentId));
-
-			// Verify payment based on method
-			let verificationSuccess = false;
-
-			if (payment.paymentMethod === 'iban') {
-				if (!params.zarinpalAuthority) {
-					throw new Error('Missing Zarinpal authority');
+				if (!payment) {
+					return { success: false, error: 'Payment not found' };
 				}
 
+				if (payment.status !== 'processing') {
+					return { success: false, error: 'Payment is not in processing state' };
+				}
+
+				// Check if user cancelled
+				if (params.status !== 'OK') {
+					await tx
+						.update(payments)
+						.set({
+							status: 'failed',
+							errorMessage: 'Payment cancelled by user'
+						})
+						.where(eq(payments.id, params.paymentId));
+
+					return {
+						success: false,
+						error: 'Payment cancelled'
+					};
+				}
+
+				// Verify payment with Zarinpal
 				const verifyResult = await ZarinpalService.verifyPayment({
-					authority: params.zarinpalAuthority,
+					authority: params.authority,
 					amount: payment.amount
 				});
 
-				verificationSuccess = verifyResult.success;
-
-				if (verificationSuccess) {
-					await db
+				if (!verifyResult.success) {
+					await tx
 						.update(payments)
 						.set({
-							ibanReference: params.zarinpalAuthority,
-							metadata: JSON.stringify({
-								...(payment.metadata ? JSON.parse(payment.metadata) : {}),
-								zarinpalRefId: params.zarinpalRefId
-							})
+							status: 'failed',
+							errorMessage: verifyResult.error
 						})
 						.where(eq(payments.id, params.paymentId));
-				}
-			} else if (payment.paymentMethod === 'tether') {
-				if (!params.tetherTxHash) {
-					throw new Error('Missing transaction hash');
+
+					return {
+						success: false,
+						error: verifyResult.error
+					};
 				}
 
-				const tetherService = new TetherService();
-				const verifyResult = await tetherService.verifyPayment({
-					txHash: params.tetherTxHash,
-					expectedAmount: payment.amount,
-					recipientAddress: process.env.FEE_TETHER_ADDRESS! // Verify sent to platform
+				// Payment verified - update status
+				await tx
+					.update(payments)
+					.set({
+						status: 'completed',
+						ibanReference: `REF_${verifyResult.refId}`,
+						completedAt: new Date(),
+						payoutStatus: 'queued_for_payout'
+					})
+					.where(eq(payments.id, params.paymentId));
+
+				// Create reservation
+				const metadata = payment.metadata ? JSON.parse(payment.metadata) : {};
+				const pickupDate = metadata.pickupDate ? new Date(metadata.pickupDate) : new Date();
+
+				const reservationResult = await this.createReservation({
+					paymentId: payment.id,
+					offerId: payment.offerId,
+					userAccountId: payment.userAccountId,
+					pickupDate
 				});
 
-				verificationSuccess = verifyResult.success;
-
-				if (verificationSuccess) {
-					await db
-						.update(payments)
-						.set({
-							tetherTxHash: params.tetherTxHash,
-							tetherFromAddress: params.tetherFromAddress || verifyResult.from
-						})
-						.where(eq(payments.id, params.paymentId));
+				if (!reservationResult.success) {
+					// Log error but don't fail the payment
+					console.error('Failed to create reservation:', reservationResult.error);
 				}
-			}
 
-			if (!verificationSuccess) {
-				await this.failPayment(params.paymentId, 'Payment verification failed');
-				return { success: false, error: 'Payment verification failed' };
-			}
+				// Add payment to monthly settlement
+				// This queues it for batch payout at end of month
+				try {
+					await SettlementService.addPaymentToSettlement(payment.id);
+				} catch (error) {
+					console.error('Failed to add payment to settlement:', error);
+					// Don't fail the payment, just log it
+				}
 
-			// Get offer details for reservation
-			const [offer] = await db
-				.select()
-				.from(businessOffers)
-				.where(eq(businessOffers.id, payment.offerId))
-				.limit(1);
-
-			if (!offer) {
-				throw new Error('Offer not found');
-			}
-
-			// Parse metadata for pickup date
-			const metadata = payment.metadata ? JSON.parse(payment.metadata) : {};
-			const pickupDate = metadata.pickupDate ? new Date(metadata.pickupDate) : new Date();
-
-			// Calculate pickup times
-			const [fromHours, fromMinutes] = offer.pickupTimeFrom.split(':').map(Number);
-			const [untilHours, untilMinutes] = offer.pickupTimeUntil.split(':').map(Number);
-
-			const pickupFrom = new Date(pickupDate);
-			pickupFrom.setHours(fromHours, fromMinutes, 0, 0);
-
-			const pickupUntil = new Date(pickupDate);
-			pickupUntil.setHours(untilHours, untilMinutes, 0, 0);
-
-			// Generate claim token
-			const claimToken = this.generateClaimToken();
-
-			// Create reservation
-			const reservationId = crypto.randomUUID();
-			await db.insert(reservations).values({
-				id: reservationId,
-				offerId: payment.offerId,
-				userAccountId: payment.userAccountId,
-				status: 'active',
-				pickupFrom,
-				pickupUntil,
-				claimToken
+				return {
+					success: true,
+					reservationId: reservationResult.reservationId
+				};
 			});
-
-			// Mark payment as completed
-			await db
-				.update(payments)
-				.set({
-					status: 'completed',
-					completedAt: new Date(),
-					reservationId
-				})
-				.where(eq(payments.id, params.paymentId));
-
-			// Step 3: Transfer business portion (background task)
-			// This happens after we've received payment in our platform wallet
-			this.transferToBusinessAsync(payment.id).catch((err) => {
-				console.error('Failed to transfer to business:', err);
-			});
-
-			return {
-				success: true,
-				reservationId
-			};
 		} catch (error) {
-			console.error('Complete payment error:', error);
-
-			// Mark payment as failed
-			await this.failPayment(
-				params.paymentId,
-				error instanceof Error ? error.message : 'Unknown error'
-			);
-
+			console.error('Zarinpal completion error:', error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown error'
@@ -342,111 +405,115 @@ export class PaymentHandler {
 	}
 
 	/**
-	 * Step 3: Transfer business portion (async, happens after reservation created)
-	 * Transfer from platform wallet to business wallet
+	 * Verify USDT payment transaction
 	 */
-	private static async transferToBusinessAsync(paymentId: string): Promise<void> {
+	static async verifyTetherPayment(params: { paymentId: string; txHash: string }): Promise<{
+		success: boolean;
+		reservationId?: string;
+		error?: string;
+	}> {
 		try {
-			const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
-
-			if (!payment || payment.status !== 'completed') {
-				return;
-			}
-
-			// Get business wallet
-			const [businessWallet] = await db
+			// Check for idempotency - has this txHash been processed?
+			const [existingPayment] = await db
 				.select()
-				.from(businessWallets)
-				.where(eq(businessWallets.accountId, payment.businessAccountId))
+				.from(payments)
+				.where(and(eq(payments.tetherTxHash, params.txHash), eq(payments.status, 'completed')))
 				.limit(1);
 
-			if (!businessWallet) {
-				console.error('Business wallet not found for payment:', paymentId);
-				return;
+			if (existingPayment) {
+				return {
+					success: true,
+					reservationId: existingPayment.reservationId || undefined
+				};
 			}
 
-			if (payment.paymentMethod === 'iban') {
-				// For Zarinpal, transfer business amount to their account
-				await ZarinpalService.transferToBusiness({
-					amount: payment.businessAmount,
-					ibanNumber: businessWallet.ibanNumber!,
-					description: `Payment for order ${paymentId}`
-				});
-			} else if (payment.paymentMethod === 'tether') {
-				// For Tether, send from platform wallet to business wallet
-				const tetherService = new TetherService();
-				await tetherService.transferFromPlatform({
-					toAddress: businessWallet.tetherAddress!,
-					amount: payment.businessAmount
-				});
-			}
+			// Use transaction with row locking
+			return await db.transaction(async (tx) => {
+				// Get payment record with lock
+				const [payment] = await tx
+					.select()
+					.from(payments)
+					.where(eq(payments.id, params.paymentId))
+					.for('UPDATE') // Locks the row
+					.limit(1);
 
-			// Log successful transfer
-			console.log(`Transferred ${payment.businessAmount} to business for payment ${paymentId}`);
+				if (!payment) {
+					return { success: false, error: 'Payment not found' };
+				}
+
+				if (payment.status !== 'processing') {
+					return { success: false, error: 'Payment is not in processing state' };
+				}
+
+				// Verify the blockchain transaction
+				const verifyResult = await this.tetherService.verifyPayment({
+					txHash: params.txHash,
+					expectedAmount: payment.amountUsdt!, // Use stored USDT amount
+					recipientAddress: process.env.TETHER_PLATFORM_ADDRESS!
+				});
+
+				if (!verifyResult.success) {
+					await tx
+						.update(payments)
+						.set({
+							status: 'failed',
+							errorMessage: verifyResult.error,
+							tetherTxHash: params.txHash
+						})
+						.where(eq(payments.id, params.paymentId));
+
+					return {
+						success: false,
+						error: verifyResult.error
+					};
+				}
+
+				// Payment verified - update status
+				await tx
+					.update(payments)
+					.set({
+						status: 'completed',
+						tetherTxHash: params.txHash,
+						tetherFromAddress: verifyResult.from,
+						completedAt: new Date(),
+						payoutStatus: 'queued_for_payout'
+					})
+					.where(eq(payments.id, params.paymentId));
+
+				// Create reservation
+				const metadata = payment.metadata ? JSON.parse(payment.metadata) : {};
+				const pickupDate = metadata.pickupDate ? new Date(metadata.pickupDate) : new Date();
+
+				const reservationResult = await this.createReservation({
+					paymentId: payment.id,
+					offerId: payment.offerId,
+					userAccountId: payment.userAccountId,
+					pickupDate
+				});
+
+				if (!reservationResult.success) {
+					console.error('Failed to create reservation:', reservationResult.error);
+				}
+
+				// Add payment to monthly settlement
+				// Business will receive payout at end of month
+				try {
+					await SettlementService.addPaymentToSettlement(payment.id);
+				} catch (error) {
+					console.error('Failed to add payment to settlement:', error);
+				}
+
+				return {
+					success: true,
+					reservationId: reservationResult.reservationId
+				};
+			});
 		} catch (error) {
-			console.error('Transfer to business failed:', error);
-			// TODO: Add retry logic or manual intervention queue
-		}
-	}
-
-	/**
-	 * Fail a payment
-	 */
-	static async failPayment(paymentId: string, errorMessage: string): Promise<void> {
-		await db
-			.update(payments)
-			.set({
-				status: 'failed',
-				errorMessage
-			})
-			.where(eq(payments.id, paymentId));
-	}
-
-	/**
-	 * Generate claim token
-	 */
-	private static generateClaimToken(): string {
-		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-		let token = '';
-		const array = new Uint8Array(8);
-		crypto.getRandomValues(array);
-		for (let i = 0; i < 8; i++) {
-			token += chars[array[i] % chars.length];
-		}
-		return token;
-	}
-
-	/**
-	 * Calculate fee split (10% platform fee)
-	 */
-	private static calculateSplit(amount: number): {
-		businessAmount: number;
-		feeAmount: number;
-	} {
-		const feeAmount = Math.round(amount * 0.1 * 100) / 100;
-		const businessAmount = Math.round((amount - feeAmount) * 100) / 100;
-
-		return {
-			businessAmount,
-			feeAmount
-		};
-	}
-
-	/**
-	 * Check and expire old pending payments
-	 */
-	static async expirePendingPayments(): Promise<void> {
-		const now = new Date();
-
-		const expiredPayments = await db
-			.select()
-			.from(payments)
-			.where(and(eq(payments.status, 'pending')));
-
-		for (const payment of expiredPayments) {
-			if (payment.expiresAt && payment.expiresAt < now) {
-				await this.failPayment(payment.id, 'Payment expired');
-			}
+			console.error('Tether verification error:', error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
 		}
 	}
 }

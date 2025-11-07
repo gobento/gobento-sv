@@ -1,0 +1,74 @@
+# .github/workflows/monthly-payouts.yml
+name: Process Monthly Payouts
+
+on:
+  # Run on the 1st of every month at 2 AM UTC
+  schedule:
+    - cron: '0 2 1 * *'
+
+  # Allow manual triggering from GitHub UI
+  workflow_dispatch:
+    inputs:
+      month:
+        description: 'Month (YYYY-MM format)'
+        required: false
+        type: string
+      year:
+        description: 'Year'
+        required: false
+        type: number
+
+jobs:
+  process-payouts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Calculate previous month
+        id: date
+        run: |
+          if [ -n "${{ github.event.inputs.month }}" ]; then
+            echo "month=${{ github.event.inputs.month }}" >> $GITHUB_OUTPUT
+            echo "year=${{ github.event.inputs.year }}" >> $GITHUB_OUTPUT
+          else
+            # Calculate previous month
+            PREV_MONTH=$(date -d "$(date +%Y-%m-01) -1 month" +%Y-%m)
+            PREV_YEAR=$(date -d "$(date +%Y-%m-01) -1 month" +%Y)
+            echo "month=$PREV_MONTH" >> $GITHUB_OUTPUT
+            echo "year=$PREV_YEAR" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Process payouts
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/admin/process-payouts" \
+            -d '{
+              "month": "${{ steps.date.outputs.month }}",
+              "year": ${{ steps.date.outputs.year }}
+            }'
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Monthly Payout Processing Failed',
+              body: 'The monthly payout processing job failed. Please check the logs and process manually.',
+              labels: ['critical', 'payouts']
+            })
+
+# Alternative: Vercel Cron Job Configuration
+# Add this to vercel.json:
+#
+# {
+#   "crons": [
+#     {
+#       "path": "/api/admin/process-payouts",
+#       "schedule": "0 2 1 * *"
+#     }
+#   ]
+# }
