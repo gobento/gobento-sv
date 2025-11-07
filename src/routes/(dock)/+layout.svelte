@@ -4,6 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { navigating } from '$app/stores';
+		import * as m from '$lib/paraglide/messages.js'
+
 
 	// User navigation
 	import CompassIcon from '~icons/fluent/compass-northwest-24-regular';
@@ -99,7 +101,7 @@
 		},
 		{
 			path: '/profile',
-			label: 'Profile',
+			label: m.profile(),
 			icon: SettingsIcon,
 			filledIcon: SettingsFilledIcon
 		}
