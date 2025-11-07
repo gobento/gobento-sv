@@ -64,7 +64,7 @@
 					></textarea>
 				</div>
 
-				<a href="/fonts/Harmattan-Bold.woff2" download class="test1 m-5 bg-amber-800"
+				<a href="/fonts/Harmattan-Bold.ttf" download class="test1 m-5 bg-amber-800"
 					>download<br />HALLO ICH BIN TOAST<br /> <b>HERE</b></a
 				>
 
