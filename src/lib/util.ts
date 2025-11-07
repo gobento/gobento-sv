@@ -11,7 +11,7 @@ export function formatTime(time: Date | string | null) {
 	return `${hours}:${minutes}`;
 }
 
-export function formatDate(date: Date | null) {
+export function formatDate(date: Date | null | string) {
 	if (!date) return 'No expiry';
 	return new Date(date).toLocaleDateString('en-US', {
 		month: 'short',

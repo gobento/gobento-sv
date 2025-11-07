@@ -11,9 +11,8 @@ import {
 	reservations,
 	businessWallets
 } from '$lib/server/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
-import { FEE_PERCENTAGE, TETHER_CONTRACT_ADDRESS } from '$env/static/private';
 import { priceWithMargin } from '$lib/server/payments/currency';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -53,29 +52,37 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw error(500, 'Business has not configured payment methods');
 	}
 
-	// Check for existing active reservation
-	let existingReservation = null;
-	let userReservation = null;
+	// Count active reservations for this offer
+	const [reservationCount] = await db
+		.select({ count: sql<number>`cast(count(*) as integer)` })
+		.from(reservations)
+		.where(and(eq(reservations.offerId, offer.id), eq(reservations.status, 'active')));
 
-	if (offer.isActive) {
-		const activeReservations = await db
+	const activeReservationCount = reservationCount?.count || 0;
+	const availableQuantity = offer.quantity - activeReservationCount;
+
+	// Check for existing active reservation by current user
+	let userReservation = null;
+	if (offer.isActive && account) {
+		const [existingReservation] = await db
 			.select()
 			.from(reservations)
-			.where(and(eq(reservations.offerId, offer.id), eq(reservations.status, 'active')))
+			.where(
+				and(
+					eq(reservations.offerId, offer.id),
+					eq(reservations.userAccountId, account.id),
+					eq(reservations.status, 'active')
+				)
+			)
 			.limit(1);
 
-		if (activeReservations.length > 0) {
-			existingReservation = activeReservations[0];
-
-			if (existingReservation.userAccountId === account.id) {
-				userReservation = existingReservation;
-			}
+		if (existingReservation) {
+			userReservation = existingReservation;
 		}
 	}
 
 	const isOwner = account.id === offer.businessAccountId;
 	const isUser = account.accountType === 'user';
-
 	const logoUrl = await getSignedDownloadUrl(logo.key);
 
 	// Get location image URL if exists
@@ -92,7 +99,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		}
 	}
 
-	return {
+	const result = {
 		offer: {
 			...offer,
 			displayPrice: priceWithMargin(offer.price),
@@ -115,10 +122,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			url: logoUrl,
 			fileName: logo.fileName
 		},
+		availability: {
+			total: offer.quantity,
+			reserved: activeReservationCount,
+			available: availableQuantity
+		},
 		isOwner,
 		isUser,
-		accountType: account?.accountType || null,
-		isReserved: !!existingReservation,
+
+		isReserved: activeReservationCount >= offer.quantity,
 		userReservation: userReservation
 			? {
 					id: userReservation.id,
@@ -127,13 +139,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 					pickupUntil: userReservation.pickupUntil,
 					claimToken: userReservation.claimToken
 				}
-			: null,
-		businessPaymentMethods: {
-			ibanEnabled: wallet.ibanEnabled,
-			tetherEnabled: wallet.tetherEnabled,
-			preferredMethod: wallet.preferredPaymentMethod
-		},
-		feePercentage: parseFloat(FEE_PERCENTAGE),
-		tetherContractAddress: TETHER_CONTRACT_ADDRESS
+			: null
 	};
+
+	console.log('result', result);
+	return result;
 };

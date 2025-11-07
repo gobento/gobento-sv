@@ -276,6 +276,7 @@
 						</div>
 					</label>
 				</div>
+				<!-- todo: rethink validUntil, recurring and quantity-->
 
 				{#if isRecurring}
 					<div class="form-control">
