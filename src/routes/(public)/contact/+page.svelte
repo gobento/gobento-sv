@@ -64,27 +64,8 @@
 					></textarea>
 				</div>
 
-				<a href="/fonts/Harmattan-Bold.ttf" download class="test1 m-5 bg-amber-800"
-					>download<br />HALLO ICH BIN TOAST<br /> <b>HERE</b></a
-				>
-
 				<button class="btn btn-primary"><FluentMail24Regular calss="size-5" /> Submit</button>
 			</form>
 		</div>
 	</div>
 </div>
-
-<style>
-	.test1 {
-		font-family: Harmattan2;
-	}
-
-	@font-face {
-		font-family: 'Harmattan2';
-		src: url('/fonts/Harmattan-Bold.ttf') format('truetype');
-
-		font-weight: 700;
-		font-style: normal;
-		font-display: swap;
-	}
-</style>
