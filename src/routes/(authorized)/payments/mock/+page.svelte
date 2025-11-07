@@ -1,18 +1,18 @@
 <!-- src/routes/(authorized)/payments/mock/+page.svelte -->
 <script lang="ts">
-	import { page } from '$app/stores';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-regular';
 	import IconInfo from '~icons/fluent/info-24-regular';
+	import { page } from '$app/state';
 
 	let { data } = $props();
 
 	let processing = $state(false);
 	let countdown = $state(3);
 
-	const authority = $page.url.searchParams.get('authority');
-	const amount = $page.url.searchParams.get('amount');
+	const authority = page.url.searchParams.get('authority');
+	const amount = page.url.searchParams.get('amount');
 
 	const formatPrice = (price: string) => {
 		const num = parseFloat(price);
