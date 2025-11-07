@@ -255,6 +255,7 @@ export const payments = pgTable('payments', {
 		.references(() => accounts.id, { onDelete: 'cascade' }),
 	amount: doublePrecision('amount').notNull(),
 	currency: text('currency').notNull(),
+	amountUsdt: doublePrecision('amount_usdt'), // Store USDT amount separately
 	paymentMethod: text('payment_method', {
 		enum: ['iban', 'tether']
 	}).notNull(),
@@ -274,6 +275,15 @@ export const payments = pgTable('payments', {
 	}),
 	metadata: text('metadata'),
 	errorMessage: text('error_message'),
+	settlementId: text('settlement_id').references(() => monthlySettlements.id, {
+		onDelete: 'set null'
+	}),
+	payoutStatus: text('payout_status', {
+		enum: ['pending_payout', 'queued_for_payout', 'paid_out', 'payout_failed']
+	})
+		.notNull()
+		.default('pending_payout'),
+	paidOutAt: timestamp('paid_out_at', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	completedAt: timestamp('completed_at', { withTimezone: true }),
 	expiresAt: timestamp('expires_at', { withTimezone: true })
@@ -296,7 +306,64 @@ export const businessWallets = pgTable('business_wallets', {
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
+// src/lib/server/schema.ts - ADD THESE TABLES
+
+// Monthly settlement records for batched business payouts
+export const monthlySettlements = pgTable('monthly_settlements', {
+	id: text('id').primaryKey(),
+	businessAccountId: text('business_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	month: text('month').notNull(), // Format: YYYY-MM
+	year: integer('year').notNull(),
+
+	// Separate tracking for each payment method
+	ibanTotalAmount: doublePrecision('iban_total_amount').notNull().default(0),
+	ibanPaymentCount: integer('iban_payment_count').notNull().default(0),
+	ibanCurrency: text('iban_currency'), // EUR, IRR, etc.
+
+	tetherTotalAmount: doublePrecision('tether_total_amount').notNull().default(0),
+	tetherPaymentCount: integer('tether_payment_count').notNull().default(0),
+
+	status: text('status', {
+		enum: ['pending', 'processing', 'paid', 'failed', 'partially_paid']
+	})
+		.notNull()
+		.default('pending'),
+
+	// Payout tracking
+	ibanPaidAt: timestamp('iban_paid_at', { withTimezone: true }),
+	ibanTransactionRef: text('iban_transaction_ref'),
+	ibanPayoutError: text('iban_payout_error'),
+
+	tetherPaidAt: timestamp('tether_paid_at', { withTimezone: true }),
+	tetherTxHash: text('tether_tx_hash'),
+	tetherPayoutError: text('tether_payout_error'),
+
+	notes: text('notes'),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+// Link payments to settlements for reconciliation
+export const settlementPayments = pgTable('settlement_payments', {
+	id: text('id').primaryKey(),
+	settlementId: text('settlement_id')
+		.notNull()
+		.references(() => monthlySettlements.id, { onDelete: 'cascade' }),
+	paymentId: text('payment_id')
+		.notNull()
+		.references(() => payments.id, { onDelete: 'cascade' })
+		.unique(), // Each payment can only be in one settlement
+	businessAmount: doublePrecision('business_amount').notNull(),
+	currency: text('currency').notNull(),
+	paymentMethod: text('payment_method', { enum: ['iban', 'tether'] }).notNull(),
+	addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow()
+});
+
 // Export types
+export type MonthlySettlement = typeof monthlySettlements.$inferSelect;
+export type SettlementPayment = typeof settlementPayments.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type BusinessWallet = typeof businessWallets.$inferSelect;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
