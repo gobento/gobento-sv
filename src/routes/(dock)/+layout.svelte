@@ -178,18 +178,13 @@
 </nav>
 
 <!-- Main Content (with padding for sidebar on desktop) -->
-<main class="h-dvh w-full max-w-full overflow-x-hidden md:ps-58">
+<main class="h-dvh w-full max-w-full overflow-x-hidden pb-16 md:ps-58">
 	{#if $navigating}
-		<div
-			class="flex h-dvh
-			 w-full items-center justify-center"
-		>
+		<div class="fixed inset-0 flex items-center justify-center">
 			<span class="loading loading-lg loading-spinner text-primary"></span>
 		</div>
 	{:else}
-		<div class="mb-16 h-fit w-full max-w-full md:mb-0">
-			{@render children()}
-		</div>
+		{@render children()}
 	{/if}
 </main>
 
