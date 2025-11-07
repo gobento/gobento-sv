@@ -8,6 +8,7 @@ import { PaymentHandler } from '$lib/server/payments/handler';
 import { superValidate, setError } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { txHashSchema } from './schema';
+import { TETHER_CONTRACT_ADDRESS } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
@@ -58,8 +59,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		offerId: payment.offerId,
 		offerName: metadata?.offerName || 'Offer',
 		amountUsdt: 2, // todo should be payment.amountUsdt,
-		platformWalletAddress: metadata?.platformWalletAddress || '',
 		pickupDate: metadata?.pickupDate || '',
+		platformWalletAddress: TETHER_CONTRACT_ADDRESS,
+
 		form
 	};
 };
