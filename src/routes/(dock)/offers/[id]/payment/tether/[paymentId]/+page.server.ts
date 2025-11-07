@@ -1,28 +1,29 @@
 // src/routes/(dock)/offers/[id]/payment/tether/[paymentId]/+page.server.ts
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
-import { payments } from '$lib/server/schema';
+import { payments, businessOffers } from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
 import { PaymentHandler } from '$lib/server/payments/handler';
 import { superValidate, setError } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
-import { txHashSchema } from './schema';
 import { TETHER_CONTRACT_ADDRESS } from '$env/static/private';
+import { txHashSchema } from './schema';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
-
 	if (account.accountType !== 'user') {
 		throw error(403, 'Only user accounts can make payments');
 	}
 
-	console.log('params', params);
-
-	// Get payment record
+	// Get payment with offer details in one query
 	const [payment] = await db
-		.select()
+		.select({
+			payment: payments,
+			offer: businessOffers
+		})
 		.from(payments)
+		.leftJoin(businessOffers, eq(payments.offerId, businessOffers.id))
 		.where(eq(payments.id, params.paymentId))
 		.limit(1);
 
@@ -31,45 +32,46 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	// Verify ownership
-	if (payment.userAccountId !== account.id) {
-		throw error(403, 'Payment does not belong to this user');
+	if (payment.payment.userAccountId !== account.id) {
+		throw error(403, 'Unauthorized');
 	}
 
-	// Check status
-	if (payment.status === 'completed') {
-		throw error(400, 'Payment already completed');
+	// Check if already completed - redirect to reservation
+	if (payment.payment.status === 'completed' && payment.payment.reservationId) {
+		throw redirect(303, `/reservations/${payment.payment.reservationId}`);
 	}
 
-	if (payment.status === 'failed') {
-		throw error(400, 'Payment has failed');
+	// Check if failed
+	if (payment.payment.status === 'failed') {
+		throw error(400, 'Payment has failed. Please create a new payment.');
 	}
 
-	// Parse metadata
-	const metadata = payment.metadata as any;
+	const form = await superValidate(valibot(txHashSchema));
 
-	// Create form with paymentId pre-filled
-	const form = await superValidate(
-		{ paymentId: params.paymentId, txHash: '' },
-		valibot(txHashSchema)
-	);
-
-	console.log('form', form);
+	console.log('payment', payment);
 
 	return {
-		offerId: payment.offerId,
-		offerName: metadata?.offerName || 'Offer',
-		amountUsdt: 2, // todo should be payment.amountUsdt,
-		pickupDate: metadata?.pickupDate || '',
-		platformWalletAddress: TETHER_CONTRACT_ADDRESS,
+		payment: {
+			id: payment.payment.id,
+			amountUsdt: payment.payment.amountUsdt,
 
+			currency: payment.payment.currency,
+			status: payment.payment.status
+		},
+		offer: {
+			id: payment.offer!.id,
+			name: payment.offer!.name,
+			pickupTimeFrom: payment.offer!.pickupTimeFrom,
+			pickupTimeUntil: payment.offer!.pickupTimeUntil
+		},
+		platformWalletAddress: TETHER_CONTRACT_ADDRESS,
 		form
 	};
 };
 
 export const actions: Actions = {
-	verifyTetherPayment: async ({ params, locals, request }) => {
+	default: async ({ params, locals, request }) => {
 		const account = locals.account!;
-
 		const form = await superValidate(request, valibot(txHashSchema));
 
 		if (!form.valid) {
@@ -77,15 +79,12 @@ export const actions: Actions = {
 		}
 
 		try {
-			const { txHash, paymentId } = form.data;
-
-			// Verify paymentId matches route param
-			if (paymentId !== params.paymentId) {
-				return setError(form, '', 'Payment ID mismatch');
-			}
-
-			// Find payment record
-			const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
+			// Get payment
+			const [payment] = await db
+				.select()
+				.from(payments)
+				.where(eq(payments.id, params.paymentId))
+				.limit(1);
 
 			if (!payment) {
 				return setError(form, '', 'Payment not found');
@@ -93,40 +92,34 @@ export const actions: Actions = {
 
 			// Verify ownership
 			if (payment.userAccountId !== account.id) {
-				return setError(form, '', 'Payment does not belong to this user');
+				return setError(form, '', 'Unauthorized');
 			}
 
 			// Check status
 			if (payment.status === 'completed') {
-				return setError(form, '', 'Payment already processed');
+				throw redirect(303, `/reservations/${payment.reservationId}`);
 			}
 
 			if (payment.status === 'failed') {
-				return setError(form, '', 'Payment has failed. Please try again.');
+				return setError(form, '', 'Payment has failed');
 			}
 
-			if (payment.status !== 'pending' && payment.status !== 'processing') {
-				return setError(form, '', `Cannot verify payment in ${payment.status} status`);
-			}
-
-			// Complete payment
-			const completeResult = await PaymentHandler.completePayment({
+			// Verify Tether payment using the correct method
+			const result = await PaymentHandler.verifyTetherPayment({
 				paymentId: payment.id,
-				tetherTxHash: txHash
+				txHash: form.data.txHash
 			});
 
-			if (!completeResult.success) {
-				return setError(form, 'txHash', completeResult.error || 'Failed to verify payment');
+			if (!result.success) {
+				return setError(form, 'txHash', result.error || 'Verification failed');
 			}
 
-			return {
-				form,
-				success: true,
-				reservationId: completeResult.reservationId
-			};
+			// Redirect to reservation
+			throw redirect(303, `/reservations/${result.reservationId}`);
 		} catch (err) {
-			console.error('Verify Tether Payment Error:', err);
-			return setError(form, '', err instanceof Error ? err.message : 'Unknown error occurred');
+			if (err instanceof Response) throw err;
+			console.error('Payment verification error:', err);
+			return setError(form, '', err instanceof Error ? err.message : 'Unknown error');
 		}
 	}
 };

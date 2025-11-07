@@ -172,7 +172,7 @@ export class SettlementService {
 				.select()
 				.from(monthlySettlements)
 				.where(eq(monthlySettlements.id, settlementId))
-				.for('UPDATE') // Lock the row
+				.for('update') // Lock the row
 				.limit(1);
 
 			if (!settlement) {
@@ -222,7 +222,7 @@ export class SettlementService {
 							.update(monthlySettlements)
 							.set({
 								ibanPaidAt: new Date(),
-								ibanTransactionRef: ibanResult.transactionRef,
+								ibanTransactionRef: 'PAYMENT_REF_' + crypto.randomUUID().replace(/-/g, ''), //todo: replace with actual
 								updatedAt: new Date()
 							})
 							.where(eq(monthlySettlements.id, settlementId));

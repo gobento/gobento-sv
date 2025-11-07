@@ -1,6 +1,11 @@
 // src/lib/server/payments/zarinpal.ts
 
-import { ZARINPAL_MERCHANT_ID, ZARINPAL_SANDBOX, MOCK_PAYMENTS } from '$env/static/private';
+import {
+	ZARINPAL_MERCHANT_ID,
+	ZARINPAL_SANDBOX,
+	MOCK_PAYMENTS,
+	APP_URL
+} from '$env/static/private';
 import { env } from '$env/dynamic/private';
 
 interface ZarinpalRequestResponse {
@@ -49,6 +54,7 @@ export class ZarinpalService {
 		email?: string;
 		mobile?: string;
 		callbackUrl: string;
+
 		metadata?: Record<string, any>;
 	}): Promise<{ success: boolean; authority?: string; paymentUrl?: string; error?: string }> {
 		// Mock mode - simulate payment gateway
@@ -57,7 +63,7 @@ export class ZarinpalService {
 			return {
 				success: true,
 				authority: mockAuthority,
-				paymentUrl: `${env.PUBLIC_APP_URL}/payments/mock?authority=${mockAuthority}&amount=${params.amount}`
+				paymentUrl: `${APP_URL}/payments/mock?authority=${mockAuthority}&amount=${params.amount}&paymentId=${params.metadata?.paymentId}`
 			};
 		}
 

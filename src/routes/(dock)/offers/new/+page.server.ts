@@ -117,6 +117,8 @@ export const actions = {
 		const fromTotalMinutes = fromHours * 60 + fromMinutes;
 		const untilTotalMinutes = untilHours * 60 + untilMinutes;
 
+		const currency = 'EUR'; //todo: use the currency of the country the business resides in
+
 		if (untilTotalMinutes <= fromTotalMinutes) {
 			return fail(400, {
 				message: 'Pickup end time must be after start time',
@@ -135,7 +137,7 @@ export const actions = {
 
 		// Handle validUntil - only for non-recurring offers
 		let validUntil: Date | null = null;
-		if (!isRecurring) {
+		if (isRecurring) {
 			if (validUntilStr && validUntilStr.trim() !== '') {
 				validUntil = new Date(validUntilStr);
 				if (isNaN(validUntil.getTime())) {
@@ -188,8 +190,8 @@ export const actions = {
 				description: description.trim(),
 				originalValue,
 				price,
-				currency: 'EUR',
-				//todo: use the currency of the country the business resides in
+				currency: currency,
+
 				quantity,
 				isActive: true,
 				isRecurring,

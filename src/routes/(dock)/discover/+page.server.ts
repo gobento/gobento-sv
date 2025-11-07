@@ -11,7 +11,7 @@ import {
 import { eq, and, inArray } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { calculateDistance } from '$lib/util';
-import { FEE_PERCENTAGE } from '$env/static/private';
+import { priceWithMargin } from '$lib/server/payments/currency';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const lat = url.searchParams.get('lat');
@@ -62,7 +62,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				id: row.offer.id,
 				name: row.offer.name,
 				description: row.offer.description,
-				price: row.offer.price,
+				price: priceWithMargin(row.offer.price),
 				originalValue: row.offer.originalValue,
 				currency: row.offer.currency,
 				isRecurring: row.offer.isRecurring,
@@ -104,7 +104,6 @@ export const load: PageServerLoad = async ({ url }) => {
 	}
 
 	return {
-		offers,
-		feePercentage: parseFloat(FEE_PERCENTAGE)
+		offers
 	};
 };

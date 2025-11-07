@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	// For mock, we'll return dummy data
 	return {
 		authority,
-		paymentId: paymentId || 'unknown',
+		paymentId: paymentId,
 		amount: 50000 // Mock amount
 	};
 };

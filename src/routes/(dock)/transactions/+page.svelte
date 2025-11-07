@@ -7,11 +7,13 @@
 	import IconWarning from '~icons/fluent/warning-24-regular';
 	import IconMoneyHand from '~icons/fluent/money-hand-24-regular';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
-	import IconPayment from '~icons/fluent/payment-24-regular';
 	import IconChevronDown from '~icons/fluent/chevron-down-24-regular';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	// todo: make it possible for businesses to download pdf receipts for settlements and all the offers bouught during the month, including the date of each.
+	// this should make it possible for the irs to properly tax the business.
 
 	function formatCurrency(amount: number, currency: string = 'EUR'): string {
 		return new Intl.NumberFormat('en-US', {
@@ -145,7 +147,7 @@
 
 							<div class="flex items-center gap-2">
 								<span class="badge {statusBadge.class} gap-2">
-									<svelte:component this={statusBadge.icon} class="size-4" />
+									<statusBadge.icon class="size-4" />
 									{statusBadge.text}
 								</span>
 							</div>

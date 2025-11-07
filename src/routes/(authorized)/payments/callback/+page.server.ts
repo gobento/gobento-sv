@@ -10,6 +10,10 @@ import { MOCK_PAYMENTS } from '$env/static/private';
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const account = locals.account!;
 
+	if (account.accountType !== 'user') {
+		throw error(403, 'Only user accounts can make payments');
+	}
+
 	// Get query parameters from Zarinpal callback
 	const authority = url.searchParams.get('Authority');
 	const status = url.searchParams.get('Status');
@@ -59,9 +63,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 	// Complete payment (verifies with Zarinpal and creates reservation)
 	console.log('Completing payment...');
-	const completeResult = await PaymentHandler.completePayment({
+	const completeResult = await PaymentHandler.completeZarinpalPayment({
 		paymentId: payment.id,
-		zarinpalAuthority: authority
+		authority: authority,
+		status: status!
 	});
 
 	if (!completeResult.success) {
