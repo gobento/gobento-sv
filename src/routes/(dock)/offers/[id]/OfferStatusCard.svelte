@@ -147,8 +147,7 @@
 
 			<button type="button" class="btn w-full transition-all btn-primary" onclick={onReserve}>
 				<IconShoppingBag class="size-5" />
-				Proceed to Payment
-				<IconArrowRight class="size-5" />
+				Buy this surprise bag
 			</button>
 		</div>
 	{/if}
