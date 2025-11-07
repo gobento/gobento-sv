@@ -1,11 +1,11 @@
 <!-- src/routes/(dock)/offers/[id]/+page.svelte -->
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
 	import IconStore from '~icons/fluent/building-retail-24-regular';
 	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
 	import IconFluentArrowRight24Filled from '~icons/fluent/arrow-right-24-filled';
 
-	import PaymentModal from './PaymentModal.svelte';
 	import OfferStatusCard from './OfferStatusCard.svelte';
 	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
 	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
@@ -14,7 +14,6 @@
 
 	let { data, form } = $props();
 
-	let showPaymentModal = $state(false);
 	let pickupDate = $state(new Date().toISOString().slice(0, 10));
 	let minDate = $state('');
 	let maxDate = $state('');
@@ -61,7 +60,7 @@
 	};
 
 	const handleReserve = () => {
-		showPaymentModal = true;
+		goto(`/offers/${data.offer.id}/payment?pickupDate=${pickupDate}`);
 	};
 
 	// Construct full URL for og:url
@@ -255,21 +254,3 @@
 		onDelete={handleDelete}
 	/>
 </div>
-
-<!-- Payment Modal -->
-<PaymentModal
-	show={showPaymentModal}
-	offer={{
-		id: data.offer.id,
-		name: data.offer.name,
-		price: data.offer.displayPrice,
-		currency: data.business.country === 'Iran' ? 'IRR' : 'EUR'
-	}}
-	businessPaymentMethods={data.businessPaymentMethods}
-	{pickupDate}
-	{minDate}
-	{maxDate}
-	isRecurring={data.offer.isRecurring}
-	tetherPaymentAddress={data.tetherContractAddress}
-	onClose={() => (showPaymentModal = false)}
-/>

@@ -158,7 +158,7 @@
 				class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-medium"
 				style="opacity: {Math.max(0, 1 - swipeProgress / 40)}"
 			>
-				Swipe to collect →
+				Swipe to collect <IconArrowRight class="size-5" />
 			</div>
 		</div>
 	</div>
