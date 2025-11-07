@@ -178,16 +178,19 @@
 </nav>
 
 <!-- Main Content (with padding for sidebar on desktop) -->
-<main class="min-h-screen w-full max-w-full overflow-x-hidden md:ps-58">
-	<div class="mb-16 w-full max-w-full md:mb-0">
-		{#if $navigating}
-			<div class="flex h-dvh w-full items-center justify-center">
-				<span class="loading loading-lg loading-spinner text-primary"></span>
-			</div>
-		{:else}
+<main class="h-dvh w-full max-w-full overflow-x-hidden md:ps-58">
+	{#if $navigating}
+		<div
+			class="flex h-dvh
+			 w-full items-center justify-center"
+		>
+			<span class="loading loading-lg loading-spinner text-primary"></span>
+		</div>
+	{:else}
+		<div class="mb-16 h-fit w-full max-w-full md:mb-0">
 			{@render children()}
-		{/if}
-	</div>
+		</div>
+	{/if}
 </main>
 
 <!-- Mobile Bottom Dock -->
