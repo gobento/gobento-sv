@@ -4,69 +4,50 @@
 	import IconWallet from '~icons/fluent/wallet-24-regular';
 	import IconBank from '~icons/fluent/building-bank-24-regular';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
-	import IconError from '~icons/fluent/error-circle-24-regular';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
 	import { superForm } from 'sveltekit-superforms';
 	import { valibot } from 'sveltekit-superforms/adapters';
 	import { initPaymentSchema } from './schema';
 	import { formatPrice } from '$lib/util';
+	import Alert from '$lib/components/Alert.svelte';
 
 	let { data, form } = $props();
 
 	const initPaymentForm = superForm(data.form, {
 		validators: valibot(initPaymentSchema),
 		resetForm: false,
+
 		onResult: async ({ result }) => {
 			console.log('Payment init result:', result);
 
-			if (result.type === 'success' && result.data) {
-				const responseData = result.data as any;
+			if (result.type === 'success') {
+				const responseData = (result as any).data;
 
 				if (responseData?.success && responseData?.paymentMethod) {
 					if (responseData.paymentMethod === 'iban' && responseData.zarinpalPaymentUrl) {
-						// Redirect to Zarinpal
-						window.location.href = responseData.zarinpalPaymentUrl;
+						await goto(responseData.zarinpalPaymentUrl);
 					} else if (responseData.paymentMethod === 'tether' && responseData.paymentId) {
-						// Navigate to tether payment page
-						goto(`/offers/${data.offer.id}/payment/tether/${responseData.paymentId}`);
+						await goto(`/offers/${data.offer.id}/payment/tether/${responseData.paymentId}`);
 					}
 				}
 			}
 		}
 	});
 
-	const { form: formData, errors, enhance, delayed, submit } = initPaymentForm;
+	const { form: formData, errors, enhance, delayed } = initPaymentForm;
 
 	const handleMethodSelect = async (method: 'iban' | 'tether') => {
 		$formData.paymentMethod = method;
-		// Don't manually submit - let the form submit naturally
 	};
 </script>
 
 <BaseLayout title="Complete Payment" description={data.offer.name} icon={IconWallet}>
 	<!-- Error Message -->
-	{#if form?.error}
-		<div class="rounded-2xl bg-error/10 p-5">
-			<div class="flex gap-3">
-				<IconError class="mt-0.5 size-6 text-error" />
-				<div class="flex-1">
-					<p class="font-medium text-error">Error</p>
-					<p class="mt-1 text-sm text-error/80">{form.error}</p>
-				</div>
-			</div>
-		</div>
-	{:else if $errors['']}
-		<div class="rounded-2xl bg-error/10 p-5">
-			<div class="flex gap-3">
-				<IconError class="mt-0.5 size-6 text-error" />
-				<div class="flex-1">
-					<p class="font-medium text-error">Error</p>
-					<p class="mt-1 text-sm text-error/80">
-						{Array.isArray($errors['']) ? $errors[''][0] : $errors['']}
-					</p>
-				</div>
-			</div>
-		</div>
+	{#if errors}
+		<Alert type="error">
+			<p class="font-medium text-error">Error</p>
+			<p class="mt-1 text-sm text-error/80">{JSON.stringify(errors)}</p>
+		</Alert>
 	{/if}
 
 	<!-- Order Summary -->
