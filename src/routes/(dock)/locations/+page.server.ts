@@ -59,7 +59,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Add offer counts and signed image URLs to locations
 	const locationsWithOffers = await Promise.all(
 		locations.map(async (loc) => {
-			const imageUrl = await getSignedDownloadUrl(loc.image.key, 3600);
+			const imageUrl = await getSignedDownloadUrl(loc.image.key);
 
 			return {
 				id: loc.id,

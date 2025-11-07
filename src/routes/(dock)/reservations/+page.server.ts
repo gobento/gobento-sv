@@ -77,7 +77,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				...reservation,
 				business: {
 					...reservation.business,
-					logoUrl: await getSignedDownloadUrl(reservation.profilePicture.key, 3600)
+					logoUrl: await getSignedDownloadUrl(reservation.profilePicture.key)
 				}
 			};
 		})

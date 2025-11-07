@@ -217,7 +217,7 @@ export async function getSignedDownloadUrl(
 	const command = new GetObjectCommand({
 		Bucket: BACKBLAZE_BUCKET_NAME,
 		Key: key,
-		ResponseCacheControl: 'public, max-age=604800, immutable'
+		ResponseCacheControl: 'public, max-age={' + expiresIn + '}, immutable'
 	});
 
 	return await getSignedUrl(s3Client, command, { expiresIn });
