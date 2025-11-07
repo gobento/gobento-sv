@@ -4,6 +4,8 @@
  * Uses CoinGecko free API (no auth required)
  */
 
+import { FEE_PERCENTAGE } from '$env/static/private';
+
 interface ConversionRates {
 	EUR_TO_USDT: number;
 	IRR_TO_USDT: number;
@@ -93,6 +95,9 @@ export class CurrencyService {
 		rate: number;
 		timestamp: Date;
 	}> {
+		console.log('amount', amount);
+		console.log('fromCurrency', fromCurrency);
+
 		if (fromCurrency === 'USDT') {
 			return {
 				amountUsdt: Math.ceil(amount * 100) / 100,
@@ -123,4 +128,8 @@ export class CurrencyService {
 			timestamp: rates.lastUpdated
 		};
 	}
+}
+
+export function priceWithMargin(businessPrice: number) {
+	return Math.ceil(businessPrice * (1 + parseInt(FEE_PERCENTAGE) / 100));
 }

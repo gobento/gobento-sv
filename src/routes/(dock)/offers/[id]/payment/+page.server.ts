@@ -9,6 +9,7 @@ import { TETHER_CONTRACT_ADDRESS } from '$env/static/private';
 import { superValidate, setError } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { initPaymentSchema } from './schema';
+import { priceWithMargin } from '$lib/server/payments/currency';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const account = locals.account!;
@@ -63,11 +64,13 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		valibot(initPaymentSchema)
 	);
 
+	const price = priceWithMargin(offer.price);
+
 	return {
 		offer: {
 			id: offer.id,
 			name: offer.name,
-			price: offer.price,
+			price: price,
 			currency: wallet.ibanEnabled ? 'EUR' : 'IRR',
 			isRecurring: offer.isRecurring
 		},
@@ -150,11 +153,13 @@ export const actions: Actions = {
 		// Initiate payment
 		const currency = paymentMethod === 'tether' ? 'USDT' : wallet.ibanEnabled ? 'EUR' : 'IRR';
 
+		const price = priceWithMargin(offer.price);
+
 		const paymentResult = await PaymentHandler.initiatePayment({
 			offerId: params.id,
 			userAccountId: account.id,
 			businessAccountId: offer.businessAccountId,
-			amount: offer.price,
+			amount: price,
 			currency,
 			paymentMethod,
 			pickupDate,
@@ -169,6 +174,8 @@ export const actions: Actions = {
 			return setError(form, '', paymentResult.error || 'Failed to initialize payment');
 		}
 
+		console.log('paymentResult', paymentResult);
+
 		// Return payment details
 		if (paymentMethod === 'iban') {
 			return {
@@ -178,7 +185,7 @@ export const actions: Actions = {
 				paymentMethod: 'iban',
 				zarinpalAuthority: paymentResult.zarinpalAuthority,
 				zarinpalPaymentUrl: paymentResult.zarinpalPaymentUrl,
-				amount: offer.price,
+				amount: price,
 				currency,
 				pickupDate: pickupDateStr,
 				offerName: offer.name

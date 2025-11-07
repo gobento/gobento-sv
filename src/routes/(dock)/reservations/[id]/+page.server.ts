@@ -17,6 +17,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { randomBytes } from 'crypto';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { priceWithMargin } from '$lib/server/payments/currency';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const account = locals.account;
@@ -146,7 +147,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 
 	return {
 		reservation: reservation.reservation,
-		offer: reservation.offer,
+		offer: { ...reservation.offer, price: priceWithMargin(reservation.offer.price) },
 		location: { ...reservation.location, imageUrl: imageUrl },
 		business: {
 			...reservation.business,

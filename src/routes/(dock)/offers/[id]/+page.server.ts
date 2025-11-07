@@ -14,6 +14,7 @@ import {
 import { eq, and } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { FEE_PERCENTAGE, TETHER_CONTRACT_ADDRESS } from '$env/static/private';
+import { priceWithMargin } from '$lib/server/payments/currency';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
@@ -94,7 +95,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	return {
 		offer: {
 			...offer,
-			displayPrice: offer.price,
+			displayPrice: priceWithMargin(offer.price),
 			displayOriginalValue: offer.originalValue
 		},
 		location: location

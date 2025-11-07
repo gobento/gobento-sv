@@ -71,6 +71,11 @@ export class PaymentHandler {
 			const feeAmountUsdt = this.calculateFee(conversion.amountUsdt, params.paymentMethod);
 			const businessAmountUsdt = this.calculateBusinessAmount(conversion.amountUsdt, feeAmountUsdt);
 
+			console.log('conversion', conversion);
+			console.log('feeAmountUsdt', feeAmountUsdt);
+			console.log('businessAmountUsdt', businessAmountUsdt);
+			console.log('params.amount', params.amount);
+
 			// Create payment record with USDT amount stored
 			const [payment] = await db
 				.insert(payments)
@@ -306,7 +311,7 @@ export class PaymentHandler {
 					.select()
 					.from(payments)
 					.where(eq(payments.id, params.paymentId))
-					.for('UPDATE') // Locks the row
+					.for('update') // Locks the row
 					.limit(1);
 
 				if (!payment) {
@@ -434,7 +439,7 @@ export class PaymentHandler {
 					.select()
 					.from(payments)
 					.where(eq(payments.id, params.paymentId))
-					.for('UPDATE') // Locks the row
+					.for('update') // Locks the row
 					.limit(1);
 
 				if (!payment) {

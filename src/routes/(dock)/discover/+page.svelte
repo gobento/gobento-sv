@@ -386,7 +386,6 @@
 									originalValue={offer.originalValue}
 									price={offer.price}
 									country={offer.business.country}
-									paymentFeePercent={data.feePercentage}
 									size="sm"
 								/>
 
