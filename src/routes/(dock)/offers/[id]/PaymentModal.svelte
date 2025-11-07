@@ -3,8 +3,7 @@
 	import IconClose from '~icons/fluent/dismiss-24-regular';
 	import IconBank from '~icons/fluent/building-bank-24-regular';
 	import IconWallet from '~icons/fluent/wallet-24-regular';
-	import IconInfo from '~icons/fluent/info-24-regular';
-	import IconWarning from '~icons/fluent/warning-24-regular';
+
 	import IconError from '~icons/fluent/error-circle-24-regular';
 	import IconSuccess from '~icons/fluent/checkmark-circle-24-filled';
 	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
@@ -18,6 +17,7 @@
 	import { txHashSchema, initPaymentSchema } from './schema';
 	import type { TxHashSchema, InitPaymentSchema } from './schema';
 	import { formatDate, formatPrice } from '$lib/util';
+	import CollapsibleHelp from '$lib/components/CollapsibleHelp.svelte';
 
 	interface Props {
 		show: boolean;
@@ -442,17 +442,22 @@
 			</form>
 		{:else if step === 'tether-send' && paymentData?.paymentMethod === 'tether'}
 			<!-- Tether Step 1: Send Payment -->
+			<script lang="ts">
+				import CollapsibleHelp from './CollapsibleHelp.svelte';
+				// ... your other imports
+			</script>
+
 			<div class="space-y-6">
 				<!-- Amount to Send -->
-				<div class="rounded-2xl bg-linear-to-br from-secondary/20 to-secondary/10 p-6">
-					<div class="mb-2 text-sm font-medium text-secondary/80">Amount to Send</div>
+				<div class="rounded-lg border-2 border-secondary/20 bg-secondary/5 p-6">
+					<div class="mb-2 text-sm font-medium text-secondary/70">Amount to Send</div>
 					<div class="text-3xl font-bold text-secondary">{paymentData.amountUsdt} USDT</div>
-					<div class="mt-1 text-xs text-secondary/60">ERC-20 Network</div>
+					<div class="mt-1 text-xs text-secondary/50">ERC-20 Network</div>
 				</div>
 
 				<!-- Wallet Address -->
 				<div>
-					<label class="mb-2 block text-sm font-medium text-secondary">
+					<label class="mb-2 block text-sm font-medium text-base-content">
 						Platform Wallet Address
 					</label>
 					<div class="flex gap-2">
@@ -460,12 +465,12 @@
 							type="text"
 							value={paymentData.platformWalletAddress}
 							readonly
-							class="input-bordered input flex-1 rounded-xl bg-base-200 font-mono text-xs focus:border-secondary"
+							class="input-bordered input flex-1 rounded-lg bg-base-200 font-mono text-xs"
 						/>
 						<button
 							type="button"
 							onclick={() => copyToClipboard(paymentData.platformWalletAddress, 'address')}
-							class="btn btn-square rounded-xl btn-secondary"
+							class="btn btn-square rounded-lg btn-secondary"
 						>
 							{#if copiedField === 'address'}
 								<IconCheckmark class="size-5" />
@@ -476,28 +481,40 @@
 					</div>
 				</div>
 
-				<!-- Instructions -->
-				<div class="rounded-2xl bg-info/10 p-5">
-					<div class="flex gap-3">
-						<IconInfo class="mt-0.5 size-5 shrink-0 text-info" />
-						<div class="space-y-2 text-sm">
-							<p class="font-medium text-info">Payment Instructions:</p>
-							<ol class="ml-5 list-decimal space-y-1.5 text-info/80">
-								<li>Copy the platform wallet address above</li>
-								<li>Open your crypto wallet (MetaMask, Trust Wallet, etc.)</li>
-								<li>Select the ERC-20 network</li>
-								<li>Send exactly <strong>{paymentData.amountUsdt} USDT</strong></li>
-								<li>Wait for the transaction to be confirmed</li>
-							</ol>
-						</div>
-					</div>
-				</div>
+				<!-- Instructions (Collapsible) -->
+				<CollapsibleHelp title="How to send the payment">
+					<ol class="space-y-2 text-sm text-base-content/80">
+						<li class="flex gap-3">
+							<span class="font-semibold text-secondary">1.</span>
+							<span>Copy the platform wallet address above</span>
+						</li>
+						<li class="flex gap-3">
+							<span class="font-semibold text-secondary">2.</span>
+							<span>Open your crypto wallet (MetaMask, Trust Wallet, etc.)</span>
+						</li>
+						<li class="flex gap-3">
+							<span class="font-semibold text-secondary">3.</span>
+							<span>Select the ERC-20 network</span>
+						</li>
+						<li class="flex gap-3">
+							<span class="font-semibold text-secondary">4.</span>
+							<span
+								>Send exactly <strong class="text-secondary">{paymentData.amountUsdt} USDT</strong
+								></span
+							>
+						</li>
+						<li class="flex gap-3">
+							<span class="font-semibold text-secondary">5.</span>
+							<span>Wait for the transaction to be confirmed</span>
+						</li>
+					</ol>
+				</CollapsibleHelp>
 
 				<!-- Confirm Button -->
 				<button
 					type="button"
 					onclick={handleTransactionSent}
-					class="btn w-full rounded-xl btn-secondary"
+					class="btn w-full rounded-lg btn-secondary"
 				>
 					I've Sent the Payment
 					<IconSend class="size-5" />
@@ -549,29 +566,25 @@
 						<label class="label">
 							<span class="label-text-alt text-error">{$verifyErrors.txHash}</span>
 						</label>
-					{:else}
-						<label class="label">
-							<span class="label-text-alt">
-								Copy the transaction hash from your wallet after sending
-							</span>
-						</label>
 					{/if}
 				</div>
 
-				<!-- Info Box -->
-				<div class="rounded-2xl bg-info/10 p-5">
-					<div class="flex gap-3">
-						<IconInfo class="mt-0.5 size-5 shrink-0 text-info" />
-						<div class="text-sm text-info/80">
-							<p class="font-medium text-info">How to find your transaction hash:</p>
-							<ul class="mt-2 space-y-1">
-								<li>• In MetaMask: Click on the transaction in Activity tab</li>
-								<li>• In Trust Wallet: Open transaction history</li>
-								<li>• It starts with "0x" followed by 64 characters</li>
-							</ul>
-						</div>
-					</div>
-				</div>
+				<CollapsibleHelp title="How to find your transaction hash">
+					<ol class="space-y-2 text-sm text-base-content/80">
+						<li class="flex gap-3">
+							<span class="font-semibold text-secondary">1.</span>
+							<span>In MetaMask: Click on the transaction in Activity tab</span>
+						</li>
+						<li class="flex gap-3">
+							<span class="font-semibold text-secondary">2.</span>
+							<span>In Trust Wallet: Open transaction history</span>
+						</li>
+						<li class="flex gap-3">
+							<span class="font-semibold text-secondary">3.</span>
+							<span>Look for the hash starting with "0x" followed by 64 characters</span>
+						</li>
+					</ol>
+				</CollapsibleHelp>
 
 				<!-- Submit Button -->
 				<button type="submit" disabled={$verifyDelayed} class="btn w-full rounded-xl btn-secondary">
