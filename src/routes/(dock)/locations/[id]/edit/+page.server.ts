@@ -43,7 +43,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	const business = businesses[0];
-	const logoUrl = await getSignedDownloadUrl(business.logo!.key, 3600);
+	const logoUrl = await getSignedDownloadUrl(business.logo!.key);
 
 	// Fetch location image if exists
 	let locationImageUrl = null;
@@ -51,7 +51,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		const image = await db.select().from(files).where(eq(files.id, locationData.imageId)).limit(1);
 
 		if (image.length > 0) {
-			locationImageUrl = await getSignedDownloadUrl(image[0].key, 3600);
+			locationImageUrl = await getSignedDownloadUrl(image[0].key);
 		}
 	}
 

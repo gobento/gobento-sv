@@ -56,7 +56,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			}
 
 			// Generate signed URL for the logo
-			const logoUrl = await getSignedDownloadUrl(row.logo.key, 3600); // 1 hour expiry
+			const logoUrl = await getSignedDownloadUrl(row.logo.key);
 
 			return {
 				id: row.offer.id,

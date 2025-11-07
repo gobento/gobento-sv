@@ -24,7 +24,7 @@ export const GET: RequestHandler = async ({ params }) => {
 		}
 
 		// Generate signed URL (valid for 1 hour)
-		const signedUrl = await getSignedDownloadUrl(fileRecord.key, 3600);
+		const signedUrl = await getSignedDownloadUrl(fileRecord.key);
 
 		// Redirect to signed URL
 		throw redirect(302, signedUrl);

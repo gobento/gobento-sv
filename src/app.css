@@ -23,10 +23,39 @@
 	@apply text-base-content/60 hover:text-base-content;
 }
 
-@font-face {
-	font-family: ‘CustomFont’;
-	src: url(‘/font.woff2’) format(‘woff2’);
+@theme {
+	--font-sans: 'Harmattan', system-ui, sans-serif;
+	--font-serif: 'Zarid', system-ui, serif;
+}
 
-	font-weight: normal;
-	font-style: normal;
+@layer base {
+	@font-face {
+		font-family: 'Zarid';
+		src:
+			url('/fonts/Zarid.woff2') format('woff2'),
+			url('/fonts/Zarid.woff') format('woff'),
+			url('/fonts/Zarid.ttf') format('truetype');
+
+		font-weight: 400;
+		font-style: normal;
+		font-display: swap;
+	}
+
+	@font-face {
+		font-family: 'Harmattan';
+		src: url('/fonts/Harmattan-Bold.ttf') format('truetype');
+
+		font-weight: 700;
+		font-style: normal;
+		font-display: swap;
+	}
+
+	@font-face {
+		font-family: 'Harmattan';
+		src: url('/fonts/Harmattan-Regular.ttf') format('truetype');
+
+		font-weight: 400;
+		font-style: normal;
+		font-display: swap;
+	}
 }

@@ -129,7 +129,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		reservation.reservation.status = 'expired';
 	}
 
-	const logoUrl = await getSignedDownloadUrl(reservation.logo.key, 3600);
+	const logoUrl = await getSignedDownloadUrl(reservation.logo.key);
 
 	return {
 		reservation: reservation.reservation,

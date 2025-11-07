@@ -53,7 +53,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const business = businesses[0];
 
 	const image = await db.select().from(files).where(eq(files.id, location.imageId)).limit(1);
-	const locationImage = { ...image[0], url: await getSignedDownloadUrl(image[0].key, 3600) };
+	const locationImage = { ...image[0], url: await getSignedDownloadUrl(image[0].key) };
 
 	// Fetch offers for this location
 	const offers = await db
@@ -79,7 +79,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		isFavorite = favorite.length > 0;
 	}
 
-	const logoUrl = await getSignedDownloadUrl(business.logo!.key, 3600);
+	const logoUrl = await getSignedDownloadUrl(business.logo!.key);
 
 	return {
 		location: { ...location, logo: { url: locationImage?.url } },

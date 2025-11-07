@@ -80,7 +80,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const isOwner = account.id === offer.businessAccountId;
 	const isUser = account.accountType === 'user';
 
-	const logoUrl = await getSignedDownloadUrl(logo.key, 3600);
+	const logoUrl = await getSignedDownloadUrl(logo.key);
 
 	// Get location image URL if exists
 	let locationImageUrl = null;
@@ -92,7 +92,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			.limit(1);
 
 		if (locationImage) {
-			locationImageUrl = await getSignedDownloadUrl(locationImage.key, 3600);
+			locationImageUrl = await getSignedDownloadUrl(locationImage.key);
 		}
 	}
 

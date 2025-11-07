@@ -55,7 +55,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Create a map of location images with signed URLs
 	const imageEntries = await Promise.all(
 		locationImages.map(async (img) => {
-			const url = await getSignedDownloadUrl(img.image.key, 3600);
+			const url = await getSignedDownloadUrl(img.image.key);
 			return [img.locationId, url] as const;
 		})
 	);
@@ -81,9 +81,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		favorites: await Promise.all(
 			favorites.map(async (fav) => {
-				const logoUrl = fav.businessLogo
-					? await getSignedDownloadUrl(fav.businessLogo.key, 3600)
-					: null;
+				const logoUrl = fav.businessLogo ? await getSignedDownloadUrl(fav.businessLogo.key) : null;
 
 				return {
 					...fav,
