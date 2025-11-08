@@ -6,6 +6,17 @@ declare global {
 		interface Locals {
 			account: Account | null;
 			session: Session | null;
+
+			startTimer: number;
+			error: string;
+			errorId: string;
+			errorStackTrace: string;
+			message: unknown;
+			track: unknown;
+		}
+		interface Error {
+			code?: string;
+			errorId?: string;
 		}
 	}
 }

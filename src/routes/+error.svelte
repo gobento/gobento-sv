@@ -80,6 +80,10 @@
 		<!-- Help Message -->
 		<p class="mb-8 text-sm text-white/60">{helpMessage}</p>
 
+		{#if status >= 500 && page.error?.errorId}
+			<p class="mt-6">Error ID: {page.error.errorId}</p>
+		{/if}
+
 		<!-- Action Buttons -->
 		<div class="flex flex-col gap-3 sm:flex-row sm:justify-center">
 			<button
