@@ -42,6 +42,7 @@
 		"@types/uuid": "11.0.0",
 		"@types/web-push": "3.6.4",
 		"@valibot/i18n": "1.0.0",
+		"@vercel/otel": "^2.1.0",
 		"@vite-pwa/sveltekit": "1.0.1",
 		"d3-scale": "4.0.2",
 		"daisyui": "5.4.7",
