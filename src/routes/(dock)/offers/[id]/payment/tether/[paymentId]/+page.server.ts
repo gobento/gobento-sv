@@ -78,48 +78,42 @@ export const actions: Actions = {
 			return fail(400, { form });
 		}
 
-		try {
-			// Get payment
-			const [payment] = await db
-				.select()
-				.from(payments)
-				.where(eq(payments.id, params.paymentId))
-				.limit(1);
+		// Get payment
+		const [payment] = await db
+			.select()
+			.from(payments)
+			.where(eq(payments.id, params.paymentId))
+			.limit(1);
 
-			if (!payment) {
-				return setError(form, '', 'Payment not found');
-			}
-
-			// Verify ownership
-			if (payment.userAccountId !== account.id) {
-				return setError(form, '', 'Unauthorized');
-			}
-
-			// Check status
-			if (payment.status === 'completed') {
-				throw redirect(303, `/reservations/${payment.reservationId}`);
-			}
-
-			if (payment.status === 'failed') {
-				return setError(form, '', 'Payment has failed');
-			}
-
-			// Verify Tether payment using the correct method
-			const result = await PaymentHandler.verifyTetherPayment({
-				paymentId: payment.id,
-				txHash: form.data.txHash
-			});
-
-			if (!result.success) {
-				return setError(form, 'txHash', result.error || 'Verification failed');
-			}
-
-			// Redirect to reservation
-			throw redirect(303, `/reservations/${result.reservationId}`);
-		} catch (err) {
-			if (err instanceof Response) throw err;
-			console.error('Payment verification error:', err);
-			return setError(form, '', err instanceof Error ? err.message : 'Unknown error');
+		if (!payment) {
+			return setError(form, '', 'Payment not found');
 		}
+
+		// Verify ownership
+		if (payment.userAccountId !== account.id) {
+			return setError(form, '', 'Unauthorized');
+		}
+
+		// Check status
+		if (payment.status === 'completed') {
+			redirect(303, `/reservations/${payment.reservationId}`);
+		}
+
+		if (payment.status === 'failed') {
+			return setError(form, '', 'Payment has failed');
+		}
+
+		// Verify Tether payment
+		const result = await PaymentHandler.verifyTetherPayment({
+			paymentId: payment.id,
+			txHash: form.data.txHash
+		});
+
+		if (!result.success) {
+			return setError(form, 'txHash', result.error || 'Verification failed');
+		}
+
+		// Redirect to reservation
+		redirect(303, `/reservations/${result.reservationId}`);
 	}
 };

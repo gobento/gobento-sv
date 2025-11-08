@@ -20,14 +20,10 @@ import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { priceWithMargin } from '$lib/server/payments/currency';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
-	const account = locals.account;
+	const account = locals.account!;
 	const inviteToken = url.searchParams.get('invite');
 
-	if (!account || account.accountType !== 'user') {
-		// If there's an invite token but no user, redirect to login with return URL
-		if (inviteToken) {
-			throw redirect(302, `/login?redirect=/reservations/${params.id}?invite=${inviteToken}`);
-		}
+	if (account.accountType !== 'user') {
 		throw error(403, 'Only users can access reservations');
 	}
 

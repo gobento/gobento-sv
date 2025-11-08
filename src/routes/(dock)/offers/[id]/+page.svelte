@@ -59,10 +59,6 @@
 		alert('Delete functionality to be implemented');
 	};
 
-	const handleReserve = () => {
-		goto(`/offers/${data.offer.id}/payment?pickupDate=${pickupDate}`);
-	};
-
 	// Construct full URL for og:url
 	const baseUrl = 'https://yourapp.com'; // Replace with your actual domain
 	const offerUrl = `${baseUrl}/offers/${data.offer.id}`;
@@ -239,7 +235,6 @@
 		{maxDate}
 		availability={data.availability}
 		onPickupDateChange={(date) => (pickupDate = date)}
-		onReserve={handleReserve}
 		onDelete={handleDelete}
 	/>
 </div>

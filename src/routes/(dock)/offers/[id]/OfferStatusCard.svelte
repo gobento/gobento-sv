@@ -19,6 +19,7 @@
 
 		// Offer data
 		offer: {
+			id: string;
 			isActive: boolean;
 			pickupTimeFrom: string;
 			pickupTimeUntil: string;
@@ -45,7 +46,7 @@
 		onPickupDateChange: (date: string) => void;
 
 		// Event handlers
-		onReserve: () => void;
+
 		onDelete: () => void;
 	}
 
@@ -61,7 +62,7 @@
 		minDate,
 		maxDate,
 		onPickupDateChange,
-		onReserve,
+
 		onDelete
 	}: Props = $props();
 
@@ -181,10 +182,14 @@
 				{/if}
 			</div>
 
-			<button type="button" class="btn w-full transition-all btn-primary" onclick={onReserve}>
+			<a
+				type="button"
+				class="btn w-full transition-all btn-primary"
+				href="/offers/{offer.id}/payment?pickupDate={pickupDate}"
+			>
 				<IconShoppingBag class="size-5" />
 				Buy this surprise bag
-			</button>
+			</a>
 		</div>
 	{/if}
 {:else if isOwner}
