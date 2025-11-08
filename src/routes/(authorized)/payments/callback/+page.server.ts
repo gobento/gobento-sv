@@ -43,6 +43,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	// Check if payment was cancelled by user
 	if (status === 'NOK') {
 		console.log('Payment cancelled by user');
+		// todo: Property 'failPayment' does not exist on type 'typeof PaymentHandler'.ts(2339)
 		await PaymentHandler.failPayment(paymentId, 'Payment cancelled by user');
 		throw redirect(303, `/offers/${payment.offerId}?error=payment_cancelled`);
 	}
@@ -62,7 +63,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	}
 
 	// Complete payment (verifies with Zarinpal and creates reservation)
-	console.log('Completing payment...');
+	console.log('Completing payment...', payment.id, authority, status);
 	const completeResult = await PaymentHandler.completeZarinpalPayment({
 		paymentId: payment.id,
 		authority: authority,

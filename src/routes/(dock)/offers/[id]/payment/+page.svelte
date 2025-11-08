@@ -11,7 +11,7 @@
 	import { formatPrice } from '$lib/util';
 	import Alert from '$lib/components/Alert.svelte';
 
-	let { data, form } = $props();
+	let { data } = $props();
 
 	const initPaymentForm = superForm(data.form, {
 		validators: valibot(initPaymentSchema),

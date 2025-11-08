@@ -12,7 +12,6 @@
 
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 	import { Map, TileLayer, Marker } from 'sveaflet';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
@@ -20,6 +19,7 @@
 	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 	import { formatDistance } from '$lib/util';
 	import NotFound from '$lib/components/NotFound.svelte';
+	import { page } from '$app/state';
 
 	let { data }: { data: PageData } = $props();
 
@@ -159,7 +159,7 @@
 	}
 
 	function updateUrl() {
-		const params = new URLSearchParams($page.url.searchParams);
+		const params = new URLSearchParams(page.url.searchParams);
 
 		if (selectedLocation) {
 			params.set('lat', selectedLocation.lat.toString());
@@ -404,7 +404,7 @@
 
 			<!-- Map legend -->
 			<div
-				class="absolute top-4 right-4 left-4 z-[1000] flex flex-wrap items-center gap-3 rounded-lg bg-base-100 p-3 shadow-lg md:right-auto"
+				class="absolute top-4 right-4 left-4 z-1000 flex flex-wrap items-center gap-3 rounded-lg bg-base-100 p-3 shadow-lg md:right-auto"
 			>
 				{#if selectedLocation}
 					<div class="flex items-center gap-2">
@@ -424,14 +424,14 @@
 			<!-- Backdrop -->
 			<button
 				type="button"
-				class="fixed inset-0 z-[2000] bg-black/50 transition-opacity"
+				class="fixed inset-0 z-2000 bg-black/50 transition-opacity"
 				onclick={closeBottomSheet}
 				aria-label="Close"
 			></button>
 
 			<!-- Bottom Sheet -->
 			<div
-				class="animate-slide-up fixed right-0 bottom-0 left-0 z-[2001] max-h-[80vh] overflow-y-auto rounded-t-2xl bg-base-100 shadow-2xl"
+				class="animate-slide-up fixed right-0 bottom-0 left-0 z-2001 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-base-100 shadow-2xl"
 			>
 				<!-- Drag Handle -->
 				<div class="flex justify-center py-3">
@@ -508,7 +508,6 @@
 							originalValue={selectedOffer.originalValue}
 							price={selectedOffer.price}
 							country={selectedOffer.business.country}
-							paymentFeePercent={data.feePercentage}
 							size="lg"
 						/>
 					</div>

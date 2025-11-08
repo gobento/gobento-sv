@@ -9,6 +9,7 @@
 	import CollapsibleHelp from '$lib/components/CollapsibleHelp.svelte';
 	import { superForm } from 'sveltekit-superforms';
 	import { valibot } from 'sveltekit-superforms/adapters';
+	import { txHashSchema } from './schema';
 
 	let { data } = $props();
 
@@ -23,8 +24,11 @@
 		delayed,
 		message
 	} = superForm(data.form, {
-		validators: valibot,
-		resetForm: false
+		validators: valibot(txHashSchema),
+		resetForm: false,
+		onResult: async ({ result }) => {
+			console.log('Payment verify result:', result);
+		}
 	});
 
 	async function copyAddress() {

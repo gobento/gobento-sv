@@ -33,6 +33,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		throw redirect(303, `/offers/${params.id}`);
 	}
 
+	console.log('offer', offer);
+
 	// Check if already reserved
 	const existingReservation = await db
 		.select()
@@ -40,9 +42,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		.where(and(eq(reservations.offerId, params.id), eq(reservations.status, 'active')))
 		.limit(1);
 
-	if (existingReservation.length > 0) {
-		throw redirect(303, `/offers/${params.id}`);
-	}
+	console.log('existingReservation', existingReservation);
 
 	// Get business payment methods
 	const [wallet] = await db
@@ -127,7 +127,7 @@ export const actions: Actions = {
 			.where(and(eq(reservations.offerId, params.id), eq(reservations.status, 'active')))
 			.limit(1);
 
-		if (existingReservation.length > 0) {
+		if (existingReservation.length >= offer.quantity) {
 			return setError(form, '', 'Offer is already reserved');
 		}
 
