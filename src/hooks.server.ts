@@ -4,7 +4,8 @@ import { validateSessionToken } from '$lib/server/auth';
 
 import { TokenBucket } from '$lib/server/rate-limit';
 import { sequence } from '@sveltejs/kit/hooks';
-
+import type { HandleServerError } from '@sveltejs/kit';
+import { log } from '$lib/server/logs';
 import { error, type Handle } from '@sveltejs/kit';
 
 import '@valibot/i18n/de/schema';
@@ -54,9 +55,6 @@ const authHandle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-import type { HandleServerError } from '@sveltejs/kit';
-import { log } from '$lib/server/logs';
-
 export const handleError: HandleServerError = async ({ error, event }) => {
 	const errorId = crypto.randomUUID();
 
@@ -74,12 +72,4 @@ export const handleError: HandleServerError = async ({ error, event }) => {
 	};
 };
 
-export const trackHandle: Handle = async ({ event, resolve }) => {
-	const startTimer = Date.now();
-	event.locals.startTimer = startTimer;
-	const response = await resolve(event);
-	log(response.status, event);
-	return response;
-};
-
-export const handle = sequence(rateLimitHandle, authHandle, trackHandle);
+export const handle = sequence(rateLimitHandle, authHandle);
