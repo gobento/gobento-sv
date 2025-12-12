@@ -3,7 +3,7 @@
 	import type { LayoutData } from './$types';
 	import { goto } from '$app/navigation';
 	import { page, navigating } from '$app/state';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$paraglide/messages';
 
 	// User navigation
 	import CompassIcon from '~icons/fluent/compass-northwest-24-regular';

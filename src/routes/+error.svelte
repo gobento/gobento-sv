@@ -53,7 +53,7 @@
 		<!-- Icon -->
 		<div class="mb-8 flex justify-center">
 			<div class="flex size-24 items-center justify-center rounded-full bg-base-200">
-				<svelte:component this={config.icon} class="size-16" />
+				<config.icon class="size-16" />
 			</div>
 		</div>
 

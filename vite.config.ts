@@ -8,12 +8,13 @@ import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 
 export default defineConfig({
 	plugins: [
+		sveltekit(),
 		paraglideVitePlugin({
 			project: './project.inlang',
-			outdir: './src/lib/paraglide',
+			outdir: './.svelte-kit/paraglide', // SvelteKit manages this folder
+
 			strategy: ['localStorage', 'preferredLanguage', 'baseLocale']
 		}),
-		sveltekit(),
 		tailwindcss({ optimize: { minify: true } }),
 		Icons({
 			compiler: 'svelte',
@@ -62,6 +63,9 @@ export default defineConfig({
 	],
 	server: {
 		allowedHosts: true,
-		port: 3021
+		port: 3021,
+		watch: {
+			ignored: ['!**/paraglide/**'] // Force watch paraglide
+		}
 	}
 });

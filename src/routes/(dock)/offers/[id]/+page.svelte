@@ -11,6 +11,7 @@
 	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 	import LocationCard from '$lib/components/maps/LocationCard.svelte';
 	import { formatPrice } from '$lib/util';
+	import { SvelteDate } from 'svelte/reactivity';
 
 	let { data, form } = $props();
 
@@ -22,7 +23,7 @@
 		const now = new Date();
 
 		if (data.offer.isRecurring) {
-			const tomorrow = new Date(now);
+			const tomorrow = new SvelteDate(now);
 			tomorrow.setDate(tomorrow.getDate() + 1);
 
 			minDate = tomorrow.toISOString().slice(0, 10);
