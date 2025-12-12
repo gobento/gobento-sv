@@ -3,6 +3,7 @@
 	import type { LayoutData } from './$types';
 	import { goto } from '$app/navigation';
 	import { page, navigating } from '$app/state';
+	import { m } from '$lib/paraglide/messages';
 
 	// User navigation
 	import CompassIcon from '~icons/fluent/compass-northwest-24-regular';
@@ -59,7 +60,7 @@
 		},
 		{
 			path: '/profile',
-			label: 'Profile',
+			label: m.profile(),
 			icon: PersonIcon,
 			filledIcon: PersonFilledIcon
 		}
@@ -98,7 +99,7 @@
 		},
 		{
 			path: '/profile',
-			label: 'Profile',
+			label: m.profile(),
 			icon: SettingsIcon,
 			filledIcon: SettingsFilledIcon
 		}
@@ -125,7 +126,7 @@
 		},
 		{
 			path: '/profile',
-			label: 'Profile',
+			label: m.profile(),
 			icon: SettingsIcon,
 			filledIcon: SettingsFilledIcon
 		}
