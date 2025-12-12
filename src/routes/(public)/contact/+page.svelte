@@ -2,6 +2,11 @@
 <script lang="ts">
 	import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
 	import FluentMail24Regular from '~icons/fluent/mail-24-regular';
+	import FluentErrorCircle24Regular from '~icons/fluent/error-circle-24-regular';
+	import { page } from '$app/state';
+
+	const errorId = $derived(page.url.searchParams.get('errorId'));
+	const hasError = $derived(!!errorId);
 </script>
 
 <svelte:head>
@@ -19,6 +24,19 @@
 			We're here to help! Reach out to us for any questions or concerns.
 		</p>
 	</div>
+
+	<!-- Error Alert -->
+	{#if hasError}
+		<div class="mb-6 alert border border-warning/30 bg-warning/10">
+			<FluentErrorCircle24Regular class="size-6 text-warning" />
+			<div>
+				<p class="font-medium">Reporting an error</p>
+				<p class="text-sm opacity-80">
+					Error ID <span class="font-mono font-semibold">{errorId}</span> has been pre-filled below
+				</p>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Contact Form -->
 	<div class="card border border-white/20 bg-white/10 backdrop-blur-md">
@@ -51,20 +69,40 @@
 					/>
 				</div>
 
+				{#if hasError}
+					<div class="form-control">
+						<label class="label" for="errorId">
+							<span class="label-text font-medium">Error ID</span>
+						</label>
+						<input
+							id="errorId"
+							type="text"
+							value={errorId}
+							class="input-bordered input w-full font-mono"
+							readonly
+						/>
+					</div>
+				{/if}
+
 				<div class="form-control">
 					<label class="label" for="message">
 						<span class="label-text font-medium">Message*</span>
 					</label>
 					<textarea
 						id="message"
-						placeholder="Enter your message"
+						placeholder={hasError
+							? 'Please describe what you were doing when the error occurred...'
+							: 'Enter your message'}
 						class="textarea-bordered textarea w-full"
-						rows="3"
+						rows="5"
 						required
 					></textarea>
 				</div>
 
-				<button class="btn btn-primary"><FluentMail24Regular calss="size-5" /> Submit</button>
+				<button class="btn gap-2 btn-primary">
+					<FluentMail24Regular class="size-5" />
+					<span>Submit</span>
+				</button>
 			</form>
 		</div>
 	</div>
