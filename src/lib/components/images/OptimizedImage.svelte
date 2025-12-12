@@ -15,11 +15,13 @@
 	let loaded = $state(false);
 	let error = $state(false);
 
-	const objectFitClass = {
+	const objectFitClasses = {
 		cover: 'object-cover',
 		contain: 'object-contain',
 		fill: 'object-fill'
-	}[objectFit];
+	};
+
+	const objectFitClass = $derived(objectFitClasses[objectFit]);
 </script>
 
 <div class="relative {className}">

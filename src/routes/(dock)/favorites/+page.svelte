@@ -10,6 +10,8 @@
 	import IconMapPin from '~icons/fluent/location-24-filled';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconDelete from '~icons/fluent/delete-24-regular';
+	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
+
 	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
 
@@ -159,7 +161,7 @@
 						<div
 							class="flex size-10 items-center justify-center rounded-full bg-primary text-primary-content"
 						>
-							<span class="text-xl">→</span>
+							<IconArrowRight class="size-5" />
 						</div>
 					</div>
 				</a>

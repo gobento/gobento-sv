@@ -34,7 +34,7 @@
 	const iconClass = $derived(iconSizes[size]);
 </script>
 
-<div class="relative {containerClass} overflow-hidden bg-base-200 shadow-md">
+<div class="relative {containerClass} overflow-hidden shadow-md">
 	{#if !loaded && !error}
 		<div class="absolute inset-0 flex items-center justify-center">
 			<IconStore class="{iconClass} animate-pulse text-base-content/20" />
