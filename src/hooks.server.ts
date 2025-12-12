@@ -1,7 +1,5 @@
 // src/hooks.server.ts
-
 import { validateSessionToken } from '$lib/server/auth';
-
 import { TokenBucket } from '$lib/server/rate-limit';
 import { sequence } from '@sveltejs/kit/hooks';
 import type { HandleServerError } from '@sveltejs/kit';
@@ -58,14 +56,34 @@ const authHandle: Handle = async ({ event, resolve }) => {
 export const handleError: HandleServerError = async ({ error, event }) => {
 	const errorId = crypto.randomUUID();
 
-	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-	//@ts-ignore
-	event.locals.error = error?.toString() || undefined;
-	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-	//@ts-ignore
-	event.locals.errorStackTrace = error?.stack || undefined;
-	event.locals.errorId = errorId;
-	log(500, event);
+	// Safe error logging without calling the log function that might fail
+	console.error('Error ID:', errorId);
+	console.error('Path:', event.url.pathname);
+	console.error('Method:', event.request.method);
+
+	if (error instanceof Error) {
+		console.error('Error message:', error.message);
+		console.error('Stack trace:', error.stack);
+	} else {
+		console.error('Error:', error);
+	}
+
+	// Try to log with your custom logger, but wrap it in try-catch
+	try {
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		//@ts-ignore
+		event.locals.error = error?.toString() || 'Unknown error';
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		//@ts-ignore
+		event.locals.errorStackTrace = error instanceof Error ? error.stack : undefined;
+		event.locals.errorId = errorId;
+
+		log(500, event);
+	} catch (logError) {
+		// If logging fails, just console.error it
+		console.error('Failed to call log function:', logError);
+	}
+
 	return {
 		message: 'An unexpected error occurred.',
 		errorId
