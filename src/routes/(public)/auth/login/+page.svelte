@@ -1,6 +1,7 @@
 <!-- Page component (src/routes/auth/login/+page.svelte) -->
 <script lang="ts">
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 
 	import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
 	import LogosGoogleIcon from '~icons/logos/google-icon';
@@ -33,9 +34,9 @@
 
 		<div class="text-center text-xs text-white/60">
 			By signing in, you agree to our
-			<a class="link link-primary" href="/terms-of-service">Terms of Service</a>
+			<a class="link link-primary" href={resolve('/terms-of-service')}>Terms of Service</a>
 			and
-			<a class="link link-primary" href="/privacy-policy">Privacy Policy</a>.
+			<a class="link link-primary" href={resolve('/privacy-policy')}>Privacy Policy</a>.
 		</div>
 	</div>
 </div>

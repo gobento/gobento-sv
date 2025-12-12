@@ -32,12 +32,16 @@ export async function log(statusCode: number, event) {
 		} else {
 			referer = undefined;
 		}
+
+		// FIX: Calculate timeInMs safely
+		const timeInMs = event?.locals?.startTimer ? Date.now() - event.locals.startTimer : undefined;
+
 		const logData: object = {
 			level: level,
 			method: event.request.method,
 			path: event.url.pathname,
 			status: statusCode,
-			timeInMs: Date.now() - event?.locals?.startTimer,
+			timeInMs: timeInMs, // Now safe - will be undefined or a valid number
 			user: event?.locals?.user?.email,
 			userId: event?.locals?.user?.userId,
 			referer: referer,
@@ -50,7 +54,9 @@ export async function log(statusCode: number, event) {
 		};
 		console.log('log: ', JSON.stringify(logData));
 	} catch (err) {
-		throw new Error(`Error Logger: ${JSON.stringify(err)}`);
+		// FIX: Don't throw from the logger - just log the error
+		console.error('Error in logger:', err);
+		console.error('Error details:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
 	}
 }
 
