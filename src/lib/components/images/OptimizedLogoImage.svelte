@@ -29,9 +29,9 @@
 		xl: 'size-14'
 	};
 
-	const shapeClass = shape === 'circle' ? 'rounded-full' : 'rounded-lg';
-	const containerClass = `${sizeClasses[size]} ${shapeClass}`;
-	const iconClass = iconSizes[size];
+	const shapeClass = $derived(shape === 'circle' ? 'rounded-full' : 'rounded-lg');
+	const containerClass = $derived(`${sizeClasses[size]} ${shapeClass}`);
+	const iconClass = $derived(iconSizes[size]);
 </script>
 
 <div class="relative {containerClass} overflow-hidden bg-base-200 shadow-md">

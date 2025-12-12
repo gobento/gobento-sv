@@ -1,4 +1,5 @@
 // /vite.config.ts
+import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
@@ -7,6 +8,11 @@ import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 
 export default defineConfig({
 	plugins: [
+		paraglideVitePlugin({
+			project: './project.inlang',
+			outdir: './src/lib/paraglide',
+			strategy: ['localStorage', 'preferredLanguage', 'url', 'baseLocale']
+		}),
 		sveltekit(),
 		tailwindcss({ optimize: { minify: true } }),
 		Icons({
