@@ -10,6 +10,12 @@ import '@valibot/i18n/de/schema';
 
 const bucket = new TokenBucket<string>(100, 1);
 
+// Record when each request starts so `log()` can report the response time.
+const timerHandle: Handle = async ({ event, resolve }) => {
+	event.locals.startTimer = Date.now();
+	return resolve(event);
+};
+
 const rateLimitHandle: Handle = async ({ event, resolve }) => {
 	// Note: Assumes X-Forwarded-For will always be defined.
 	const clientIP = event.request.headers.get('X-Forwarded-For');
@@ -53,34 +59,30 @@ const authHandle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handleError: HandleServerError = async ({ error, event }) => {
+export const handleError: HandleServerError = async ({ error, event, status, message }) => {
 	const errorId = crypto.randomUUID();
+	const normalizedError =
+		error instanceof Error ? error : new Error(typeof error === 'string' ? error : message);
 
-	// Safe error logging without calling the log function that might fail
-	console.error('Error ID:', errorId);
-	console.error('Path:', event.url.pathname);
-	console.error('Method:', event.request.method);
-
-	if (error instanceof Error) {
-		console.error('Error message:', error.message);
-		console.error('Stack trace:', error.stack);
-	} else {
-		console.error('Error:', error);
+	// Safe error logging without relying on the custom logger, which might fail.
+	console.error(
+		`\n\u2757 [${errorId}] ${event.request.method} ${event.url.pathname} \u2192 ${status} ${message}`
+	);
+	console.error(`   account: ${event.locals.account?.id ?? 'anonymous'}`);
+	console.error(`   session: ${event.locals.session?.id ?? 'none'}`);
+	console.error(`   message: ${normalizedError.message}`);
+	if (normalizedError.stack) {
+		console.error(normalizedError.stack);
 	}
 
-	// Try to log with your custom logger, but wrap it in try-catch
+	// Try to persist the error with the custom logger, but never let it throw.
 	try {
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		//@ts-ignore
-		event.locals.error = error?.toString() || 'Unknown error';
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		//@ts-ignore
-		event.locals.errorStackTrace = error instanceof Error ? error.stack : undefined;
+		event.locals.error = normalizedError.message || 'Unknown error';
+		event.locals.errorStackTrace = normalizedError.stack;
 		event.locals.errorId = errorId;
 
-		log(500, event);
+		await log(status, event);
 	} catch (logError) {
-		// If logging fails, just console.error it
 		console.error('Failed to call log function:', logError);
 	}
 
@@ -90,4 +92,4 @@ export const handleError: HandleServerError = async ({ error, event }) => {
 	};
 };
 
-export const handle = sequence(rateLimitHandle, authHandle);
+export const handle = sequence(timerHandle, rateLimitHandle, authHandle);

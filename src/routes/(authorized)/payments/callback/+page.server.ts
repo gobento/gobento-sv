@@ -5,7 +5,6 @@ import { db } from '$lib/server/db';
 import { payments } from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
 import { PaymentHandler } from '$lib/server/payments/handler';
-import { MOCK_PAYMENTS } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const account = locals.account!;

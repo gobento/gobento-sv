@@ -18,6 +18,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { randomBytes } from 'crypto';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { priceWithMargin } from '$lib/server/payments/currency';
+import { getReservationReceipt } from '$lib/server/pdf/getReservationReceipt';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const account = locals.account!;
@@ -159,6 +160,24 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 };
 
 export const actions: Actions = {
+	downloadReceipt: async ({ params, locals }) => {
+		const session = locals.session;
+		if (!session) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const result = await getReservationReceipt(params.id, session.accountId);
+
+		if (!result.ok) {
+			return fail(result.status, { error: result.message });
+		}
+
+		return {
+			success: true,
+			receipt: { base64: result.base64, filename: result.filename }
+		};
+	},
+
 	claimReservation: async ({ params, locals }) => {
 		const session = locals.session;
 		if (!session) {

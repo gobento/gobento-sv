@@ -2,11 +2,11 @@
 
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { MOCK_PAYMENTS } from '$env/static/private';
+import { isMockEnabled } from '$lib/server/mock';
 
 export const load: PageServerLoad = async ({ url }) => {
 	// Only allow in mock mode
-	if (MOCK_PAYMENTS !== 'true') {
+	if (!isMockEnabled()) {
 		throw error(404, 'Not found');
 	}
 

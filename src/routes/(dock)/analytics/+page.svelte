@@ -1,6 +1,7 @@
 <!-- /src/routes/(dock)/analytics/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { enhance } from '$app/forms';
 	import { Chart, Svg, Area, Axis, Highlight, Tooltip } from 'layerchart';
 	import { scaleTime, scaleLinear } from 'd3-scale';
 	import FluentChartMultiple24Regular from '~icons/fluent/chart-multiple-24-regular';
@@ -9,6 +10,7 @@
 	import IconPeople from '~icons/fluent/people-20-filled';
 	import IconStar from '~icons/fluent/star-20-filled';
 	import IconClock from '~icons/fluent/clock-20-filled';
+	import IconDownload from '~icons/fluent/arrow-download-20-filled';
 	import ChartFilledIcon from '~icons/fluent/data-bar-vertical-24-filled';
 
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
@@ -47,15 +49,68 @@
 	const handleLocationClick = (locationId: string) => {
 		window.location.href = `/locations/${locationId}`;
 	};
+
+	let exporting = $state(false);
+
+	// Trigger a browser download from the base64 workbook returned by the export action
+	const downloadXlsx = (base64: string, filename: string) => {
+		const binary = atob(base64);
+		const bytes = new Uint8Array(binary.length);
+		for (let i = 0; i < binary.length; i++) {
+			bytes[i] = binary.charCodeAt(i);
+		}
+		const blob = new Blob([bytes], {
+			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		});
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = filename;
+		link.click();
+		URL.revokeObjectURL(url);
+	};
 </script>
 
 <BaseLayout title="Analytics" description="Track performance and insights" icon={ChartFilledIcon}>
-	<select class="select-bordered select mb-6 w-full bg-base-200 select-sm font-medium sm:w-auto">
-		<option>Last 30 Days</option>
-		<option>Last 7 Days</option>
-		<option>Last 90 Days</option>
-		<option>This Year</option>
-	</select>
+	<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+		<select class="select-bordered select w-full bg-base-200 select-sm font-medium sm:w-auto">
+			<option>Last 30 Days</option>
+			<option>Last 7 Days</option>
+			<option>Last 90 Days</option>
+			<option>This Year</option>
+		</select>
+
+		<form
+			method="POST"
+			action="?/export"
+			class="w-full sm:w-auto"
+			use:enhance={() => {
+				exporting = true;
+				return async ({ result }) => {
+					if (
+						result.type === 'success' &&
+						result.data &&
+						typeof result.data.xlsx === 'string' &&
+						typeof result.data.filename === 'string'
+					) {
+						downloadXlsx(result.data.xlsx, result.data.filename);
+					}
+					exporting = false;
+				};
+			}}
+		>
+			<button type="submit" class="btn w-full btn-outline btn-sm sm:w-auto" disabled={exporting}>
+				{#if exporting}
+					<span class="loading loading-xs loading-spinner"></span>
+				{:else}
+					<span class="size-4">
+						<IconDownload class="size-full" />
+					</span>
+				{/if}
+				Export to Excel
+			</button>
+		</form>
+	</div>
 
 	<!-- Stats Cards -->
 	<div class="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 lg:grid-cols-4">

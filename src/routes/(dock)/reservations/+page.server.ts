@@ -9,9 +9,10 @@ import {
 	accounts
 } from '$lib/server/schema';
 import { eq, and, inArray } from 'drizzle-orm';
-import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import { error, fail } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { getReservationReceipt } from '$lib/server/pdf/getReservationReceipt';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;
@@ -86,4 +87,31 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		reservations: reservationsWithLogos
 	};
+};
+
+export const actions: Actions = {
+	downloadReceipt: async ({ request, locals }) => {
+		const session = locals.session;
+		if (!session) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+
+		if (typeof reservationId !== 'string' || !reservationId) {
+			return fail(400, { error: 'Reservation ID is required' });
+		}
+
+		const result = await getReservationReceipt(reservationId, session.accountId);
+
+		if (!result.ok) {
+			return fail(result.status, { error: result.message });
+		}
+
+		return {
+			success: true,
+			receipt: { base64: result.base64, filename: result.filename }
+		};
+	}
 };

@@ -164,7 +164,7 @@
 		<div class="mt-6 rounded-xl from-warning/20 to-warning/10 p-5 text-center">
 			<p class="font-semibold text-warning">💡 Development Mode</p>
 			<p class="mt-2 text-sm text-base-content/70">
-				Set <code class="rounded bg-base-200 px-2 py-1 font-mono text-xs">MOCK_PAYMENTS=false</code>
+				Set <code class="rounded bg-base-200 px-2 py-1 font-mono text-xs">MOCK=false</code>
 				in your environment to enable real Zarinpal payments
 			</p>
 		</div>

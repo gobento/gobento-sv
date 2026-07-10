@@ -7,10 +7,25 @@
 	import FluentArrowLeft24Regular from '~icons/fluent/arrow-left-24-regular';
 	import FluentHome24Regular from '~icons/fluent/home-24-regular';
 	import FluentMail24Regular from '~icons/fluent/mail-24-regular';
+	import FluentCopy24Regular from '~icons/fluent/copy-24-regular';
+	import FluentCheckmark24Regular from '~icons/fluent/checkmark-24-regular';
 	import { page } from '$app/state';
 
 	const { status, error } = $derived(page);
 	const errorId = $derived(error?.errorId);
+
+	let copied = $state(false);
+
+	async function copyErrorId() {
+		if (!errorId) return;
+		try {
+			await navigator.clipboard.writeText(errorId);
+			copied = true;
+			setTimeout(() => (copied = false), 2000);
+		} catch {
+			// Clipboard access can be denied; fail silently.
+		}
+	}
 
 	const config = $derived.by(() => {
 		if (status === 404)
@@ -63,6 +78,37 @@
 			<h1 class="mb-3 text-2xl font-semibold text-base-content">{config.title}</h1>
 			<p class="text-base-content/70">{config.message}</p>
 		</div>
+
+		<!-- Error reference -->
+		{#if errorId}
+			<div class="mb-6 rounded-lg border border-base-300 bg-base-200/50 p-4">
+				<p
+					class="mb-2 text-center text-xs font-medium tracking-wide text-base-content/50 uppercase"
+				>
+					Error reference
+				</p>
+				<div class="flex items-center justify-between gap-2">
+					<code class="truncate font-mono text-sm text-base-content/80">{errorId}</code>
+					<button
+						type="button"
+						onclick={copyErrorId}
+						class="btn shrink-0 btn-ghost btn-sm"
+						aria-label="Copy error reference"
+					>
+						{#if copied}
+							<FluentCheckmark24Regular class="size-4 text-success" />
+							<span>Copied</span>
+						{:else}
+							<FluentCopy24Regular class="size-4" />
+							<span>Copy</span>
+						{/if}
+					</button>
+				</div>
+				<p class="mt-2 text-center text-xs text-base-content/50">
+					Share this code with support to help us investigate.
+				</p>
+			</div>
+		{/if}
 
 		<!-- Support Call-to-Action -->
 		{#if config.showSupport}

@@ -1,20 +1,24 @@
 <!-- /src/routes/(dock)/reservations/+page.svelte -->
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
+	import IconArrowDownload from '~icons/fluent/arrow-download-24-regular';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
 	import IconFilter from '~icons/fluent/filter-24-regular';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
 	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 
 	import NotFound from '$lib/components/NotFound.svelte';
-	import { formatDate, formatTime } from '$lib/util.js';
+	import { formatDate, formatTime, downloadBase64Pdf } from '$lib/util.js';
 
 	let { data } = $props();
 
 	let showClaimed = $state(false);
+	let loadingReceiptId = $state<string | null>(null);
+	let receiptErrors = $state<Record<string, string>>({});
 
 	const filteredReservations = $derived(
 		showClaimed ? data.reservations : data.reservations.filter((r) => r.status === 'active')
@@ -63,11 +67,8 @@
 		<!-- Reservations Grid -->
 		<div class="grid gap-4">
 			{#each filteredReservations as reservation}
-				<a
-					href="/reservations/{reservation.id}"
-					class="card bg-base-100 transition-all duration-200 hover:bg-base-200/50"
-				>
-					<div class="card-body p-6">
+				<div class="card bg-base-100 transition-all duration-200 hover:bg-base-200/50">
+					<a href="/reservations/{reservation.id}" class="card-body p-6">
 						<div class="flex flex-col gap-4">
 							<!-- Status Badge (for claimed/completed) -->
 							{#if reservation.status !== 'active'}
@@ -149,8 +150,54 @@
 								<IconArrowRight class="size-5 text-base-content/40" />
 							</div>
 						</div>
+					</a>
+
+					<!-- Receipt Download -->
+					<div class="border-t border-base-content/10 px-6 py-3">
+						{#if receiptErrors[reservation.id]}
+							<p class="mb-2 text-sm text-error">{receiptErrors[reservation.id]}</p>
+						{/if}
+						<form
+							method="POST"
+							action="?/downloadReceipt"
+							use:enhance={() => {
+								loadingReceiptId = reservation.id;
+								if (receiptErrors[reservation.id]) {
+									const next = { ...receiptErrors };
+									delete next[reservation.id];
+									receiptErrors = next;
+								}
+								return async ({ result }) => {
+									loadingReceiptId = null;
+									if (result.type === 'success' && result.data?.receipt) {
+										downloadBase64Pdf(result.data.receipt.base64, result.data.receipt.filename);
+									} else if (result.type === 'failure') {
+										receiptErrors = {
+											...receiptErrors,
+											[reservation.id]:
+												(result.data?.error as string) ?? 'Failed to generate receipt'
+										};
+									}
+								};
+							}}
+						>
+							<input type="hidden" name="reservationId" value={reservation.id} />
+							<button
+								type="submit"
+								class="btn gap-2 btn-ghost btn-sm"
+								disabled={loadingReceiptId === reservation.id}
+							>
+								{#if loadingReceiptId === reservation.id}
+									<span class="loading loading-xs loading-spinner"></span>
+									Generating...
+								{:else}
+									<IconArrowDownload class="size-4" />
+									Download Receipt
+								{/if}
+							</button>
+						</form>
 					</div>
-				</a>
+				</div>
 			{/each}
 		</div>
 	{/if}

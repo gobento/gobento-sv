@@ -1,11 +1,12 @@
 // src/routes/(dock)/offers/new/+page.server.ts
 import { db } from '$lib/server/db';
-import { businessLocations, businessOffers } from '$lib/server/schema';
+import { businessLocations, businessOffers, files } from '$lib/server/schema';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { Actions, PageServerLoad } from './$types';
 import { notifyNewOffer } from '$lib/server/notifications';
+import { uploadImageWithPreset } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const account = locals.account!;
@@ -60,6 +61,7 @@ export const actions = {
 		const pickupTimeFrom = formData.get('pickupTimeFrom') as string;
 		const pickupTimeUntil = formData.get('pickupTimeUntil') as string;
 		const validUntilStr = formData.get('validUntil') as string;
+		const offerImageFile = formData.get('offerImage') as File;
 
 		// Validation
 		if (!name || name.trim().length === 0) {
@@ -90,6 +92,19 @@ export const actions = {
 
 		if (isNaN(quantity) || quantity < 1) {
 			return fail(400, { message: 'Quantity must be at least 1', field: 'quantity' });
+		}
+
+		// Validate offer image
+		if (!offerImageFile || offerImageFile.size === 0) {
+			return fail(400, { message: 'Offer image is required', field: 'offerImage' });
+		}
+
+		if (!offerImageFile.type.startsWith('image/')) {
+			return fail(400, { message: 'File must be an image', field: 'offerImage' });
+		}
+
+		if (offerImageFile.size > 5 * 1024 * 1024) {
+			return fail(400, { message: 'Image size must be less than 5MB', field: 'offerImage' });
 		}
 
 		// Validate pickup times
@@ -174,6 +189,32 @@ export const actions = {
 			}
 		}
 
+		// Upload the offer image
+		const imageUploadResult = await uploadImageWithPreset(offerImageFile, 'offerImage');
+
+		if (!imageUploadResult.success) {
+			return fail(500, {
+				message: imageUploadResult.error || 'Failed to upload offer image',
+				field: 'offerImage'
+			});
+		}
+
+		// Create file record for the uploaded image
+		const imageFileId = randomUUID();
+		try {
+			await db.insert(files).values({
+				id: imageFileId,
+				key: imageUploadResult.key,
+				fileName: offerImageFile.name,
+				contentType: offerImageFile.type,
+				sizeBytes: offerImageFile.size,
+				uploadedBy: account.id
+			});
+		} catch (e) {
+			console.error('Failed to create file record:', e);
+			return fail(500, { message: 'Failed to save image information' });
+		}
+
 		try {
 			// Convert time strings to proper format (HH:MM:SS)
 			const pickupTimeFromFormatted = `${pickupTimeFrom}:00`;
@@ -186,6 +227,7 @@ export const actions = {
 				id: offerId,
 				businessAccountId: account.id,
 				locationId: locationId && locationId !== '' ? locationId : null,
+				imageId: imageFileId,
 				name: name.trim(),
 				description: description.trim(),
 				originalValue,

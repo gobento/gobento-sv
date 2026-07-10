@@ -200,41 +200,51 @@
 				}
 			};
 		}}
-		class="space-y-8"
+		class="mx-auto max-w-2xl space-y-6 pb-28"
 	>
 		{#if needsProfile && !isUser}
 			<!-- Profile Section -->
-			<div class="card bg-base-100 shadow-sm">
-				<div class="card-body space-y-6">
-					<h2 class="card-title text-base">Profile Information</h2>
+			<div class="card border border-base-300 bg-base-100 shadow-sm">
+				<div class="card-body gap-6">
+					<div class="flex items-start gap-3">
+						<div
+							class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+						>
+							<config.icon class="size-5" />
+						</div>
+						<div class="flex-1">
+							<h2 class="text-base font-semibold">Profile Information</h2>
+							<p class="text-sm text-base-content/60">How your profile appears to others</p>
+						</div>
+					</div>
 
 					<!-- Profile Picture -->
 					<div class="space-y-3">
-						<label class="label">
-							<span class="label-text font-medium">Profile Picture</span>
-							<span class="label-text-alt text-error">Required</span>
-						</label>
+						<div class="flex items-center justify-between">
+							<span class="text-sm font-medium">Profile Picture</span>
+							<span class="badge badge-ghost badge-sm text-error">Required</span>
+						</div>
 
 						<div class="flex items-center gap-6">
 							{#if previewUrl}
 								<div class="avatar">
 									<div
-										class="w-24 rounded-full ring ring-base-300 ring-offset-2 ring-offset-base-100"
+										class="w-24 rounded-2xl ring ring-base-300 ring-offset-2 ring-offset-base-100"
 									>
 										<img src={previewUrl} alt="Preview" />
 									</div>
 								</div>
 							{:else}
 								<div
-									class="flex h-24 w-24 items-center justify-center rounded-full bg-base-200 ring ring-base-300 ring-offset-2 ring-offset-base-100"
+									class="flex size-24 items-center justify-center rounded-2xl bg-base-200 ring ring-base-300 ring-offset-2 ring-offset-base-100"
 								>
-									<IconImage class="h-10 w-10 opacity-30" />
+									<IconImage class="size-10 opacity-30" />
 								</div>
 							{/if}
 
 							<div class="flex flex-col gap-2">
 								<label class="btn gap-2 btn-outline btn-sm">
-									<IconUpload class="h-4 w-4" />
+									<IconUpload class="size-4" />
 									{selectedFile ? 'Change Picture' : 'Upload Picture'}
 									<input
 										type="file"
@@ -249,13 +259,15 @@
 								{#if selectedFile}
 									<div class="flex items-center gap-2">
 										<div class="badge gap-1 badge-sm badge-success">
-											<IconCheck class="h-3 w-3" />
+											<IconCheck class="size-3" />
 											Ready
 										</div>
-										<span class="text-xs opacity-60">{selectedFile.name}</span>
+										<span class="max-w-40 truncate text-xs opacity-60">{selectedFile.name}</span>
 									</div>
 								{:else if keepExistingPicture}
 									<span class="text-xs opacity-60">Using current picture</span>
+								{:else}
+									<span class="text-xs opacity-60">JPG or PNG, up to 5MB</span>
 								{/if}
 							</div>
 						</div>
@@ -269,11 +281,11 @@
 
 					<!-- Name -->
 					<div class="form-control">
-						<label for="name" class="label">
-							<span class="label-text font-medium">
+						<label for="name" class="mb-1.5 flex items-center justify-between">
+							<span class="text-sm font-medium">
 								{data.account.accountType === 'business' ? 'Business Name' : 'Organization Name'}
 							</span>
-							<span class="label-text-alt text-error">Required</span>
+							<span class="badge badge-ghost badge-sm text-error">Required</span>
 						</label>
 						<input
 							id="name"
@@ -289,58 +301,50 @@
 
 					<!-- Description -->
 					<div class="form-control">
-						<label for="description" class="label">
-							<span class="label-text font-medium">Description</span>
-							<span class="label-text-alt text-error">Required</span>
+						<label for="description" class="mb-1.5 flex items-center justify-between">
+							<span class="text-sm font-medium">Description</span>
+							<span class="badge badge-ghost badge-sm text-error">Required</span>
 						</label>
 						<textarea
 							id="description"
 							name="description"
 							bind:value={editDescription}
 							placeholder={config.descriptionPlaceholder}
-							class="textarea-bordered textarea h-32 resize-none"
+							class="textarea-bordered textarea h-32 w-full resize-none"
 							required
-							disabled={saving}
-						></textarea>
-						<label class="label">
-							<span class="label-text-alt opacity-60">{editDescription.length} characters</span>
-						</label>
+							disabled={saving}></textarea>
+						<span class="mt-1 text-xs opacity-60">{editDescription.length} characters</span>
 					</div>
 				</div>
 			</div>
 		{/if}
 
 		<!-- Payment Settings -->
-		<div class="card bg-base-100 shadow-sm">
-			<div class="card-body space-y-6">
+		<div class="card border border-base-300 bg-base-100 shadow-sm">
+			<div class="card-body gap-6">
 				<div class="flex items-start gap-3">
-					<IconWallet class="mt-0.5 size-5 text-primary" />
+					<div
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+					>
+						<IconWallet class="size-5" />
+					</div>
 					<div class="flex-1">
 						<h2 class="text-base font-semibold">Payment Methods</h2>
-						<p class="text-sm opacity-70">Configure how you receive payments</p>
+						<p class="text-sm text-base-content/60">Configure how you receive payments</p>
 					</div>
 				</div>
 
 				<div class="space-y-3">
 					<!-- IBAN Payment Method -->
 					<div
-						class="group rounded-xl border-2 transition-all duration-200"
-						class:border-primary={ibanEnabled &&
-							(!showPreferredSelection || preferredPaymentMethod === 'iban')}
-						class:border-base-300={!ibanEnabled ||
-							(showPreferredSelection && preferredPaymentMethod !== 'iban')}
-						class:bg-gradient-to-br={ibanEnabled &&
-							showPreferredSelection &&
-							preferredPaymentMethod === 'iban'}
-						class:from-primary-10={ibanEnabled &&
-							showPreferredSelection &&
-							preferredPaymentMethod === 'iban'}
-						class:to-primary-5={ibanEnabled &&
-							showPreferredSelection &&
-							preferredPaymentMethod === 'iban'}
-						class:shadow-sm={ibanEnabled &&
-							showPreferredSelection &&
-							preferredPaymentMethod === 'iban'}
+						class="group rounded-2xl border-2 transition-all duration-200 {ibanEnabled &&
+						(!showPreferredSelection || preferredPaymentMethod === 'iban')
+							? 'border-primary'
+							: 'border-base-300'} {ibanEnabled &&
+						showPreferredSelection &&
+						preferredPaymentMethod === 'iban'
+							? 'bg-primary/5 shadow-sm'
+							: ''}"
 					>
 						<div class="flex items-start gap-4 p-4">
 							<input
@@ -365,10 +369,9 @@
 										disabled={!ibanEnabled || !showPreferredSelection || saving}
 									>
 										<div
-											class="flex h-10 w-10 items-center justify-center rounded-lg transition-colors"
-											class:bg-primary-10={ibanEnabled}
-											class:bg-base-200={!ibanEnabled}
-											class:text-primary={ibanEnabled}
+											class="flex size-10 items-center justify-center rounded-xl transition-colors {ibanEnabled
+												? 'bg-primary/10 text-primary'
+												: 'bg-base-200'}"
 										>
 											<IconBank class="size-5" />
 										</div>
@@ -416,23 +419,14 @@
 
 					<!-- Tether Payment Method -->
 					<div
-						class="group rounded-xl border-2 transition-all duration-200"
-						class:border-primary={tetherEnabled &&
-							(!showPreferredSelection || preferredPaymentMethod === 'tether')}
-						class:border-base-300={!tetherEnabled ||
-							(showPreferredSelection && preferredPaymentMethod !== 'tether')}
-						class:bg-gradient-to-br={tetherEnabled &&
-							showPreferredSelection &&
-							preferredPaymentMethod === 'tether'}
-						class:from-primary-10={tetherEnabled &&
-							showPreferredSelection &&
-							preferredPaymentMethod === 'tether'}
-						class:to-primary-5={tetherEnabled &&
-							showPreferredSelection &&
-							preferredPaymentMethod === 'tether'}
-						class:shadow-sm={tetherEnabled &&
-							showPreferredSelection &&
-							preferredPaymentMethod === 'tether'}
+						class="group rounded-2xl border-2 transition-all duration-200 {tetherEnabled &&
+						(!showPreferredSelection || preferredPaymentMethod === 'tether')
+							? 'border-primary'
+							: 'border-base-300'} {tetherEnabled &&
+						showPreferredSelection &&
+						preferredPaymentMethod === 'tether'
+							? 'bg-primary/5 shadow-sm'
+							: ''}"
 					>
 						<div class="flex items-start gap-4 p-4">
 							<input
@@ -457,10 +451,9 @@
 										disabled={!tetherEnabled || !showPreferredSelection || saving}
 									>
 										<div
-											class="flex size-10 items-center justify-center rounded-lg transition-colors"
-											class:bg-primary-10={tetherEnabled}
-											class:bg-base-200={!tetherEnabled}
-											class:text-primary={tetherEnabled}
+											class="flex size-10 items-center justify-center rounded-xl transition-colors {tetherEnabled
+												? 'bg-primary/10 text-primary'
+												: 'bg-base-200'}"
 										>
 											<FluentPayment24Regular class="size-5" />
 										</div>
@@ -531,6 +524,7 @@
 		<!-- Hidden inputs -->
 		<input type="hidden" name="ibanEnabled" value={ibanEnabled} />
 		<input type="hidden" name="tetherEnabled" value={tetherEnabled} />
+		<input type="hidden" name="preferredPaymentMethod" value={preferredPaymentMethod} />
 
 		{#if formError}
 			<div class="alert alert-error shadow-sm">
@@ -539,18 +533,26 @@
 			</div>
 		{/if}
 
-		<!-- Action Buttons -->
-		<div class="flex gap-3">
-			<button type="submit" class="btn flex-1 gap-2 btn-primary" disabled={saving || !canSave()}>
-				{#if saving}
-					<span class="loading loading-sm loading-spinner"></span>
-					Saving...
-				{:else}
-					<IconCheck class="size-5" />
-					Save Changes
-				{/if}
-			</button>
-			<a href="/profile" class="btn flex-1 btn-ghost" class:btn-disabled={saving}> Cancel </a>
+		<!-- Sticky Action Bar -->
+		<div
+			class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100/95 p-4 backdrop-blur md:ps-58"
+		>
+			<div class="mx-auto flex max-w-2xl gap-3">
+				<a href="/profile" class="btn flex-1 btn-ghost" class:btn-disabled={saving}>Cancel</a>
+				<button
+					type="submit"
+					class="btn flex-[2] gap-2 btn-primary"
+					disabled={saving || !canSave()}
+				>
+					{#if saving}
+						<span class="loading loading-sm loading-spinner"></span>
+						Saving...
+					{:else}
+						<IconCheck class="size-5" />
+						Save Changes
+					{/if}
+				</button>
+			</div>
 		</div>
 	</form>
 </BaseLayout>

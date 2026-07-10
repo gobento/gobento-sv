@@ -85,6 +85,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const isUser = account.accountType === 'user';
 	const logoUrl = await getSignedDownloadUrl(logo.key);
 
+	// Get the offer's own image URL if exists
+	let offerImageUrl = null;
+	if (offer.imageId) {
+		const [offerImage] = await db.select().from(files).where(eq(files.id, offer.imageId)).limit(1);
+
+		if (offerImage) {
+			offerImageUrl = await getSignedDownloadUrl(offerImage.key);
+		}
+	}
+
 	// Get location image URL if exists
 	let locationImageUrl = null;
 	if (location?.imageId) {
@@ -102,6 +112,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const result = {
 		offer: {
 			...offer,
+			imageUrl: offerImageUrl,
 			displayPrice: priceWithMargin(offer.price),
 			displayOriginalValue: offer.originalValue
 		},

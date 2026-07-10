@@ -77,7 +77,7 @@
 	);
 
 	// Determine image for OG
-	const ogImage = data.location?.imageUrl || data.logo.url;
+	const ogImage = data.offer.imageUrl || data.location?.imageUrl || data.logo.url;
 
 	// Create location string
 	const locationString = data.location
@@ -118,22 +118,18 @@
 	{/if}
 </svelte:head>
 
-<!-- Location Photo Header (if location exists) -->
-{#if data.location}
+<!-- Offer Photo Header -->
+{#if data.offer.imageUrl}
 	<div
 		class="relative -mx-2 -mt-2 h-56 overflow-hidden bg-linear-to-br from-primary/20 via-secondary/10 to-accent/10 sm:-mx-6 sm:-mt-6 lg:h-64"
 	>
-		{#if data.location.imageUrl}
-			<OptimizedLocationImage
-				src={data.location.imageUrl}
-				alt={data.location.name}
-				priority={true}
-				class="h-full w-full"
-			/>
-			<div
-				class="absolute inset-0 bg-linear-to-t from-base-100 via-base-100/20 to-transparent"
-			></div>
-		{/if}
+		<OptimizedLocationImage
+			src={data.offer.imageUrl}
+			alt={data.offer.name}
+			priority={true}
+			class="h-full w-full"
+		/>
+		<div class="absolute inset-0 bg-linear-to-t from-base-100 via-base-100/20 to-transparent"></div>
 	</div>
 {/if}
 

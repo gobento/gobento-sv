@@ -7,12 +7,12 @@ declare global {
 			account: Account | null;
 			session: Session | null;
 
-			startTimer: number;
-			error: string;
-			errorId: string;
-			errorStackTrace: string;
-			message: unknown;
-			track: unknown;
+			startTimer?: number;
+			error?: string;
+			errorId?: string;
+			errorStackTrace?: string;
+			message?: unknown;
+			track?: unknown;
 		}
 		interface Error {
 			code?: string;

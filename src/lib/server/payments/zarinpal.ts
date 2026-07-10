@@ -1,12 +1,7 @@
 // src/lib/server/payments/zarinpal.ts
 
-import {
-	ZARINPAL_MERCHANT_ID,
-	ZARINPAL_SANDBOX,
-	MOCK_PAYMENTS,
-	APP_URL
-} from '$env/static/private';
-import { env } from '$env/dynamic/private';
+import { ZARINPAL_MERCHANT_ID, ZARINPAL_SANDBOX, APP_URL } from '$env/static/private';
+import { mockableFetch, isMockEnabled } from '$lib/server/mock';
 
 interface ZarinpalRequestResponse {
 	data: {
@@ -57,18 +52,8 @@ export class ZarinpalService {
 
 		metadata?: Record<string, any>;
 	}): Promise<{ success: boolean; authority?: string; paymentUrl?: string; error?: string }> {
-		// Mock mode - simulate payment gateway
-		if (MOCK_PAYMENTS === 'true') {
-			const mockAuthority = `MOCK_${crypto.randomUUID().substring(0, 8).toUpperCase()}`;
-			return {
-				success: true,
-				authority: mockAuthority,
-				paymentUrl: `${APP_URL}/payments/mock?authority=${mockAuthority}&amount=${params.amount}&paymentId=${params.metadata?.paymentId}`
-			};
-		}
-
 		try {
-			const response = await fetch(`${ZARINPAL_API_URL}/request.json`, {
+			const response = await mockableFetch(`${ZARINPAL_API_URL}/request.json`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -90,10 +75,15 @@ export class ZarinpalService {
 			const result: ZarinpalRequestResponse = await response.json();
 
 			if (result.data.code === 100) {
+				const authority = result.data.authority;
 				return {
 					success: true,
-					authority: result.data.authority,
-					paymentUrl: `${ZARINPAL_PAYMENT_URL}/${result.data.authority}`
+					authority,
+					// A mock authority is issued by the rest-mock backend, so route the
+					// user to the local mock gateway page instead of the real one.
+					paymentUrl: authority.startsWith('MOCK_')
+						? `${APP_URL}/payments/mock?authority=${authority}&amount=${params.amount}&paymentId=${params.metadata?.paymentId}`
+						: `${ZARINPAL_PAYMENT_URL}/${authority}`
 				};
 			} else {
 				return {
@@ -119,18 +109,8 @@ export class ZarinpalService {
 		authority: string;
 		amount: number;
 	}): Promise<{ success: boolean; refId?: number; error?: string }> {
-		// Mock mode - always succeed
-		if (MOCK_PAYMENTS === 'true') {
-			if (params.authority.startsWith('MOCK_')) {
-				return {
-					success: true,
-					refId: Math.floor(Math.random() * 1000000)
-				};
-			}
-		}
-
 		try {
-			const response = await fetch(`${ZARINPAL_API_URL}/verify.json`, {
+			const response = await mockableFetch(`${ZARINPAL_API_URL}/verify.json`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -177,7 +157,7 @@ export class ZarinpalService {
 		ibanNumber: string;
 		description: string;
 	}): Promise<{ success: boolean; error?: string }> {
-		if (MOCK_PAYMENTS === 'true') {
+		if (isMockEnabled()) {
 			console.log(`[MOCK] Transferring ${params.amount} IRR to IBAN ${params.ibanNumber}`);
 			console.log(`[MOCK] Description: ${params.description}`);
 			return { success: true };

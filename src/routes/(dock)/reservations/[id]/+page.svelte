@@ -2,7 +2,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { browser } from '$app/environment';
-	import { formatDate, formatTime } from '$lib/util.js';
+	import { formatDate, formatTime, downloadBase64Pdf } from '$lib/util.js';
 	import { onMount, onDestroy } from 'svelte';
 
 	import IconLocation from '~icons/fluent/location-24-regular';
@@ -15,6 +15,7 @@
 	import IconTimer from '~icons/fluent/timer-24-regular';
 	import IconChevronRight from '~icons/fluent/chevron-right-24-regular';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
+	import IconArrowDownload from '~icons/fluent/arrow-download-24-regular';
 	import FluentAlert24Regular from '~icons/fluent/alert-24-regular';
 
 	import CollectFoodModal from './CollectFoodModal.svelte';
@@ -33,6 +34,8 @@
 	let inviteLoading = $state(false);
 	let inviteLink = $state('');
 	let linkCopied = $state(false);
+	let receiptLoading = $state(false);
+	let receiptError = $state('');
 
 	// Countdown state
 	let timeRemaining = $state({
@@ -527,6 +530,50 @@
 				<div class="text-xs text-base-content/40">{data.offer.currency}</div>
 			</div>
 		</div>
+	</div>
+
+	<!-- Receipt Download -->
+	<div class="rounded-2xl bg-base-100 p-6">
+		<div class="mb-3 flex items-center gap-2">
+			<div class="rounded-lg bg-primary/10 p-2">
+				<IconArrowDownload class="size-5 text-primary" />
+			</div>
+			<h3 class="text-lg font-bold">Payment Receipt</h3>
+		</div>
+		<p class="mb-4 text-sm text-base-content/60">Download a PDF receipt for this purchase.</p>
+		{#if receiptError}
+			<Alert type="error" class="mb-4">{receiptError}</Alert>
+		{/if}
+		<form
+			method="POST"
+			action="?/downloadReceipt"
+			use:enhance={() => {
+				receiptLoading = true;
+				receiptError = '';
+				return async ({ result }) => {
+					receiptLoading = false;
+					if (result.type === 'success' && result.data?.receipt) {
+						downloadBase64Pdf(result.data.receipt.base64, result.data.receipt.filename);
+					} else if (result.type === 'failure') {
+						receiptError = (result.data?.error as string) ?? 'Failed to generate receipt';
+					}
+				};
+			}}
+		>
+			<button
+				type="submit"
+				class="btn btn-block gap-2 btn-outline btn-primary"
+				disabled={receiptLoading}
+			>
+				{#if receiptLoading}
+					<span class="loading loading-sm loading-spinner"></span>
+					Generating...
+				{:else}
+					<IconArrowDownload class="size-5" />
+					Download Receipt (PDF)
+				{/if}
+			</button>
+		</form>
 	</div>
 
 	<!-- Pickup Location & Details -->

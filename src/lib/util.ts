@@ -56,3 +56,25 @@ export function formatDistance(distance: number | null) {
 	}
 	return `${distance.toFixed(1)}km`;
 }
+
+/**
+ * Trigger a browser download of a base64-encoded PDF.
+ * @param base64 - The PDF contents encoded as base64
+ * @param filename - The filename to save as
+ */
+export function downloadBase64Pdf(base64: string, filename: string) {
+	const byteChars = atob(base64);
+	const byteNumbers = new Array(byteChars.length);
+	for (let i = 0; i < byteChars.length; i++) {
+		byteNumbers[i] = byteChars.charCodeAt(i);
+	}
+	const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = filename;
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	URL.revokeObjectURL(url);
+}

@@ -1,6 +1,7 @@
 import { APP_URL } from '$env/static/private';
+import type { RequestEvent } from '@sveltejs/kit';
 
-export async function log(statusCode: number, event) {
+export async function log(statusCode: number, event: RequestEvent) {
 	try {
 		let level = 'info';
 		if (statusCode >= 400) {
@@ -36,14 +37,23 @@ export async function log(statusCode: number, event) {
 		// FIX: Calculate timeInMs safely
 		const timeInMs = event?.locals?.startTimer ? Date.now() - event.locals.startTimer : undefined;
 
+		// Session information for the request (populated by the auth handle).
+		const account = event?.locals?.account ?? undefined;
+		const session = event?.locals?.session ?? undefined;
+
 		const logData: object = {
 			level: level,
 			method: event.request.method,
 			path: event.url.pathname,
 			status: statusCode,
 			timeInMs: timeInMs, // Now safe - will be undefined or a valid number
-			user: event?.locals?.user?.email,
-			userId: event?.locals?.user?.userId,
+			accountId: account?.id,
+			email: account?.email,
+			accountType: account?.accountType,
+			sessionId: session?.id,
+			sessionExpiresAt: session?.expiresAt?.toISOString?.(),
+			userAgent: event.request.headers.get('user-agent') ?? undefined,
+			clientIp: event.request.headers.get('x-forwarded-for') ?? undefined,
 			referer: referer,
 			error: error,
 			errorId: errorId,

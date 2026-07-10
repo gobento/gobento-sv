@@ -113,6 +113,7 @@ export const businessOffers = pgTable('business_offers', {
 		.notNull()
 		.references(() => accounts.id, { onDelete: 'cascade' }),
 	locationId: text('location_id').references(() => businessLocations.id, { onDelete: 'cascade' }),
+	imageId: text('image_id').references(() => files.id, { onDelete: 'set null' }),
 	name: text('name').notNull(),
 	description: text('description').notNull(),
 	originalValue: doublePrecision('original_value').notNull(),

@@ -37,7 +37,8 @@ export interface ImageDimensions {
 // Predefined image sizes
 export const IMAGE_SIZES = {
 	logo: { width: 96, height: 96, fit: 'cover' as const, quality: 90 },
-	locationImage: { width: 420, height: 256, fit: 'cover' as const, quality: 85 }
+	locationImage: { width: 420, height: 256, fit: 'cover' as const, quality: 85 },
+	offerImage: { width: 800, height: 480, fit: 'cover' as const, quality: 82 }
 } as const;
 
 /**

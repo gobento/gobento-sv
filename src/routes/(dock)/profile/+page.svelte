@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/profile/+page.svelte -->
 <script lang="ts">
+	import type { Component } from 'svelte';
 	import type { PageData } from './$types';
 	import IconUser from '~icons/fluent/person-24-regular';
 	import IconBuilding from '~icons/fluent/building-24-regular';
@@ -13,6 +14,8 @@
 	import IconWallet from '~icons/fluent/wallet-24-regular';
 	import IconLock from '~icons/fluent/lock-closed-24-regular';
 	import IconLeaf from '~icons/fluent/leaf-24-regular';
+	import IconSignOut from '~icons/fluent/sign-out-24-regular';
+	import IconChevronRight from '~icons/fluent/chevron-right-24-regular';
 	import FluentBuildingShop24Regular from '~icons/fluent/building-shop-24-regular';
 	import { formatDate } from '$lib/util';
 	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
@@ -85,99 +88,97 @@
 	}
 </script>
 
-<!-- Header Section -->
-<div class="card-body items-center text-center">
-	<!-- Profile Picture -->
-	{#if isBusiness || isCharity}
-		{#if data.profilePictureUrl && !isUser}
-			<OptimizedLogoImage
-				src={data.profilePictureUrl}
-				alt={'Profile'}
-				size="lg"
-				shape="square"
-				priority={true}
-			/>
-		{:else}
-			<div class="flex h-full w-full items-center justify-center bg-base-200">
-				<config.icon class="size-16 text-base-content/20" />
-			</div>
-		{/if}
-	{/if}
-
-	<!-- Name/Title -->
-	{#if hasProfile && data.profile && (isBusiness || isCharity)}
-		<h1 class="mb-2 card-title justify-center text-3xl">{data.profile.name}</h1>
-		<p class="mb-4 max-w-2xl text-base text-base-content/70">
-			{data.profile.description}
-		</p>
-	{:else if isUser}
-		<h1 class="mb-2 card-title justify-center text-3xl">My Profile</h1>
-	{:else if isAdmin}
-		<h1 class="mb-2 card-title justify-center text-3xl">Administrator</h1>
-	{:else if canEdit && (isBusiness || isCharity)}
-		<h1 class="mb-2 card-title justify-center text-3xl text-base-content/40">Profile Incomplete</h1>
-		<p class="mb-4 text-base text-base-content/60">{config.emptyMessage}</p>
-	{/if}
-
-	<!-- Account Type Badge -->
-	<div class="badge gap-2 badge-outline badge-lg">
-		<config.icon class="size-4" />
-		<span>{config.label}</span>
+{#snippet infoItem(Icon: Component, label: string, value: string)}
+	<div class="flex items-center gap-4 rounded-2xl border border-base-300 bg-base-100 p-4">
+		<div
+			class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+		>
+			<Icon class="size-5" />
+		</div>
+		<div class="min-w-0 flex-1">
+			<p class="text-xs font-medium tracking-wide text-base-content/50 uppercase">{label}</p>
+			<p class="truncate font-semibold">{value}</p>
+		</div>
 	</div>
-</div>
+{/snippet}
 
-<!-- Info Section -->
-<div class="card-body">
-	<div class="space-y-3">
+<div class="mx-auto w-full max-w-3xl space-y-6 p-4 pt-6 sm:p-6">
+	<!-- Hero Header -->
+	<div class="card overflow-hidden bg-base-100 shadow-sm">
+		<div class="h-28 bg-linear-to-br from-primary via-primary to-accent sm:h-32"></div>
+
+		<div class="-mt-14 flex flex-col items-center px-6 pb-6 text-center sm:-mt-16">
+			<!-- Avatar -->
+			<div class="rounded-2xl bg-base-100 p-1.5 shadow-lg">
+				{#if (isBusiness || isCharity) && data.profilePictureUrl}
+					<OptimizedLogoImage
+						src={data.profilePictureUrl}
+						alt={'Profile'}
+						size="lg"
+						shape="square"
+						priority={true}
+					/>
+				{:else}
+					<div class="flex size-24 items-center justify-center rounded-xl bg-base-200">
+						<config.icon class="size-12 text-base-content/30" />
+					</div>
+				{/if}
+			</div>
+
+			<!-- Name / Title -->
+			{#if hasProfile && data.profile && (isBusiness || isCharity)}
+				<h1 class="mt-4 text-2xl font-bold sm:text-3xl">{data.profile.name}</h1>
+				<p class="mt-2 max-w-xl text-base-content/70">{data.profile.description}</p>
+			{:else if isUser}
+				<h1 class="mt-4 text-2xl font-bold sm:text-3xl">My Profile</h1>
+			{:else if isAdmin}
+				<h1 class="mt-4 text-2xl font-bold sm:text-3xl">Administrator</h1>
+			{:else if canEdit && (isBusiness || isCharity)}
+				<h1 class="mt-4 text-2xl font-bold text-base-content/50 sm:text-3xl">Profile Incomplete</h1>
+				<p class="mt-2 text-base-content/60">{config.emptyMessage}</p>
+			{/if}
+
+			<!-- Account Type Badge -->
+			<div class="badge mt-4 gap-2 badge-lg badge-primary badge-outline">
+				<config.icon class="size-4" />
+				<span>{config.label}</span>
+			</div>
+		</div>
+	</div>
+
+	<!-- Info Section -->
+	<div class="grid gap-3 sm:grid-cols-2">
 		{#if isUser}
 			<!-- User-specific minimal view - only email and payment -->
-
-			<!-- Email Address -->
-			<div class="flex items-center gap-4">
-				<div
-					class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
-				>
-					<IconMail class="size-5" />
-				</div>
-				<div class="min-w-0 flex-1">
-					<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
-						Email Address
-					</p>
-					<p class="text-base font-semibold">
-						{data.account.email}
-					</p>
-				</div>
-			</div>
+			{@render infoItem(IconMail, 'Email Address', data.account.email)}
 
 			<!-- Payment Method -->
-			<div class="flex items-center gap-4">
+			<div class="flex items-center gap-4 rounded-2xl border border-base-300 bg-base-100 p-4">
 				<div
-					class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
+					class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
 				>
 					<IconWallet class="size-5" />
 				</div>
 				<div class="min-w-0 flex-1">
-					<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
+					<p class="text-xs font-medium tracking-wide text-base-content/50 uppercase">
 						Payment Method
 					</p>
 					{#if data.profile?.preferredPaymentMethod}
-						<div class="mt-1">
-							{#if data.profile.preferredPaymentMethod === 'zarinpal'}
-								<p class="text-base font-semibold">Zarinpal (IRR)</p>
-								{#if data.profile.zarinpalMerchantId}
-									<p class="mt-1 font-mono text-xs text-base-content/60">
-										ID: {data.profile.zarinpalMerchantId.slice(0, 8)}••••
-									</p>
-								{/if}
-							{:else if data.profile.preferredPaymentMethod === 'tether'}
-								<p class="text-base font-semibold">USDT (ERC-20)</p>
-								{#if data.profile.tetherAddress}
-									<p class="mt-1 font-mono text-xs text-base-content/60">
-										{formatWalletAddress(data.profile.tetherAddress)}
-									</p>
-								{/if}
+						{#if data.profile.preferredPaymentMethod === 'zarinpal'}
+							<p class="font-semibold">Zarinpal (IRR)</p>
+							{#if data.profile.zarinpalMerchantId}
+								<p class="mt-0.5 font-mono text-xs text-base-content/60">
+									ID: {data.profile.zarinpalMerchantId.slice(0, 8)}••••
+								</p>
 							{/if}
-						</div>
+						{:else if data.profile.preferredPaymentMethod === 'tether'}
+							<p class="font-semibold">USDT (ERC-20)</p>
+							{#if data.profile.tetherAddress}
+								<p class="mt-0.5 font-mono text-xs text-base-content/60">
+									{formatWalletAddress(data.profile.tetherAddress)}
+								</p>
+							{/if}
+						{/if}
 					{:else}
 						<p class="text-sm text-base-content/60">Not configured</p>
 					{/if}
@@ -188,80 +189,44 @@
 			</div>
 		{:else}
 			<!-- Business/Charity/Admin view -->
-
-			<!-- Saving food since / Member Since / Admin Since -->
-			<div class="flex items-center gap-4">
-				<div
-					class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
-				>
-					<IconCalendar class="size-5" />
-				</div>
-				<div class="min-w-0 flex-1">
-					<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
-						{isAdmin ? 'Admin Since' : 'Saving food since'}
-					</p>
-					<p class="text-base font-semibold">
-						{formatDate(data.account.createdAt)}
-					</p>
-				</div>
-			</div>
+			{@render infoItem(
+				IconCalendar,
+				isAdmin ? 'Admin Since' : 'Saving food since',
+				formatDate(data.account.createdAt)
+			)}
 
 			{#if isBusiness && data.profile}
-				<!-- Business Type -->
-				<div class="flex items-center gap-4">
-					<div
-						class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
-					>
-						<FluentBuildingShop24Regular class="size-5" />
-					</div>
-					<div class="min-w-0 flex-1">
-						<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
-							Business Type
-						</p>
-						<p class="text-base font-semibold">
-							{businessTypeLabels[data.profile.businessType] || data.profile.businessType || ''}
-						</p>
-					</div>
-				</div>
+				{@render infoItem(
+					FluentBuildingShop24Regular,
+					'Business Type',
+					businessTypeLabels[data.profile.businessType] || data.profile.businessType || ''
+				)}
 
-				<!-- Country -->
-				<div class="flex items-center gap-4">
-					<div
-						class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
-					>
-						<IconLocation class="size-5" />
-					</div>
-					<div class="min-w-0 flex-1">
-						<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">Country</p>
-						<p class="text-base font-semibold">{data.profile.country}</p>
-					</div>
-				</div>
+				{@render infoItem(IconLocation, 'Country', data.profile.country)}
 
 				<!-- Payment Provider (Business Only) -->
 				{#if data.wallet && (data.wallet.zarinpalEnabled || data.wallet.tetherEnabled)}
-					<div class="flex items-center gap-4">
+					<div class="flex items-center gap-4 rounded-2xl border border-base-300 bg-base-100 p-4">
 						<div
-							class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
+							class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
 						>
 							<IconWallet class="size-5" />
 						</div>
 						<div class="min-w-0 flex-1">
-							<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
+							<p class="text-xs font-medium tracking-wide text-base-content/50 uppercase">
 								Payment Provider
 							</p>
-							<div class="mt-1">
-								{#if data.wallet.zarinpalEnabled}
-									<p class="text-base font-semibold">Zarinpal (IRR)</p>
-									<p class="mt-1 font-mono text-xs text-base-content/60">
-										ID: {data.wallet.zarinpalMerchantId?.slice(0, 8)}••••
-									</p>
-								{:else if data.wallet.tetherEnabled}
-									<p class="text-base font-semibold">USDT (ERC-20)</p>
-									<p class="mt-1 font-mono text-xs text-base-content/60">
-										{formatWalletAddress(data.wallet.tetherAddress || '')}
-									</p>
-								{/if}
-							</div>
+							{#if data.wallet.zarinpalEnabled}
+								<p class="font-semibold">Zarinpal (IRR)</p>
+								<p class="mt-0.5 font-mono text-xs text-base-content/60">
+									ID: {data.wallet.zarinpalMerchantId?.slice(0, 8)}••••
+								</p>
+							{:else if data.wallet.tetherEnabled}
+								<p class="font-semibold">USDT (ERC-20)</p>
+								<p class="mt-0.5 font-mono text-xs text-base-content/60">
+									{formatWalletAddress(data.wallet.tetherAddress || '')}
+								</p>
+							{/if}
 						</div>
 						<div class="tooltip" data-tip="Private - only you can see this">
 							<IconLock class="size-4 text-base-content/40" />
@@ -271,44 +236,19 @@
 			{/if}
 
 			{#if isCharity && data.profile}
-				<!-- Country -->
-				<div class="flex items-center gap-4">
-					<div
-						class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
-					>
-						<IconLocation class="size-5" />
-					</div>
-					<div class="min-w-0 flex-1">
-						<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">Country</p>
-						<p class="text-base font-semibold">{data.profile.country}</p>
-					</div>
-				</div>
+				{@render infoItem(IconLocation, 'Country', data.profile.country)}
 			{/if}
 
 			{#if isAdmin}
-				<div class="flex items-center gap-4">
-					<div
-						class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200"
-					>
-						<IconShield class="size-5" />
-					</div>
-					<div class="min-w-0 flex-1">
-						<p class="text-xs font-medium tracking-wider text-base-content/60 uppercase">
-							Access Level
-						</p>
-						<p class="text-base font-semibold">Full Access</p>
-					</div>
-				</div>
+				{@render infoItem(IconShield, 'Access Level', 'Full Access')}
 			{/if}
 		{/if}
 	</div>
-</div>
 
-<!-- Action Buttons -->
-<div class="card-body">
+	<!-- Action Buttons -->
 	<div class="flex flex-col gap-3 sm:flex-row">
 		{#if canEdit}
-			<a href="/profile/edit" class="btn gap-2 btn-primary">
+			<a href="/profile/edit" class="btn flex-1 gap-2 btn-primary">
 				<IconEdit class="size-5" />
 				{#if isUser}
 					Edit Payment Settings
@@ -321,29 +261,35 @@
 		{/if}
 
 		{#if data.account.accountType === 'user'}
-			<a href="/impact" class="btn btn-ghost"> Your Impact on Environment </a>
+			<a href="/impact" class="btn flex-1 gap-2 btn-outline">
+				<IconLeaf class="size-5" />
+				Your Impact
+			</a>
 		{/if}
 
-		<a href="/auth/logout" class="btn btn-secondary"> Logout </a>
+		<a href="/auth/logout" class="btn gap-2 btn-ghost text-error sm:flex-none">
+			<IconSignOut class="size-5" />
+			Logout
+		</a>
 	</div>
-</div>
 
-<!-- Footer Links -->
-<div class="card-body">
-	<div class="flex flex-wrap justify-center gap-6">
+	<!-- Footer Links -->
+	<div class="flex flex-col gap-2 pt-2">
 		<a
 			href="/about"
-			class="flex items-center gap-2 text-sm text-base-content/60 transition-colors hover:text-base-content"
+			class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
 		>
-			<IconInfo class="size-4" />
-			<span>About & Legal</span>
+			<IconInfo class="size-5" />
+			<span class="flex-1">About & Legal</span>
+			<IconChevronRight class="size-4 text-base-content/40" />
 		</a>
 		<a
 			href="/contact"
-			class="flex items-center gap-2 text-sm text-base-content/60 transition-colors hover:text-base-content"
+			class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
 		>
-			<IconMail class="size-4" />
-			<span>Contact</span>
+			<IconMail class="size-5" />
+			<span class="flex-1">Contact</span>
+			<IconChevronRight class="size-4 text-base-content/40" />
 		</a>
 	</div>
 </div>

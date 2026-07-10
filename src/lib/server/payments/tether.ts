@@ -1,11 +1,7 @@
 // src/lib/server/payments/tether.ts
 import { Contract, ethers, JsonRpcProvider, Wallet } from 'ethers';
-import {
-	TETHER_CONTRACT_ADDRESS,
-	ETHEREUM_RPC_URL,
-	TETHER_PRIVATE_KEY,
-	MOCK_PAYMENTS
-} from '$env/static/private';
+import { TETHER_CONTRACT_ADDRESS, ETHEREUM_RPC_URL, TETHER_PRIVATE_KEY } from '$env/static/private';
+import { isMockEnabled } from '$lib/server/mock';
 
 // ERC-20 USDT ABI (simplified - only what we need)
 const USDT_ABI = [
@@ -23,7 +19,7 @@ export class TetherService {
 	private isMockMode: boolean;
 
 	constructor() {
-		this.isMockMode = MOCK_PAYMENTS === 'true';
+		this.isMockMode = isMockEnabled();
 
 		// Only initialize provider and contract if not in mock mode
 		if (!this.isMockMode) {

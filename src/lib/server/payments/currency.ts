@@ -5,6 +5,7 @@
  */
 
 import { FEE_PERCENTAGE } from '$env/static/private';
+import { mockableFetch } from '$lib/server/mock';
 
 interface ConversionRates {
 	EUR_TO_USDT: number;
@@ -24,7 +25,7 @@ export class CurrencyService {
 		try {
 			// CoinGecko free API - no auth needed
 			// Gets USDT price in EUR and IRR
-			const response = await fetch(
+			const response = await mockableFetch(
 				'https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=eur,irr',
 				{
 					headers: {
