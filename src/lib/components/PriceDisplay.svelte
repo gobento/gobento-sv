@@ -9,9 +9,11 @@
 		country: string;
 
 		size?: 'sm' | 'lg';
+		/** Hide the "-X%" badge when the discount is already shown elsewhere. */
+		showDiscountBadge?: boolean;
 	}
 
-	let { originalValue, price, country, size = 'lg' }: Props = $props();
+	let { originalValue, price, country, size = 'lg', showDiscountBadge = true }: Props = $props();
 
 	const discountPercent = $derived(Math.round(((originalValue - price) / originalValue) * 100));
 
@@ -36,9 +38,11 @@
 	<!-- Discount Badge & Original Value -->
 	<div class="flex items-center gap-{size === 'sm' ? '2' : '3'}">
 		<!-- Discount Badge -->
-		<div class="badge badge-primary {badgeClass} font-bold shadow-md">
-			-{discountPercent}%
-		</div>
+		{#if showDiscountBadge}
+			<div class="badge badge-primary {badgeClass} font-bold shadow-md">
+				-{discountPercent}%
+			</div>
+		{/if}
 
 		<!-- Original Value (Crossed Out) -->
 		<div class="{originalPriceClass} text-base-content/50 line-through">

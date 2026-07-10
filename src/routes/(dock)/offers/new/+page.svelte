@@ -2,9 +2,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import IconInfo from '~icons/fluent/info-24-regular';
-	import IconSave from '~icons/fluent/save-24-regular';
+	import IconCheck from '~icons/fluent/checkmark-24-regular';
 	import IconTag from '~icons/fluent/tag-24-regular';
 	import IconCamera from '~icons/fluent/camera-24-regular';
+	import IconMoney from '~icons/fluent/money-24-regular';
+	import IconBag from '~icons/fluent/shopping-bag-24-regular';
+	import IconLocation from '~icons/fluent/location-24-regular';
+	import IconTimer from '~icons/fluent/timer-24-regular';
+	import IconCalendar from '~icons/fluent/calendar-24-regular';
 
 	import { env } from '$env/dynamic/public';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
@@ -134,15 +139,27 @@
 				isSubmitting = false;
 			};
 		}}
-		class="space-y-6"
+		class="mx-auto max-w-2xl space-y-6 pb-28"
 	>
 		<!-- Offer Image -->
-		<div class="card bg-base-200">
-			<div class="card-body">
-				<h2 class="card-title">Offer Image</h2>
-				<p class="mb-3 text-sm text-base-content/60">
-					Upload a photo of what customers can expect from this offer
-				</p>
+		<div class="card border border-base-300 bg-base-100 shadow-sm">
+			<div class="card-body gap-6">
+				<div class="flex items-start gap-3">
+					<div
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+					>
+						<IconCamera class="size-5" />
+					</div>
+					<div class="flex-1">
+						<div class="flex items-center justify-between gap-3">
+							<h2 class="text-base font-semibold">Offer Photo</h2>
+							<span class="badge badge-ghost badge-sm text-error">Required</span>
+						</div>
+						<p class="text-sm text-base-content/60">
+							Show customers what to expect from this offer
+						</p>
+					</div>
+				</div>
 
 				<div
 					class="relative"
@@ -168,21 +185,22 @@
 						type="button"
 						onclick={() => fileInput?.click()}
 						disabled={isSubmitting}
-						class="group relative w-full overflow-hidden rounded-lg border-2 border-dashed transition-all duration-200 active:scale-[0.98]"
+						class="group relative w-full overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-200 active:scale-[0.99]"
 						class:border-primary={dragActive}
+						class:bg-primary/5={dragActive}
 						class:border-base-300={!dragActive && !selectedImage}
 						class:border-success={selectedImage && !dragActive}
 						class:hover:border-primary={!isSubmitting}
-						class:hover:bg-base-100={!isSubmitting && !selectedImage}
+						class:hover:bg-base-200={!isSubmitting && !selectedImage}
 						class:opacity-50={isSubmitting}
-						class:input-error={form?.field === 'offerImage'}
+						class:border-error={form?.field === 'offerImage'}
 					>
 						{#if !selectedImage}
-							<div class="flex min-h-[200px] flex-col items-center justify-center gap-3 p-6">
+							<div class="flex min-h-[220px] flex-col items-center justify-center gap-4 p-6">
 								<div
-									class="rounded-full bg-base-100 p-4 transition-transform group-hover:scale-110"
+									class="rounded-2xl bg-base-200 p-4 transition-transform duration-200 group-hover:scale-110"
 								>
-									<IconCamera class="h-10 w-10 text-base-content/40" />
+									<IconCamera class="size-9 text-base-content/40" />
 								</div>
 								<div class="text-center">
 									<p class="text-base font-semibold text-base-content">
@@ -195,7 +213,9 @@
 										{/if}
 									</p>
 									{#if !isSubmitting}
-										<p class="mt-1 text-sm text-base-content/60">Images only • 5MB max</p>
+										<p class="mt-1 text-sm text-base-content/60">
+											Drag & drop or browse • JPG or PNG • 5MB max
+										</p>
 									{/if}
 								</div>
 							</div>
@@ -214,18 +234,25 @@
 										clearImage();
 									}}
 									disabled={isSubmitting}
-									class="btn absolute top-2 right-2 btn-circle btn-sm"
+									class="btn absolute top-3 right-3 btn-circle btn-sm"
+									aria-label="Remove image"
 								>
 									✕
 								</button>
 							</div>
-							<div class="border-t border-base-300 p-3">
-								<p class="truncate text-sm font-medium" title={selectedImage.name}>
-									{selectedImage.name}
-								</p>
-								<p class="text-xs text-base-content/60">
-									{Math.round(selectedImage.size / 1024)} KB
-								</p>
+							<div class="flex items-center gap-2 border-t border-base-300 p-3 text-left">
+								<div class="badge gap-1 badge-sm badge-success">
+									<IconCheck class="size-3" />
+									Ready
+								</div>
+								<div class="min-w-0 flex-1">
+									<p class="truncate text-sm font-medium" title={selectedImage.name}>
+										{selectedImage.name}
+									</p>
+									<p class="text-xs text-base-content/60">
+										{Math.round(selectedImage.size / 1024)} KB
+									</p>
+								</div>
 							</div>
 						{/if}
 					</button>
@@ -234,151 +261,195 @@
 		</div>
 
 		<!-- Basic Information -->
-		<div class="card bg-base-200">
-			<div class="card-body">
-				<h2 class="card-title">Basic Information</h2>
+		<div class="card border border-base-300 bg-base-100 shadow-sm">
+			<div class="card-body gap-6">
+				<div class="flex items-start gap-3">
+					<div
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+					>
+						<IconTag class="size-5" />
+					</div>
+					<div class="flex-1">
+						<h2 class="text-base font-semibold">Basic Information</h2>
+						<p class="text-sm text-base-content/60">Name and describe your offer</p>
+					</div>
+				</div>
 
 				<div class="form-control">
-					<label class="label" for="name">
-						<span class="label-text">Offer Name</span>
+					<label for="name" class="mb-1.5 flex items-center justify-between">
+						<span class="text-sm font-medium">Offer Name</span>
+						<span class="badge badge-ghost badge-sm text-error">Required</span>
 					</label>
 					<input
 						type="text"
 						id="name"
 						name="name"
 						bind:value={name}
-						class="input-bordered input"
+						class="input-bordered input w-full"
 						class:input-error={form?.field === 'name'}
 						placeholder="e.g., Surprise Pastry Bag, Fresh Produce Box"
 						required
 					/>
-					<label class="label">
-						<span class="label-text-alt text-base-content/60">
-							Give your offer an appealing name
-						</span>
-					</label>
+					<span class="mt-1 text-xs text-base-content/60">Give your offer an appealing name</span>
 				</div>
 
 				<div class="form-control">
-					<label class="label" for="description">
-						<span class="label-text">Description</span>
+					<label for="description" class="mb-1.5 flex items-center justify-between">
+						<span class="text-sm font-medium">Description</span>
+						<span class="badge badge-ghost badge-sm text-error">Required</span>
 					</label>
 					<textarea
 						id="description"
 						name="description"
 						bind:value={description}
-						class="textarea-bordered textarea h-24"
+						class="textarea-bordered textarea h-28 w-full resize-none"
 						class:textarea-error={form?.field === 'description'}
 						placeholder="Describe what customers can expect..."
 						required></textarea>
+					<span class="mt-1 text-xs text-base-content/60">{description.length} characters</span>
 				</div>
 			</div>
 		</div>
 
 		<!-- Pricing -->
-		<div class="card bg-base-200">
-			<div class="card-body">
-				<h2 class="card-title">Pricing</h2>
+		<div class="card border border-base-300 bg-base-100 shadow-sm">
+			<div class="card-body gap-6">
+				<div class="flex items-start gap-3">
+					<div
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+					>
+						<IconMoney class="size-5" />
+					</div>
+					<div class="flex-1">
+						<h2 class="text-base font-semibold">Pricing</h2>
+						<p class="text-sm text-base-content/60">Set the value and your discounted price</p>
+					</div>
+				</div>
 
 				<div class="grid gap-4 md:grid-cols-2">
 					<div class="form-control">
-						<label class="label" for="originalValue">
-							<span class="label-text">Value of the Goods in this surprise bag</span>
+						<label for="originalValue" class="mb-1.5 flex items-center justify-between">
+							<span class="text-sm font-medium">Value of goods</span>
+							<span class="badge badge-ghost badge-sm text-error">Required</span>
 						</label>
-						<input
-							type="number"
-							id="originalValue"
-							name="originalValue"
-							bind:value={originalValue}
-							class="input-bordered input"
+						<label
+							class="input-bordered input flex w-full items-center gap-2"
 							class:input-error={form?.field === 'originalValue'}
-							step="0.01"
-							min="0.01"
-							placeholder="0.00"
-							required
-						/>
+						>
+							<span class="text-sm text-base-content/50">{currency}</span>
+							<input
+								type="number"
+								id="originalValue"
+								name="originalValue"
+								bind:value={originalValue}
+								class="grow"
+								step="0.01"
+								min="0.01"
+								placeholder="0.00"
+								required
+							/>
+						</label>
 					</div>
 
 					<div class="form-control">
-						<label class="label" for="price">
-							<span class="label-text">Your Discounted Price</span>
+						<label for="price" class="mb-1.5 flex items-center justify-between">
+							<span class="text-sm font-medium">Your price</span>
+							<span class="badge badge-ghost badge-sm text-error">Required</span>
 						</label>
-						<input
-							type="number"
-							id="price"
-							name="price"
-							bind:value={price}
-							class="input-bordered input"
+						<label
+							class="input-bordered input flex w-full items-center gap-2"
 							class:input-error={form?.field === 'price'}
-							step="0.01"
-							min="0.01"
-							placeholder="0.00"
-							required
-						/>
+						>
+							<span class="text-sm text-base-content/50">{currency}</span>
+							<input
+								type="number"
+								id="price"
+								name="price"
+								bind:value={price}
+								class="grow"
+								step="0.01"
+								min="0.01"
+								placeholder="0.00"
+								required
+							/>
+						</label>
 					</div>
 				</div>
 
 				<!-- Payment Fee Info -->
 				{#if buyerTotal()}
-					<div class="alert alert-info">
-						<IconInfo class="size-6" />
-						<div class="flex-1">
-							<p class="font-semibold">Customer will pay: {buyerTotal()} {currency}</p>
-							<p class="mt-1 text-sm">
-								A {paymentFee.toFixed(2)}
-								{currency} platform fee is added to cover transaction costs and service development. This
-								fee is automatically added at checkout.
-							</p>
+					<div class="rounded-2xl border border-info/20 bg-info/5 p-4">
+						<div class="flex items-start gap-3">
+							<IconInfo class="size-5 shrink-0 text-info" />
+							<div class="flex-1 text-sm">
+								<p class="font-semibold">Customer will pay {buyerTotal()} {currency}</p>
+								<p class="mt-1 text-base-content/70">
+									A {paymentFee.toFixed(2)}
+									{currency} platform fee is added at checkout to cover transaction costs and service development.
+								</p>
+							</div>
 						</div>
 					</div>
 				{/if}
 
 				{#if savingsPercentage()}
-					<div class="stats bg-primary text-primary-content shadow">
-						<div class="stat">
-							<div class="stat-title text-primary-content/70">Customer Savings</div>
-							<div class="stat-value">{savingsPercentage()}%</div>
-							<div class="stat-desc text-primary-content/70">Off the original value</div>
+					<div
+						class="flex items-center justify-between rounded-2xl bg-primary p-4 text-primary-content"
+					>
+						<div>
+							<p class="text-sm font-medium text-primary-content/70">Customer savings</p>
+							<p class="text-xs text-primary-content/60">Off the original value</p>
 						</div>
+						<p class="text-3xl font-bold">{savingsPercentage()}%</p>
 					</div>
 				{/if}
 			</div>
 		</div>
 
 		<!-- Quantity & Location -->
-		<div class="card bg-base-200">
-			<div class="card-body">
-				<h2 class="card-title">Availability</h2>
+		<div class="card border border-base-300 bg-base-100 shadow-sm">
+			<div class="card-body gap-6">
+				<div class="flex items-start gap-3">
+					<div
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+					>
+						<IconBag class="size-5" />
+					</div>
+					<div class="flex-1">
+						<h2 class="text-base font-semibold">Availability</h2>
+						<p class="text-sm text-base-content/60">How many and where customers can pick up</p>
+					</div>
+				</div>
 
 				<div class="form-control">
-					<label class="label" for="quantity">
-						<span class="label-text">Quantity Available</span>
+					<label for="quantity" class="mb-1.5 flex items-center justify-between">
+						<span class="text-sm font-medium">Quantity available</span>
+						<span class="badge badge-ghost badge-sm text-error">Required</span>
 					</label>
 					<input
 						type="number"
 						id="quantity"
 						name="quantity"
 						bind:value={quantity}
-						class="input-bordered input"
+						class="input-bordered input w-full"
 						class:input-error={form?.field === 'quantity'}
 						min="1"
 						placeholder="1"
 						required
 					/>
-					<label class="label">
-						<span class="label-text-alt text-base-content/60"> How many units are available? </span>
-					</label>
+					<span class="mt-1 text-xs text-base-content/60">How many units are available?</span>
 				</div>
 
 				<div class="form-control">
-					<label class="label" for="locationId">
-						<span class="label-text">Location</span>
+					<label for="locationId" class="mb-1.5 flex items-center gap-2">
+						<IconLocation class="size-4 text-base-content/50" />
+						<span class="text-sm font-medium">Location</span>
 					</label>
 					<select
 						id="locationId"
 						name="locationId"
 						bind:value={locationId}
-						class="select-bordered select"
+						class="select-bordered select w-full"
 						class:select-error={form?.field === 'locationId'}
 					>
 						<option value="">All Locations</option>
@@ -388,125 +459,146 @@
 							</option>
 						{/each}
 					</select>
-					<label class="label">
-						<span class="label-text-alt text-base-content/60">
-							Select a specific location or leave as "All Locations"
-						</span>
-					</label>
+					<span class="mt-1 text-xs text-base-content/60">
+						Select a specific location or leave as "All Locations"
+					</span>
 				</div>
 			</div>
 		</div>
 
 		<!-- Pickup Times -->
-		<div class="card bg-base-200">
-			<div class="card-body">
-				<h2 class="card-title">Pickup Times</h2>
+		<div class="card border border-base-300 bg-base-100 shadow-sm">
+			<div class="card-body gap-6">
+				<div class="flex items-start gap-3">
+					<div
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+					>
+						<IconTimer class="size-5" />
+					</div>
+					<div class="flex-1">
+						<h2 class="text-base font-semibold">Pickup Times</h2>
+						<p class="text-sm text-base-content/60">Minimum 30-minute pickup window required</p>
+					</div>
+				</div>
 
 				<div class="grid gap-4 md:grid-cols-2">
 					<div class="form-control">
-						<label class="label" for="pickupTimeFrom">
-							<span class="label-text">Pickup From</span>
+						<label for="pickupTimeFrom" class="mb-1.5 flex items-center justify-between">
+							<span class="text-sm font-medium">Pickup from</span>
+							<span class="badge badge-ghost badge-sm text-error">Required</span>
 						</label>
 						<input
 							type="time"
 							id="pickupTimeFrom"
 							name="pickupTimeFrom"
 							bind:value={pickupTimeFrom}
-							class="input-bordered input"
+							class="input-bordered input w-full"
 							class:input-error={form?.field === 'pickupTimeFrom'}
 							required
 						/>
 					</div>
 
 					<div class="form-control">
-						<label class="label" for="pickupTimeUntil">
-							<span class="label-text">Pickup Until</span>
+						<label for="pickupTimeUntil" class="mb-1.5 flex items-center justify-between">
+							<span class="text-sm font-medium">Pickup until</span>
+							<span class="badge badge-ghost badge-sm text-error">Required</span>
 						</label>
 						<input
 							type="time"
 							id="pickupTimeUntil"
 							name="pickupTimeUntil"
 							bind:value={pickupTimeUntil}
-							class="input-bordered input"
+							class="input-bordered input w-full"
 							class:input-error={form?.field === 'pickupTimeUntil'}
 							required
 						/>
 					</div>
 				</div>
-
-				<label class="label">
-					<span class="label-text-alt text-base-content/60">
-						Minimum 30-minute pickup window required
-					</span>
-				</label>
 			</div>
 		</div>
 
 		<!-- Recurring & Expiration -->
-		<div class="card bg-base-200">
-			<div class="card-body">
-				<h2 class="card-title">Schedule</h2>
-
-				<div class="form-control">
-					<label class="label cursor-pointer justify-start gap-4">
-						<input
-							type="checkbox"
-							name="isRecurring"
-							bind:checked={isRecurring}
-							class="checkbox checkbox-primary"
-						/>
-						<div>
-							<span class="label-text font-semibold">Recurring Daily Offer</span>
-							<p class="text-sm text-base-content/60">
-								Offer repeats every day with the same pickup times
-							</p>
-						</div>
-					</label>
+		<div class="card border border-base-300 bg-base-100 shadow-sm">
+			<div class="card-body gap-6">
+				<div class="flex items-start gap-3">
+					<div
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+					>
+						<IconCalendar class="size-5" />
+					</div>
+					<div class="flex-1">
+						<h2 class="text-base font-semibold">Schedule</h2>
+						<p class="text-sm text-base-content/60">Set whether this offer repeats</p>
+					</div>
 				</div>
+
+				<label
+					class="flex cursor-pointer items-start gap-4 rounded-2xl border-2 p-4 transition-all duration-200 {isRecurring
+						? 'border-primary bg-primary/5'
+						: 'border-base-300'}"
+				>
+					<input
+						type="checkbox"
+						name="isRecurring"
+						bind:checked={isRecurring}
+						class="checkbox mt-0.5 shrink-0 checkbox-primary"
+					/>
+					<div>
+						<span class="font-semibold">Recurring Daily Offer</span>
+						<p class="text-sm text-base-content/60">
+							Offer repeats every day with the same pickup times
+						</p>
+					</div>
+				</label>
 				<!-- todo: rethink validUntil, recurring and quantity-->
 
 				{#if isRecurring}
 					<div class="form-control">
-						<label class="label" for="validUntil">
-							<span class="label-text">Valid Until (Optional)</span>
+						<label for="validUntil" class="mb-1.5 flex items-center gap-2">
+							<span class="text-sm font-medium">Valid until</span>
+							<span class="badge badge-ghost badge-sm">Optional</span>
 						</label>
 						<input
 							type="date"
 							id="validUntil"
 							name="validUntil"
 							bind:value={validUntil}
-							class="input-bordered input"
+							class="input-bordered input w-full"
 							class:input-error={form?.field === 'validUntil'}
 						/>
-						<label class="label">
-							<span class="label-text-alt text-base-content/60">
-								Leave empty to default to tomorrow
-							</span>
-						</label>
+						<span class="mt-1 text-xs text-base-content/60">Leave empty to default to tomorrow</span>
 					</div>
 				{/if}
 			</div>
 		</div>
 
 		{#if form?.message}
-			<div class="mb-4 alert alert-error">
-				<IconInfo class="size-6" />
-				<span>{form.message}</span>
+			<div class="alert alert-error shadow-sm">
+				<IconInfo class="size-5 shrink-0" />
+				<span class="text-sm">{form.message}</span>
 			</div>
 		{/if}
 
-		<!-- Actions -->
-		<div class="flex justify-end gap-4">
-			<a href="/offers" class="btn btn-ghost">Cancel</a>
-			<button type="submit" class="btn btn-primary" disabled={isSubmitting || !selectedImage}>
-				{#if isSubmitting}
-					<span class="loading loading-md loading-spinner"></span>
-					Creating...
-				{:else}
-					<IconSave class="size-5" />
-					Create Offer
-				{/if}
-			</button>
+		<!-- Sticky Action Bar -->
+		<div
+			class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100/95 p-4 backdrop-blur md:ps-58"
+		>
+			<div class="mx-auto flex max-w-2xl gap-3">
+				<a href="/offers" class="btn flex-1 btn-ghost" class:btn-disabled={isSubmitting}>Cancel</a>
+				<button
+					type="submit"
+					class="btn flex-[2] gap-2 btn-primary"
+					disabled={isSubmitting || !selectedImage}
+				>
+					{#if isSubmitting}
+						<span class="loading loading-sm loading-spinner"></span>
+						Creating...
+					{:else}
+						<IconCheck class="size-5" />
+						Create Offer
+					{/if}
+				</button>
+			</div>
 		</div>
 	</form>
 </BaseLayout>

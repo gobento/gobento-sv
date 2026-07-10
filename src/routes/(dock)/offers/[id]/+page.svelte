@@ -2,18 +2,30 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import IconStore from '~icons/fluent/building-retail-24-regular';
-	import IconCancel from '~icons/fluent/dismiss-circle-24-regular';
 	import IconFluentArrowRight24Filled from '~icons/fluent/arrow-right-24-filled';
+
+	import IconWarning from '~icons/fluent/warning-24-regular';
 
 	import OfferStatusCard from './OfferStatusCard.svelte';
 	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
 	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
 	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 	import LocationCard from '$lib/components/maps/LocationCard.svelte';
+	import ComplaintModal from '$lib/components/ComplaintModal.svelte';
 	import { formatPrice } from '$lib/util';
 	import { SvelteDate } from 'svelte/reactivity';
 
 	let { data, form } = $props();
+
+	let complaintOpen = $state(false);
+	const complaintResult = $derived(form && 'complaint' in form ? form.complaint : null);
+
+	// Re-open the modal to show the result after a complaint submission
+	$effect(() => {
+		if (complaintResult) {
+			complaintOpen = true;
+		}
+	});
 
 	let pickupDate = $state(new Date().toISOString().slice(0, 10));
 	let minDate = $state('');
@@ -206,18 +218,6 @@
 	</div>
 {/if}
 
-<!-- Error Message -->
-{#if form?.error}
-	<div
-		class="mx-6 my-2 rounded-lg border border-error bg-linear-to-br from-error/10 to-error/5 p-4"
-	>
-		<div class="flex items-center gap-2">
-			<IconCancel class="size-5 text-error" />
-			<span class="font-medium text-error">{form.error}</span>
-		</div>
-	</div>
-{/if}
-
 <div class="px-6 pt-6">
 	<!-- Status Card -->
 	<OfferStatusCard
@@ -235,3 +235,24 @@
 		onDelete={handleDelete}
 	/>
 </div>
+
+{#if data.isUser}
+	<div class="px-6 pt-6 pb-2">
+		<button
+			type="button"
+			class="btn w-full gap-2 btn-ghost text-base-content/60 btn-sm"
+			onclick={() => (complaintOpen = true)}
+		>
+			<IconWarning class="size-5" />
+			Report a problem with this offer
+		</button>
+	</div>
+
+	<ComplaintModal
+		bind:open={complaintOpen}
+		targetType="offer"
+		targetName={data.offer.name}
+		location={data.location}
+		result={complaintResult}
+	/>
+{/if}

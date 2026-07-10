@@ -225,35 +225,48 @@
 							<span class="badge badge-ghost badge-sm text-error">Required</span>
 						</div>
 
+						<input
+							id="profilePicture"
+							type="file"
+							name="profilePicture"
+							accept="image/*"
+							class="hidden"
+							onchange={handleFileSelect}
+							disabled={saving}
+						/>
+
 						<div class="flex items-center gap-6">
-							{#if previewUrl}
-								<div class="avatar">
-									<div
-										class="w-24 rounded-2xl ring ring-base-300 ring-offset-2 ring-offset-base-100"
-									>
-										<img src={previewUrl} alt="Preview" />
+							<label
+								for="profilePicture"
+								class="group relative shrink-0 cursor-pointer"
+								class:pointer-events-none={saving}
+							>
+								{#if previewUrl}
+									<div class="avatar">
+										<div
+											class="w-24 rounded-2xl ring ring-base-300 ring-offset-2 ring-offset-base-100 transition group-hover:ring-primary"
+										>
+											<img src={previewUrl} alt="Preview" />
+										</div>
 									</div>
-								</div>
-							{:else}
+								{:else}
+									<div
+										class="flex size-24 items-center justify-center rounded-2xl bg-base-200 ring ring-base-300 ring-offset-2 ring-offset-base-100 transition group-hover:ring-primary"
+									>
+										<IconImage class="size-10 opacity-30" />
+									</div>
+								{/if}
 								<div
-									class="flex size-24 items-center justify-center rounded-2xl bg-base-200 ring ring-base-300 ring-offset-2 ring-offset-base-100"
+									class="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
 								>
-									<IconImage class="size-10 opacity-30" />
+									<IconUpload class="size-7 text-white" />
 								</div>
-							{/if}
+							</label>
 
 							<div class="flex flex-col gap-2">
-								<label class="btn gap-2 btn-outline btn-sm">
+								<label for="profilePicture" class="btn gap-2 btn-outline btn-sm">
 									<IconUpload class="size-4" />
 									{selectedFile ? 'Change Picture' : 'Upload Picture'}
-									<input
-										type="file"
-										name="profilePicture"
-										accept="image/*"
-										class="hidden"
-										onchange={handleFileSelect}
-										disabled={saving}
-									/>
 								</label>
 
 								{#if selectedFile}

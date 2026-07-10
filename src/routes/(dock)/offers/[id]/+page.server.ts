@@ -1,6 +1,6 @@
 // src/routes/(dock)/offers/[id]/+page.server.ts
-import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import { error, fail } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import {
 	businessOffers,
@@ -9,11 +9,16 @@ import {
 	files,
 	accounts,
 	reservations,
-	businessWallets
+	businessWallets,
+	complaints
 } from '$lib/server/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { priceWithMargin } from '$lib/server/payments/currency';
+import { randomUUID } from 'crypto';
+import * as v from 'valibot';
+import { complaintSchema, COMPLAINT_CATEGORY_LABELS } from '$lib/complaints';
+import { notifyComplaint } from '$lib/server/notifications';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
@@ -155,4 +160,66 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	console.log('result', result);
 	return result;
-};
+	};
+
+	export const actions: Actions = {
+	submitComplaint: async ({ params, locals, request }) => {
+		const account = locals.account!;
+
+		if (account.accountType !== 'user') {
+			return fail(403, { complaint: { error: 'Only users can report a problem' } });
+		}
+
+		const formData = await request.formData();
+		const parsed = v.safeParse(complaintSchema, {
+			category: formData.get('category'),
+			message: formData.get('message')
+		});
+
+		if (!parsed.success) {
+			return fail(400, {
+				complaint: { error: parsed.issues[0]?.message ?? 'Please check your input and try again' }
+			});
+		}
+
+		const [offer] = await db
+			.select({
+				id: businessOffers.id,
+				name: businessOffers.name,
+				businessAccountId: businessOffers.businessAccountId,
+				locationId: businessOffers.locationId
+			})
+			.from(businessOffers)
+			.where(eq(businessOffers.id, params.id))
+			.limit(1);
+
+		if (!offer) {
+			return fail(404, { complaint: { error: 'Offer not found' } });
+		}
+
+		try {
+			await db.insert(complaints).values({
+				id: randomUUID(),
+				reporterAccountId: account.id,
+				businessAccountId: offer.businessAccountId,
+				targetType: 'offer',
+				offerId: offer.id,
+				locationId: offer.locationId,
+				category: parsed.output.category,
+				message: parsed.output.message
+			});
+
+			await notifyComplaint({
+				businessAccountId: offer.businessAccountId,
+				targetType: 'offer',
+				targetName: offer.name,
+				categoryLabel: COMPLAINT_CATEGORY_LABELS[parsed.output.category]
+			});
+
+			return { complaint: { success: true } };
+		} catch (err) {
+			console.error('Error submitting complaint:', err);
+			return fail(500, { complaint: { error: 'Failed to submit complaint. Please try again.' } });
+		}
+	}
+	};

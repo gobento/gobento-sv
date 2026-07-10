@@ -10,9 +10,17 @@
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconBox from '~icons/fluent/box-24-regular';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
+	import IconWarning from '~icons/fluent/warning-24-regular';
+	import IconPeople from '~icons/fluent/people-24-regular';
+	import IconFilterDismiss from '~icons/fluent/filter-dismiss-24-regular';
+
+	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	import { formatDate, formatTime } from '$lib/util';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import Modal from '$lib/components/Modal.svelte';
 	import NotFound from '$lib/components/NotFound.svelte';
 	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
 	import { useImagePreloader, extractImageUrls } from '$lib/utils/imagePreloader.svelte';
@@ -27,7 +35,47 @@
 	// Separate offers by location type
 	const allLocationOffers = $derived(data.offers.filter((o) => o.locationId === null));
 	const specificLocationOffers = $derived(data.offers.filter((o) => o.locationId !== null));
-	const activeCount = $derived(data.offers.filter((o) => o.isActive).length);
+
+	// Whether any filter deviates from the default view
+	const hasActiveFilters = $derived(
+		data.filters.status !== 'all' ||
+			data.filters.recurring !== 'all' ||
+			data.filters.sort !== 'newest' ||
+			data.filters.minAmount !== null ||
+			data.filters.maxAmount !== null
+	);
+
+	// Update a single filter and reflect it in the URL (server re-runs the query)
+	function updateFilter(key: string, value: string) {
+		const params = new URLSearchParams(page.url.searchParams);
+		if (value === '' || value === 'all' || (key === 'sort' && value === 'newest')) {
+			params.delete(key);
+		} else {
+			params.set(key, value);
+		}
+		goto(`?${params.toString()}`, { replaceState: true, keepFocus: true, noScroll: true });
+	}
+
+	function clearFilters() {
+		goto('?', { replaceState: true, keepFocus: true, noScroll: true });
+	}
+
+	// Delete modal state
+	let offerToDelete = $state<Offer | null>(null);
+	let showDeleteModal = $state(false);
+	let deleting = $state(false);
+
+	function requestDelete(offer: Offer) {
+		offerToDelete = offer;
+		showDeleteModal = true;
+	}
+
+	// Clear the selected offer once the modal is fully closed
+	$effect(() => {
+		if (!showDeleteModal) {
+			offerToDelete = null;
+		}
+	});
 </script>
 
 {#snippet offerCard(offer: Offer)}
@@ -60,6 +108,16 @@
 					<span class="badge border-none badge-sm badge-neutral shadow">Inactive</span>
 				{/if}
 			</div>
+
+			<!-- Reserved badge -->
+			{#if offer.reservedCount > 0}
+				<div class="absolute top-3 right-3">
+					<span class="badge gap-1 border-none badge-sm badge-warning shadow">
+						<IconPeople class="size-3" />
+						{offer.reservedCount} reserved
+					</span>
+				</div>
+			{/if}
 		</div>
 
 		<!-- Body -->
@@ -127,8 +185,11 @@
 					View details
 					<IconArrowRight class="size-4" />
 				</a>
-				<!-- todo: also make sure that an offer can only be deleted if it's not reserved. also fix this on the server side -->
-				<button class="btn btn-square btn-outline btn-sm btn-error" aria-label="Delete offer">
+				<button
+					class="btn btn-square btn-outline btn-sm btn-error"
+					aria-label="Delete offer"
+					onclick={() => requestDelete(offer)}
+				>
 					<IconDelete class="size-4" />
 				</button>
 			</div>
@@ -141,7 +202,7 @@
 	description="Manage your special offers and promotions"
 	icon={IconTag}
 >
-	{#if data.offers.length === 0}
+	{#if data.stats.total === 0}
 		<NotFound
 			icon={IconTag}
 			title="No offers yet"
@@ -156,15 +217,15 @@
 			<div class="flex flex-wrap gap-3">
 				<div class="rounded-xl border border-base-300 bg-base-100 px-4 py-2">
 					<div class="text-xs text-base-content/50">Total offers</div>
-					<div class="text-xl font-bold">{data.offers.length}</div>
+					<div class="text-xl font-bold">{data.stats.total}</div>
 				</div>
 				<div class="rounded-xl border border-base-300 bg-base-100 px-4 py-2">
 					<div class="text-xs text-base-content/50">Active</div>
-					<div class="text-xl font-bold text-success">{activeCount}</div>
+					<div class="text-xl font-bold text-success">{data.stats.active}</div>
 				</div>
 				<div class="rounded-xl border border-base-300 bg-base-100 px-4 py-2">
 					<div class="text-xs text-base-content/50">All locations</div>
-					<div class="text-xl font-bold text-secondary">{allLocationOffers.length}</div>
+					<div class="text-xl font-bold text-secondary">{data.stats.allLocations}</div>
 				</div>
 			</div>
 			<a href="/offers/new" class="btn gap-2 btn-primary">
@@ -173,36 +234,186 @@
 			</a>
 		</div>
 
-		<!-- All Locations Offers -->
-		{#if allLocationOffers.length > 0}
-			<section class="mb-10">
-				<div class="mb-4 flex items-center gap-2">
-					<IconGlobe class="size-5 text-secondary" />
-					<h2 class="text-lg font-semibold">All Locations</h2>
-					<span class="badge badge-sm badge-secondary">{allLocationOffers.length}</span>
-				</div>
-				<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					{#each allLocationOffers as offer (offer.id)}
-						{@render offerCard(offer)}
-					{/each}
-				</div>
-			</section>
-		{/if}
+		<!-- Filter bar -->
+		<div class="mb-8 rounded-2xl border border-base-300 bg-base-100 p-4">
+			<div class="flex flex-wrap items-end gap-4">
+				<!-- Status -->
+				<label class="form-control">
+					<span class="label-text mb-1 text-xs text-base-content/60">Status</span>
+					<select
+						class="select-bordered select select-sm"
+						value={data.filters.status}
+						onchange={(e) => updateFilter('status', e.currentTarget.value)}
+					>
+						<option value="all">All</option>
+						<option value="active">Active</option>
+						<option value="inactive">Inactive</option>
+					</select>
+				</label>
 
-		<!-- Location-Specific Offers -->
-		{#if specificLocationOffers.length > 0}
-			<section>
-				<div class="mb-4 flex items-center gap-2">
-					<IconLocation class="size-5 text-info" />
-					<h2 class="text-lg font-semibold">Location-Specific Offers</h2>
-					<span class="badge badge-sm badge-info">{specificLocationOffers.length}</span>
-				</div>
-				<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					{#each specificLocationOffers as offer (offer.id)}
-						{@render offerCard(offer)}
-					{/each}
-				</div>
-			</section>
+				<!-- Recurring -->
+				<label class="form-control">
+					<span class="label-text mb-1 text-xs text-base-content/60">Type</span>
+					<select
+						class="select-bordered select select-sm"
+						value={data.filters.recurring}
+						onchange={(e) => updateFilter('recurring', e.currentTarget.value)}
+					>
+						<option value="all">All</option>
+						<option value="recurring">Recurring</option>
+						<option value="onetime">One-time</option>
+					</select>
+				</label>
+
+				<!-- Sort by price -->
+				<label class="form-control">
+					<span class="label-text mb-1 text-xs text-base-content/60">Sort by</span>
+					<select
+						class="select-bordered select select-sm"
+						value={data.filters.sort}
+						onchange={(e) => updateFilter('sort', e.currentTarget.value)}
+					>
+						<option value="newest">Newest</option>
+						<option value="price_asc">Price: low to high</option>
+						<option value="price_desc">Price: high to low</option>
+					</select>
+				</label>
+
+				<!-- Amount range -->
+				<label class="form-control">
+					<span class="label-text mb-1 text-xs text-base-content/60">Min amount</span>
+					<input
+						type="number"
+						min="0"
+						placeholder="0"
+						class="input-bordered input input-sm w-24"
+						value={data.filters.minAmount ?? ''}
+						onchange={(e) => updateFilter('minAmount', e.currentTarget.value)}
+					/>
+				</label>
+				<label class="form-control">
+					<span class="label-text mb-1 text-xs text-base-content/60">Max amount</span>
+					<input
+						type="number"
+						min="0"
+						placeholder="∞"
+						class="input-bordered input input-sm w-24"
+						value={data.filters.maxAmount ?? ''}
+						onchange={(e) => updateFilter('maxAmount', e.currentTarget.value)}
+					/>
+				</label>
+
+				{#if hasActiveFilters}
+					<button class="btn gap-1 btn-ghost btn-sm" onclick={clearFilters}>
+						<IconFilterDismiss class="size-4" />
+						Clear
+					</button>
+				{/if}
+			</div>
+		</div>
+
+		{#if data.offers.length === 0}
+			<NotFound
+				icon={IconTag}
+				title="No offers match your filters"
+				description="Try adjusting or clearing the filters to see more offers."
+				actionLabel="Clear filters"
+				actionHref="?"
+				actionIcon={IconFilterDismiss}
+			/>
+		{:else}
+			<!-- All Locations Offers -->
+			{#if allLocationOffers.length > 0}
+				<section class="mb-10">
+					<div class="mb-4 flex items-center gap-2">
+						<IconGlobe class="size-5 text-secondary" />
+						<h2 class="text-lg font-semibold">All Locations</h2>
+						<span class="badge badge-sm badge-secondary">{allLocationOffers.length}</span>
+					</div>
+					<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+						{#each allLocationOffers as offer (offer.id)}
+							{@render offerCard(offer)}
+						{/each}
+					</div>
+				</section>
+			{/if}
+
+			<!-- Location-Specific Offers -->
+			{#if specificLocationOffers.length > 0}
+				<section>
+					<div class="mb-4 flex items-center gap-2">
+						<IconLocation class="size-5 text-info" />
+						<h2 class="text-lg font-semibold">Location-Specific Offers</h2>
+						<span class="badge badge-sm badge-info">{specificLocationOffers.length}</span>
+					</div>
+					<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+						{#each specificLocationOffers as offer (offer.id)}
+							{@render offerCard(offer)}
+						{/each}
+					</div>
+				</section>
+			{/if}
 		{/if}
 	{/if}
 </BaseLayout>
+
+<!-- Delete confirmation modal -->
+{#if offerToDelete}
+	<Modal bind:open={showDeleteModal} title="Delete offer" size="small">
+		<div class="space-y-4">
+			<p class="text-sm text-base-content/70">
+				Are you sure you want to delete <span class="font-semibold">{offerToDelete.name}</span>?
+				This action cannot be undone.
+			</p>
+
+			{#if offerToDelete.reservedCount > 0}
+				<div class="alert items-start gap-2 alert-warning">
+					<IconWarning class="mt-0.5 size-5 shrink-0" />
+					<div class="text-sm">
+						<span class="font-semibold">
+							{offerToDelete.reservedCount}
+							{offerToDelete.reservedCount === 1 ? 'person has' : 'people have'} reserved this offer.
+						</span>
+						<span>
+							Deleting it will cancel {offerToDelete.reservedCount === 1
+								? 'their reservation'
+								: 'their reservations'}.
+						</span>
+					</div>
+				</div>
+			{/if}
+
+			<form
+				method="POST"
+				action="?/deleteOffer"
+				use:enhance={() => {
+					deleting = true;
+					return async ({ update }) => {
+						await update();
+						deleting = false;
+						showDeleteModal = false;
+					};
+				}}
+				class="flex justify-end gap-2 pt-2"
+			>
+				<input type="hidden" name="offerId" value={offerToDelete.id} />
+				<button
+					type="button"
+					class="btn btn-ghost btn-sm"
+					disabled={deleting}
+					onclick={() => (showDeleteModal = false)}
+				>
+					Cancel
+				</button>
+				<button type="submit" class="btn gap-1 btn-error btn-sm" disabled={deleting}>
+					{#if deleting}
+						<span class="loading loading-xs loading-spinner"></span>
+					{:else}
+						<IconDelete class="size-4" />
+					{/if}
+					Delete offer
+				</button>
+			</form>
+		</div>
+	</Modal>
+{/if}

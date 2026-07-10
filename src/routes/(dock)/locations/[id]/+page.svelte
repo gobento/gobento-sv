@@ -5,18 +5,35 @@
 	import IconTag from '~icons/fluent/tag-24-regular';
 	import IconAdd from '~icons/fluent/add-24-regular';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
-	import IconMapPin from '~icons/fluent/location-24-regular';
 	import IconHeart from '~icons/fluent/heart-24-regular';
 	import IconHeartFilled from '~icons/fluent/heart-24-filled';
+	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
+	import IconClock from '~icons/fluent/clock-24-regular';
+	import IconBox from '~icons/fluent/box-24-regular';
+	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
+	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
+	import IconWarning from '~icons/fluent/warning-24-regular';
 	import LocationCard from '$lib/components/maps/LocationCard.svelte';
 	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
 	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
+	import ComplaintModal from '$lib/components/ComplaintModal.svelte';
+	import { formatDate, formatTime, formatPrice } from '$lib/util';
 
 	let { data, form } = $props();
 
 	// State for favorite - initialize from server data
 	let isFavorite = $state(data.isFavorite ?? false);
 	let isTogglingFavorite = $state(false);
+
+	let complaintOpen = $state(false);
+	const complaintResult = $derived(form && 'complaint' in form ? form.complaint : null);
+
+	// Re-open the modal to show the result after a complaint submission
+	$effect(() => {
+		if (complaintResult) {
+			complaintOpen = true;
+		}
+	});
 
 	// Construct full URL for og:url
 	const baseUrl = 'https://yourapp.com'; // Replace with your actual domain
@@ -79,6 +96,18 @@
 				>
 					<IconEdit class="size-6" />
 				</a>
+			{/if}
+
+			<!-- Report Problem Button -->
+			{#if data.isUser}
+				<button
+					type="button"
+					onclick={() => (complaintOpen = true)}
+					class="btn btn-circle border-0 bg-base-100/90 hover:bg-base-100"
+					aria-label="Report a problem with this location"
+				>
+					<IconWarning class="size-6" />
+				</button>
 			{/if}
 
 			<!-- Favorite Button -->
@@ -198,47 +227,108 @@
 		</div>
 	{:else}
 		<!-- Offers Grid -->
-		<div class="grid gap-5">
-			{#each data.offers as offer}
-				<div
-					class="card border border-base-300 bg-base-100 transition-colors duration-200 hover:border-primary/50"
-				>
-					<div class="card-body p-6">
-						<div class="flex items-start justify-between gap-6">
-							<div class="min-w-0 flex-1">
-								<div class="mb-3 flex items-center gap-3">
-									<h3 class="text-xl font-bold">{offer.name}</h3>
-									{#if offer.isActive}
-										<span class="badge badge-sm badge-success">Active</span>
-									{:else}
-										<span class="badge badge-ghost badge-sm">Inactive</span>
-									{/if}
-								</div>
-								<p class="mb-4 leading-relaxed text-base-content/70">{offer.description}</p>
-								<div class="flex items-center gap-6">
-									<div class="text-xl font-bold text-primary">
-										{new Intl.NumberFormat('en-US', {
-											style: 'currency',
-											currency: offer.currency
-										}).format(offer.price)}
-									</div>
-									<span class="text-sm font-medium text-base-content/50">
-										Created {new Date(offer.createdAt).toLocaleDateString('en-US', {
-											month: 'short',
-											day: 'numeric',
-											year: 'numeric'
-										})}
-									</span>
-								</div>
-							</div>
-							<a href="/offers/{offer.id}" class="btn gap-2 btn-outline btn-sm">
-								View Details
-								<span class="text-lg">→</span>
-							</a>
-						</div>
-					</div>
-				</div>
+		<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+			{#each data.offers as offer (offer.id)}
+				{@render offerCard(offer)}
 			{/each}
 		</div>
 	{/if}
 </div>
+
+{#snippet offerCard(offer: (typeof data.offers)[number])}
+	<a
+		href="/offers/{offer.id}"
+		class="group flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg {offer.isActive
+			? ''
+			: 'opacity-70'}"
+	>
+		<!-- Image header -->
+		<div class="relative h-44 w-full overflow-hidden">
+			<OptimizedLocationImage
+				src={offer.imageUrl ?? ''}
+				alt={offer.name}
+				class="h-full w-full transition-transform duration-300 group-hover:scale-105"
+			/>
+			<div class="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent"></div>
+
+			<!-- Status badge -->
+			<div class="absolute top-3 left-3">
+				{#if offer.isActive}
+					<span class="badge gap-1 border-none badge-sm badge-success shadow">
+						<IconCheckmark class="size-3" />
+						{#if offer.validUntil}
+							Active until {formatDate(offer.validUntil)}
+						{:else}
+							Active
+						{/if}
+					</span>
+				{:else}
+					<span class="badge border-none badge-sm badge-neutral shadow">Inactive</span>
+				{/if}
+			</div>
+
+			<!-- Recurring badge -->
+			{#if offer.isRecurring}
+				<div class="absolute top-3 right-3">
+					<span class="badge gap-1 border-none badge-sm badge-info shadow">
+						<IconRepeat class="size-3" />
+						Recurring
+					</span>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Body -->
+		<div class="flex flex-1 flex-col p-5">
+			<h3 class="leading-tight font-semibold">{offer.name}</h3>
+			<p class="mt-1 line-clamp-2 text-sm text-base-content/60">{offer.description}</p>
+
+			<!-- Price -->
+			<div class="mt-4 flex items-baseline gap-2">
+				<span class="text-2xl font-bold text-success">
+					{formatPrice(offer.price, offer.currency)}
+				</span>
+				{#if offer.originalValue && offer.originalValue > offer.price}
+					<span class="text-sm text-base-content/40 line-through">
+						{formatPrice(offer.originalValue, offer.currency)}
+					</span>
+				{/if}
+			</div>
+
+			<!-- Details -->
+			<div class="mt-4 grid grid-cols-1 gap-2 text-xs text-base-content/60">
+				{#if offer.pickupTimeFrom && offer.pickupTimeUntil}
+					<div class="flex items-center gap-2">
+						<IconClock class="size-4 shrink-0 text-base-content/40" />
+						<span
+							>Pickup {formatTime(offer.pickupTimeFrom)} – {formatTime(offer.pickupTimeUntil)}</span
+						>
+					</div>
+				{/if}
+				{#if offer.quantity}
+					<div class="flex items-center gap-2">
+						<IconBox class="size-4 shrink-0 text-base-content/40" />
+						<span>{offer.quantity} available</span>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Footer -->
+			<div
+				class="mt-5 flex items-center justify-between border-t border-base-200 pt-4 text-sm font-medium text-primary"
+			>
+				<span>View details</span>
+				<IconArrowRight class="size-4 transition-transform group-hover:translate-x-1" />
+			</div>
+		</div>
+	</a>
+{/snippet}
+
+{#if data.isUser}
+	<ComplaintModal
+		bind:open={complaintOpen}
+		targetType="location"
+		targetName={data.location.name}
+		result={complaintResult}
+	/>
+{/if}

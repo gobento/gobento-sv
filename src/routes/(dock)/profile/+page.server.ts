@@ -8,9 +8,14 @@ import {
 	charityProfiles,
 	userProfiles,
 	files,
-	businessWallets
+	businessWallets,
+	reservations,
+	businessOffers
 } from '$lib/server/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, inArray, sql } from 'drizzle-orm';
+
+// Approximate environmental impact per rescued meal (kept in sync with /impact)
+const CO2_PER_MEAL = 1.25; // kg
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -27,6 +32,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	let profile = null;
 	let profilePictureUrl = null;
 	let wallet = null;
+	let userImpact = null;
 
 	// Load profile data based on account type
 	if (accountType === 'business') {
@@ -93,6 +99,49 @@ export const load: PageServerLoad = async ({ locals }) => {
 		if (userResult[0]) {
 			profile = userResult[0];
 		}
+
+		// Compact impact summary from claimed reservations
+		const claimed = await db
+			.select({
+				originalValue: businessOffers.originalValue,
+				price: businessOffers.price,
+				currency: businessOffers.currency
+			})
+			.from(reservations)
+			.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
+			.where(
+				and(eq(reservations.userAccountId, accountId), eq(reservations.status, 'claimed'))
+			);
+
+		const mealsRescued = claimed.length;
+		const moneySaved = claimed.reduce((sum, r) => sum + (r.originalValue - r.price), 0);
+
+		// Receipts are available for claimed/completed reservations; active ones are upcoming pickups
+		const receiptCountResult = await db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(reservations)
+			.where(
+				and(
+					eq(reservations.userAccountId, accountId),
+					inArray(reservations.status, ['claimed', 'completed'])
+				)
+			);
+
+		const activeCountResult = await db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(reservations)
+			.where(
+				and(eq(reservations.userAccountId, accountId), eq(reservations.status, 'active'))
+			);
+
+		userImpact = {
+			mealsRescued,
+			moneySaved: Math.round(moneySaved * 100) / 100,
+			co2Saved: Math.round(mealsRescued * CO2_PER_MEAL * 10) / 10,
+			currency: claimed[0]?.currency || 'EUR',
+			receiptCount: receiptCountResult[0]?.count ?? 0,
+			activeReservations: activeCountResult[0]?.count ?? 0
+		};
 	}
 	// Admin accounts don't have additional profile data
 
@@ -100,6 +149,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		account,
 		profile,
 		profilePictureUrl,
-		wallet
+		wallet,
+		userImpact
 	};
 };

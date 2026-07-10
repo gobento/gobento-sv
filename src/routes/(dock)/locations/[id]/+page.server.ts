@@ -7,13 +7,17 @@ import {
 	files,
 	businessProfiles,
 	accounts,
-	pushSubscriptions
+	pushSubscriptions,
+	complaints
 } from '$lib/server/schema';
 import { eq, and } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
 import { randomUUID } from 'crypto';
+import * as v from 'valibot';
+import { complaintSchema, COMPLAINT_CATEGORY_LABELS } from '$lib/complaints';
+import { notifyComplaint } from '$lib/server/notifications';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;
@@ -55,12 +59,36 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const image = await db.select().from(files).where(eq(files.id, location.imageId)).limit(1);
 	const locationImage = { ...image[0], url: await getSignedDownloadUrl(image[0].key) };
 
-	// Fetch offers for this location
-	const offers = await db
-		.select()
+	// Fetch offers for this location (with their image keys)
+	const offerRows = await db
+		.select({
+			id: businessOffers.id,
+			name: businessOffers.name,
+			description: businessOffers.description,
+			originalValue: businessOffers.originalValue,
+			price: businessOffers.price,
+			currency: businessOffers.currency,
+			isActive: businessOffers.isActive,
+			isRecurring: businessOffers.isRecurring,
+			validUntil: businessOffers.validUntil,
+			quantity: businessOffers.quantity,
+			pickupTimeFrom: businessOffers.pickupTimeFrom,
+			pickupTimeUntil: businessOffers.pickupTimeUntil,
+			createdAt: businessOffers.createdAt,
+			imageKey: files.key
+		})
 		.from(businessOffers)
+		.leftJoin(files, eq(businessOffers.imageId, files.id))
 		.where(eq(businessOffers.locationId, params.id))
 		.orderBy(businessOffers.createdAt);
+
+	// Generate signed URLs for each offer's image
+	const offers = await Promise.all(
+		offerRows.map(async ({ imageKey, ...offer }) => ({
+			...offer,
+			imageUrl: imageKey ? await getSignedDownloadUrl(imageKey) : null
+		}))
+	);
 
 	// Check if location is favorited by current user (only for users)
 	let isFavorite = false;
@@ -93,6 +121,64 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 };
 
 export const actions: Actions = {
+	submitComplaint: async ({ params, locals, request }) => {
+		const account = locals.account!;
+
+		if (account.accountType !== 'user') {
+			return fail(403, { complaint: { error: 'Only users can report a problem' } });
+		}
+
+		const formData = await request.formData();
+		const parsed = v.safeParse(complaintSchema, {
+			category: formData.get('category'),
+			message: formData.get('message')
+		});
+
+		if (!parsed.success) {
+			return fail(400, {
+				complaint: { error: parsed.issues[0]?.message ?? 'Please check your input and try again' }
+			});
+		}
+
+		const [location] = await db
+			.select({
+				id: businessLocations.id,
+				name: businessLocations.name,
+				businessAccountId: businessLocations.businessAccountId
+			})
+			.from(businessLocations)
+			.where(eq(businessLocations.id, params.id))
+			.limit(1);
+
+		if (!location) {
+			return fail(404, { complaint: { error: 'Location not found' } });
+		}
+
+		try {
+			await db.insert(complaints).values({
+				id: randomUUID(),
+				reporterAccountId: account.id,
+				businessAccountId: location.businessAccountId,
+				targetType: 'location',
+				locationId: location.id,
+				category: parsed.output.category,
+				message: parsed.output.message
+			});
+
+			await notifyComplaint({
+				businessAccountId: location.businessAccountId,
+				targetType: 'location',
+				targetName: location.name,
+				categoryLabel: COMPLAINT_CATEGORY_LABELS[parsed.output.category]
+			});
+
+			return { complaint: { success: true } };
+		} catch (err) {
+			console.error('Error submitting complaint:', err);
+			return fail(500, { complaint: { error: 'Failed to submit complaint. Please try again.' } });
+		}
+	},
+
 	addFavorite: async ({ params, locals }) => {
 		const session = locals.session!;
 

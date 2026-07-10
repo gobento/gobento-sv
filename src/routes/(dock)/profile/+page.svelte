@@ -16,6 +16,8 @@
 	import IconLeaf from '~icons/fluent/leaf-24-regular';
 	import IconSignOut from '~icons/fluent/sign-out-24-regular';
 	import IconChevronRight from '~icons/fluent/chevron-right-24-regular';
+	import IconReceipt from '~icons/fluent/receipt-24-regular';
+	import IconSettings from '~icons/fluent/settings-24-regular';
 	import FluentBuildingShop24Regular from '~icons/fluent/building-shop-24-regular';
 	import { formatDate } from '$lib/util';
 	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
@@ -86,6 +88,10 @@
 		if (address.length <= 10) return address;
 		return `${address.slice(0, 6)}...${address.slice(-4)}`;
 	}
+
+	function currencySymbol(currency: string): string {
+		return currency === 'EUR' ? '€' : `${currency} `;
+	}
 </script>
 
 {#snippet infoItem(Icon: Component, label: string, value: string)}
@@ -102,54 +108,23 @@
 	</div>
 {/snippet}
 
-<div class="mx-auto w-full max-w-3xl space-y-6 p-4 pt-6 sm:p-6">
-	<!-- Hero Header -->
-	<div class="card overflow-hidden bg-base-100 shadow-sm">
-		<div class="h-28 bg-linear-to-br from-primary via-primary to-accent sm:h-32"></div>
-
-		<div class="-mt-14 flex flex-col items-center px-6 pb-6 text-center sm:-mt-16">
-			<!-- Avatar -->
-			<div class="rounded-2xl bg-base-100 p-1.5 shadow-lg">
-				{#if (isBusiness || isCharity) && data.profilePictureUrl}
-					<OptimizedLogoImage
-						src={data.profilePictureUrl}
-						alt={'Profile'}
-						size="lg"
-						shape="square"
-						priority={true}
-					/>
-				{:else}
-					<div class="flex size-24 items-center justify-center rounded-xl bg-base-200">
-						<config.icon class="size-12 text-base-content/30" />
-					</div>
-				{/if}
+{#if isUser}
+	<!-- Plain settings screen for regular users -->
+	<div class="mx-auto w-full max-w-2xl space-y-8 p-4 pt-6 sm:p-6">
+		<!-- Header -->
+		<div class="flex items-center gap-3">
+			<div class="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+				<IconSettings class="size-6" />
 			</div>
-
-			<!-- Name / Title -->
-			{#if hasProfile && data.profile && (isBusiness || isCharity)}
-				<h1 class="mt-4 text-2xl font-bold sm:text-3xl">{data.profile.name}</h1>
-				<p class="mt-2 max-w-xl text-base-content/70">{data.profile.description}</p>
-			{:else if isUser}
-				<h1 class="mt-4 text-2xl font-bold sm:text-3xl">My Profile</h1>
-			{:else if isAdmin}
-				<h1 class="mt-4 text-2xl font-bold sm:text-3xl">Administrator</h1>
-			{:else if canEdit && (isBusiness || isCharity)}
-				<h1 class="mt-4 text-2xl font-bold text-base-content/50 sm:text-3xl">Profile Incomplete</h1>
-				<p class="mt-2 text-base-content/60">{config.emptyMessage}</p>
-			{/if}
-
-			<!-- Account Type Badge -->
-			<div class="badge mt-4 gap-2 badge-lg badge-primary badge-outline">
-				<config.icon class="size-4" />
-				<span>{config.label}</span>
-			</div>
+			<h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Settings</h1>
 		</div>
-	</div>
 
-	<!-- Info Section -->
-	<div class="grid gap-3 sm:grid-cols-2">
-		{#if isUser}
-			<!-- User-specific minimal view - only email and payment -->
+		<!-- Account -->
+		<section class="space-y-3">
+			<h2 class="px-1 text-xs font-semibold tracking-wide text-base-content/50 uppercase">
+				Account
+			</h2>
+
 			{@render infoItem(IconMail, 'Email Address', data.account.email)}
 
 			<!-- Payment Method -->
@@ -164,11 +139,11 @@
 						Payment Method
 					</p>
 					{#if data.profile?.preferredPaymentMethod}
-						{#if data.profile.preferredPaymentMethod === 'zarinpal'}
-							<p class="font-semibold">Zarinpal (IRR)</p>
-							{#if data.profile.zarinpalMerchantId}
+						{#if data.profile.preferredPaymentMethod === 'iban'}
+							<p class="font-semibold">Bank Transfer (IBAN)</p>
+							{#if data.profile.ibanNumber}
 								<p class="mt-0.5 font-mono text-xs text-base-content/60">
-									ID: {data.profile.zarinpalMerchantId.slice(0, 8)}••••
+									{formatWalletAddress(data.profile.ibanNumber)}
 								</p>
 							{/if}
 						{:else if data.profile.preferredPaymentMethod === 'tether'}
@@ -183,11 +158,191 @@
 						<p class="text-sm text-base-content/60">Not configured</p>
 					{/if}
 				</div>
-				<div class="tooltip" data-tip="Private - only you can see this">
-					<IconLock class="size-4 text-base-content/40" />
+				<a href="/profile/edit" class="btn gap-1.5 btn-ghost btn-sm">
+					<IconEdit class="size-4" />
+					Edit
+				</a>
+			</div>
+		</section>
+
+		{#if data.userImpact}
+			<!-- Activity -->
+			<section class="space-y-3">
+				<h2 class="px-1 text-xs font-semibold tracking-wide text-base-content/50 uppercase">
+					Activity
+				</h2>
+
+				<!-- Your Impact -->
+				<a
+					href="/impact"
+					class="group card overflow-hidden bg-linear-to-br from-success to-accent text-white shadow-sm transition hover:shadow-md"
+				>
+					<div class="card-body gap-4 p-5">
+						<div class="flex items-center justify-between">
+							<span class="flex items-center gap-2 font-semibold">
+								<IconLeaf class="size-5" />
+								Your Impact
+							</span>
+							<IconChevronRight class="size-5 opacity-70 transition group-hover:translate-x-0.5" />
+						</div>
+						{#if data.userImpact.mealsRescued > 0}
+							<div class="grid grid-cols-3 gap-2">
+								<div>
+									<p class="text-xl font-bold sm:text-2xl">
+										{currencySymbol(data.userImpact.currency)}{data.userImpact.moneySaved.toFixed(
+											2
+										)}
+									</p>
+									<p class="text-xs text-white/70">Saved</p>
+								</div>
+								<div>
+									<p class="text-xl font-bold sm:text-2xl">{data.userImpact.mealsRescued}</p>
+									<p class="text-xs text-white/70">Meals rescued</p>
+								</div>
+								<div>
+									<p class="text-xl font-bold sm:text-2xl">{data.userImpact.co2Saved} kg</p>
+									<p class="text-xs text-white/70">CO₂ prevented</p>
+								</div>
+							</div>
+						{:else}
+							<p class="text-sm text-white/80">
+								Rescue your first meal to start building your impact.
+							</p>
+						{/if}
+					</div>
+				</a>
+
+				<!-- Receipts & Orders -->
+				<a
+					href="/reservations"
+					class="group card border border-base-300 bg-base-100 shadow-sm transition hover:bg-base-200/50"
+				>
+					<div class="card-body flex-row items-center gap-4 p-5">
+						<div
+							class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+						>
+							<IconReceipt class="size-5" />
+						</div>
+						<div class="min-w-0 flex-1">
+							<p class="font-semibold">Receipts & Orders</p>
+							<p class="text-sm text-base-content/60">
+								{#if data.userImpact.activeReservations > 0}
+									{data.userImpact.activeReservations} active pickup{data.userImpact
+										.activeReservations === 1
+										? ''
+										: 's'} ·
+								{/if}
+								{data.userImpact.receiptCount} receipt{data.userImpact.receiptCount === 1
+									? ''
+									: 's'} available
+							</p>
+						</div>
+						<IconChevronRight
+							class="size-5 shrink-0 text-base-content/40 transition group-hover:translate-x-0.5"
+						/>
+					</div>
+				</a>
+			</section>
+		{/if}
+
+		<!-- More -->
+		<section class="space-y-1">
+			<h2 class="px-1 pb-2 text-xs font-semibold tracking-wide text-base-content/50 uppercase">
+				More
+			</h2>
+			<a
+				href="/about"
+				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
+			>
+				<IconInfo class="size-5" />
+				<span class="flex-1">About & Legal</span>
+				<IconChevronRight class="size-4 text-base-content/40" />
+			</a>
+			<a
+				href="/contact"
+				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
+			>
+				<IconMail class="size-5" />
+				<span class="flex-1">Contact</span>
+				<IconChevronRight class="size-4 text-base-content/40" />
+			</a>
+
+			<div class="my-1 border-t border-base-200"></div>
+
+			<a
+				href="/auth/logout"
+				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-error/80 transition-colors hover:bg-error/10 hover:text-error"
+			>
+				<IconSignOut class="size-5" />
+				<span class="flex-1">Logout</span>
+				<IconChevronRight class="size-4 opacity-40" />
+			</a>
+		</section>
+	</div>
+{:else}
+	<div class="mx-auto w-full max-w-3xl space-y-6 p-4 pt-6 sm:p-6">
+		<!-- Hero Header -->
+		<div class="card overflow-hidden bg-base-100 shadow-sm">
+			<div class="relative h-28 bg-linear-to-br from-primary via-primary to-accent sm:h-32">
+				{#if canEdit}
+					<a
+						href="/profile/edit"
+						class="absolute top-4 right-4 flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/25"
+						aria-label={hasProfile ? 'Edit profile' : 'Complete profile'}
+					>
+						<IconEdit class="size-4" />
+						<span class="hidden sm:inline">
+							{#if hasProfile}
+								Edit
+							{:else}
+								Complete
+							{/if}
+						</span>
+					</a>
+				{/if}
+			</div>
+
+			<div class="-mt-14 flex flex-col items-center px-6 pb-6 text-center sm:-mt-16">
+				<!-- Avatar -->
+				<div class="rounded-2xl bg-base-100 p-1.5 shadow-lg">
+					{#if (isBusiness || isCharity) && data.profilePictureUrl}
+						<OptimizedLogoImage
+							src={data.profilePictureUrl}
+							alt={'Profile'}
+							size="lg"
+							shape="square"
+							priority={true}
+						/>
+					{:else}
+						<div class="flex size-24 items-center justify-center rounded-xl bg-base-200">
+							<config.icon class="size-12 text-base-content/30" />
+						</div>
+					{/if}
+				</div>
+
+				<!-- Name / Title -->
+				{#if hasProfile && data.profile && (isBusiness || isCharity)}
+					<h1 class="mt-4 text-2xl font-bold sm:text-3xl">{data.profile.name}</h1>
+					<p class="mt-2 max-w-xl text-base-content/70">{data.profile.description}</p>
+				{:else if isAdmin}
+					<h1 class="mt-4 text-2xl font-bold sm:text-3xl">Administrator</h1>
+				{:else if canEdit && (isBusiness || isCharity)}
+					<h1 class="mt-4 text-2xl font-bold text-base-content/50 sm:text-3xl">
+						Profile Incomplete
+					</h1>
+					<p class="mt-2 text-base-content/60">{config.emptyMessage}</p>
+				{/if}
+
+				<!-- Account Type Badge -->
+				<div class="badge mt-4 gap-2 badge-lg badge-primary badge-outline">
+					<config.icon class="size-4" />
+					<span>{config.label}</span>
 				</div>
 			</div>
-		{:else}
+		</div>
+
+		<!-- Info Section -->
+		<div class="grid gap-3 sm:grid-cols-2">
 			<!-- Business/Charity/Admin view -->
 			{@render infoItem(
 				IconCalendar,
@@ -205,7 +360,7 @@
 				{@render infoItem(IconLocation, 'Country', data.profile.country)}
 
 				<!-- Payment Provider (Business Only) -->
-				{#if data.wallet && (data.wallet.zarinpalEnabled || data.wallet.tetherEnabled)}
+				{#if data.wallet && (data.wallet.ibanEnabled || data.wallet.tetherEnabled)}
 					<div class="flex items-center gap-4 rounded-2xl border border-base-300 bg-base-100 p-4">
 						<div
 							class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
@@ -216,10 +371,10 @@
 							<p class="text-xs font-medium tracking-wide text-base-content/50 uppercase">
 								Payment Provider
 							</p>
-							{#if data.wallet.zarinpalEnabled}
-								<p class="font-semibold">Zarinpal (IRR)</p>
+							{#if data.wallet.ibanEnabled}
+								<p class="font-semibold">Bank Transfer (IBAN)</p>
 								<p class="mt-0.5 font-mono text-xs text-base-content/60">
-									ID: {data.wallet.zarinpalMerchantId?.slice(0, 8)}••••
+									{formatWalletAddress(data.wallet.ibanNumber || '')}
 								</p>
 							{:else if data.wallet.tetherEnabled}
 								<p class="font-semibold">USDT (ERC-20)</p>
@@ -242,54 +397,45 @@
 			{#if isAdmin}
 				{@render infoItem(IconShield, 'Access Level', 'Full Access')}
 			{/if}
-		{/if}
-	</div>
+		</div>
 
-	<!-- Action Buttons -->
-	<div class="flex flex-col gap-3 sm:flex-row">
-		{#if canEdit}
-			<a href="/profile/edit" class="btn flex-1 gap-2 btn-primary">
+		<!-- Primary Call To Action -->
+		{#if canEdit && !hasProfile && (isBusiness || isCharity)}
+			<a href="/profile/edit" class="btn w-full gap-2 btn-primary">
 				<IconEdit class="size-5" />
-				{#if isUser}
-					Edit Payment Settings
-				{:else if hasProfile}
-					Edit Profile
-				{:else}
-					Complete Profile
-				{/if}
+				Complete Profile
 			</a>
 		{/if}
 
-		{#if data.account.accountType === 'user'}
-			<a href="/impact" class="btn flex-1 gap-2 btn-outline">
-				<IconLeaf class="size-5" />
-				Your Impact
+		<!-- Footer Links -->
+		<div class="flex flex-col gap-1 pt-2">
+			<a
+				href="/about"
+				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
+			>
+				<IconInfo class="size-5" />
+				<span class="flex-1">About & Legal</span>
+				<IconChevronRight class="size-4 text-base-content/40" />
 			</a>
-		{/if}
+			<a
+				href="/contact"
+				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
+			>
+				<IconMail class="size-5" />
+				<span class="flex-1">Contact</span>
+				<IconChevronRight class="size-4 text-base-content/40" />
+			</a>
 
-		<a href="/auth/logout" class="btn gap-2 btn-ghost text-error sm:flex-none">
-			<IconSignOut class="size-5" />
-			Logout
-		</a>
-	</div>
+			<div class="my-1 border-t border-base-200"></div>
 
-	<!-- Footer Links -->
-	<div class="flex flex-col gap-2 pt-2">
-		<a
-			href="/about"
-			class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
-		>
-			<IconInfo class="size-5" />
-			<span class="flex-1">About & Legal</span>
-			<IconChevronRight class="size-4 text-base-content/40" />
-		</a>
-		<a
-			href="/contact"
-			class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
-		>
-			<IconMail class="size-5" />
-			<span class="flex-1">Contact</span>
-			<IconChevronRight class="size-4 text-base-content/40" />
-		</a>
+			<a
+				href="/auth/logout"
+				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-error/80 transition-colors hover:bg-error/10 hover:text-error"
+			>
+				<IconSignOut class="size-5" />
+				<span class="flex-1">Logout</span>
+				<IconChevronRight class="size-4 opacity-40" />
+			</a>
+		</div>
 	</div>
-</div>
+{/if}

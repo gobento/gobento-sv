@@ -1,7 +1,7 @@
 // src/lib/server/notifications.ts
 import { db } from '$lib/server/db';
 import { businessLocations, businessProfiles, pushSubscriptions } from './schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { NTFY_SERVER } from '$env/static/private';
 
@@ -214,4 +214,59 @@ export async function notifyNewOfferAllLocations(
 	};
 
 	await notifyAllSubscribers(notificationPayload);
-}
+	}
+
+	/**
+	* Send a notification to all active push subscriptions of a single account
+	*/
+	export async function notifyAccount(accountId: string, payload: NotificationPayload) {
+	const subscribers = await db
+		.select({ ntfyTopic: pushSubscriptions.ntfyTopic })
+		.from(pushSubscriptions)
+		.where(and(eq(pushSubscriptions.accountId, accountId), eq(pushSubscriptions.isActive, true)));
+
+	if (subscribers.length === 0) {
+		console.log(`No active subscriptions found for account ${accountId}`);
+		return;
+	}
+
+	const results = await Promise.allSettled(
+		subscribers.map((sub) => sendNotification(sub.ntfyTopic, payload))
+	);
+
+	const successCount = results.filter((r) => r.status === 'fulfilled' && r.value === true).length;
+	console.log(
+		`Sent ${successCount}/${subscribers.length} notifications to account ${accountId}`
+	);
+	}
+
+	/**
+	* Notify a business that a user filed a complaint about one of their offers or locations
+	*/
+	export async function notifyComplaint(params: {
+	businessAccountId: string;
+	targetType: 'offer' | 'location';
+	targetName: string;
+	categoryLabel: string;
+	}) {
+	const { businessAccountId, targetType, targetName, categoryLabel } = params;
+
+	const complaintsUrl = `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/complaints`;
+
+	const notificationPayload: NotificationPayload = {
+		title: `New complaint about a ${targetType}`,
+		message: `${categoryLabel}: "${targetName}". Tap to review and resolve it.`,
+		tags: ['warning', 'loudspeaker'],
+		priority: 'high',
+		click: complaintsUrl,
+		actions: [
+			{
+				action: 'view',
+				label: 'Review',
+				url: complaintsUrl
+			}
+		]
+	};
+
+	await notifyAccount(businessAccountId, notificationPayload);
+	}

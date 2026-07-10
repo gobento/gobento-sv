@@ -30,6 +30,8 @@
 	// Business navigation
 	import LocationIcon from '~icons/fluent/location-24-regular';
 	import LocationFilledIcon from '~icons/fluent/location-24-filled';
+	import WarningIcon from '~icons/fluent/warning-24-regular';
+	import WarningFilledIcon from '~icons/fluent/warning-24-filled';
 
 	interface Props {
 		children: any;
@@ -96,6 +98,12 @@
 			label: 'Locations',
 			icon: LocationIcon,
 			filledIcon: LocationFilledIcon
+		},
+		{
+			path: '/complaints',
+			label: 'Complaints',
+			icon: WarningIcon,
+			filledIcon: WarningFilledIcon
 		},
 		{
 			path: '/profile',

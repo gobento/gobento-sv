@@ -240,9 +240,36 @@ export const notificationLog = pgTable('notification_log', {
 	ntfyTopic: text('ntfy_topic').notNull(),
 	sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
 	status: text('status', { enum: ['sent', 'failed'] }).notNull()
-});
+	});
 
-// Payment transactions
+	// User complaints about offers or locations
+	export const complaints = pgTable('complaints', {
+	id: text('id').primaryKey(),
+	reporterAccountId: text('reporter_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	businessAccountId: text('business_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	targetType: text('target_type', { enum: ['offer', 'location'] }).notNull(),
+	offerId: text('offer_id').references(() => businessOffers.id, { onDelete: 'cascade' }),
+	locationId: text('location_id').references(() => businessLocations.id, { onDelete: 'cascade' }),
+	category: text('category', {
+		enum: ['quality', 'expired', 'unavailable', 'incorrect_info', 'hygiene', 'other']
+	}).notNull(),
+	message: text('message').notNull(),
+	status: text('status', { enum: ['open', 'resolved'] })
+		.notNull()
+		.default('open'),
+	resolutionNote: text('resolution_note'),
+	resolvedByAccountId: text('resolved_by_account_id').references(() => accounts.id, {
+		onDelete: 'set null'
+	}),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	resolvedAt: timestamp('resolved_at', { withTimezone: true })
+	});
+
+	// Payment transactions
 export const payments = pgTable('payments', {
 	id: text('id').primaryKey(),
 	offerId: text('offer_id')
@@ -369,6 +396,7 @@ export type Payment = typeof payments.$inferSelect;
 export type BusinessWallet = typeof businessWallets.$inferSelect;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NotificationLog = typeof notificationLog.$inferSelect;
+export type Complaint = typeof complaints.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type File = typeof files.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;
