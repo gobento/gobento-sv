@@ -628,6 +628,18 @@ export class PaymentHandler {
 						})
 						.where(eq(payments.id, params.paymentId));
 
+					await this.logAttempt({
+						paymentId: payment.id,
+						offerId: payment.offerId,
+						userAccountId: payment.userAccountId,
+						businessAccountId: payment.businessAccountId,
+						paymentMethod: payment.paymentMethod,
+						amount: payment.amount,
+						currency: payment.currency,
+						outcome: 'failed',
+						reason: verifyResult.error
+					});
+
 					return {
 						success: false,
 						error: verifyResult.error
@@ -645,6 +657,17 @@ export class PaymentHandler {
 						payoutStatus: 'queued_for_payout'
 					})
 					.where(eq(payments.id, params.paymentId));
+
+				await this.logAttempt({
+					paymentId: payment.id,
+					offerId: payment.offerId,
+					userAccountId: payment.userAccountId,
+					businessAccountId: payment.businessAccountId,
+					paymentMethod: payment.paymentMethod,
+					amount: payment.amount,
+					currency: payment.currency,
+					outcome: 'completed'
+				});
 
 				// Create reservation
 				const metadata = payment.metadata ? JSON.parse(payment.metadata) : {};

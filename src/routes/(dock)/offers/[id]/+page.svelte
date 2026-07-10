@@ -222,6 +222,7 @@
 	<!-- Status Card -->
 	<OfferStatusCard
 		isUser={data.isUser}
+		isCharity={data.isCharity}
 		isOwner={data.isOwner}
 		offer={data.offer}
 		userReservation={data.userReservation}

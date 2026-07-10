@@ -24,8 +24,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const account = locals.account!;
 	const inviteToken = url.searchParams.get('invite');
 
-	if (account.accountType !== 'user') {
-		throw error(403, 'Only users can access reservations');
+	if (account.accountType !== 'user' && account.accountType !== 'charity') {
+		throw error(403, 'Only user and charity accounts can access reservations');
 	}
 
 	const reservationId = params.id;

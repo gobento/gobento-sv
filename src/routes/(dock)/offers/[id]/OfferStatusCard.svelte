@@ -15,6 +15,7 @@
 	interface Props {
 		// User status
 		isUser: boolean;
+		isCharity?: boolean;
 		isOwner: boolean;
 
 		// Offer data
@@ -52,6 +53,7 @@
 
 	let {
 		isUser,
+		isCharity = false,
 		isOwner,
 		offer,
 		userReservation = null,
@@ -190,6 +192,81 @@
 				<IconShoppingBag class="size-5" />
 				Buy this surprise bag
 			</a>
+		</div>
+	{/if}
+{:else if isCharity && offer.isActive}
+	{#if availability && availability.available === 0}
+		<!-- Fully Reserved - Neutral Gray -->
+		<div class="rounded-2xl bg-linear-to-br from-base-200 to-base-100 p-4">
+			<div class="flex items-center gap-4">
+				<div class="rounded-xl bg-base-200 p-3">
+					<IconLock class="size-10 text-base-content/70" />
+				</div>
+				<div class="flex-1">
+					<h3 class="text-2xl font-bold text-base-content">Currently Reserved</h3>
+					<p class="mt-2 text-sm font-medium text-base-content/70">
+						All bags are reserved. Check back later!
+					</p>
+				</div>
+			</div>
+		</div>
+	{:else}
+		<!-- Available to Reserve for free (charity donation pickup) -->
+		<div
+			class="rounded-2xl border-2 border-primary bg-linear-to-br from-primary/20 via-primary/10 to-primary/5 p-4"
+		>
+			<div class="mb-5 space-y-4">
+				<!-- Pickup Time -->
+				<div class="flex items-center gap-3">
+					<div class="rounded-lg bg-linear-to-br from-primary/30 to-primary/20 p-2.5">
+						<IconClock class="size-6 text-primary" />
+					</div>
+					<div>
+						<div class="text-xs font-bold tracking-wider text-primary uppercase">Pickup Time</div>
+						<p class="text-lg font-bold text-base-content">
+							{#if isRecurring}
+								{formatTime(offer.pickupTimeFrom)} - {formatTime(offer.pickupTimeUntil)}
+							{:else}
+								Today, {formatTime(offer.pickupTimeFrom)} - {formatTime(offer.pickupTimeUntil)}
+							{/if}
+						</p>
+					</div>
+				</div>
+
+				<!-- Date Selection for Recurring Offers -->
+				{#if isRecurring}
+					<div class="flex items-center gap-3">
+						<div class="rounded-lg bg-linear-to-br from-secondary/30 to-secondary/20 p-2.5">
+							<IconCalendar class="size-6 text-secondary" />
+						</div>
+						<div class="flex-1">
+							<label
+								for="charityPickupDate"
+								class="text-xs font-bold tracking-wider text-secondary uppercase"
+							>
+								This offer is recurring until {formatDate(maxDate)}. Select Pickup Date
+							</label>
+							<input
+								id="charityPickupDate"
+								type="date"
+								value={pickupDate}
+								min={minDate}
+								max={maxDate || undefined}
+								oninput={(e) => onPickupDateChange(e.currentTarget.value)}
+								class="input-bordered input mt-1 w-full"
+							/>
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<form method="POST" action="?/reservePickup">
+				<input type="hidden" name="pickupDate" value={pickupDate} />
+				<button type="submit" class="btn w-full transition-all btn-primary">
+					<IconShoppingBag class="size-5" />
+					Reserve for free pickup
+				</button>
+			</form>
 		</div>
 	{/if}
 {:else if isOwner}

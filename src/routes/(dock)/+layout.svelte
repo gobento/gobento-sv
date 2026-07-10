@@ -138,6 +138,39 @@
 		}
 	];
 
+	const adminNav = [
+		{
+			path: '/admin',
+			label: 'Dashboard',
+			icon: HomeIcon,
+			filledIcon: HomeFilledIcon
+		},
+		{
+			path: '/admin/accounts',
+			label: 'Accounts',
+			icon: PersonIcon,
+			filledIcon: PersonFilledIcon
+		},
+		{
+			path: '/admin/payments',
+			label: 'Payments',
+			icon: MoneyIcon,
+			filledIcon: MoneyFilledIcon
+		},
+		{
+			path: '/moderation',
+			label: 'Moderation',
+			icon: ShieldIcon,
+			filledIcon: ShieldFilledIcon
+		},
+		{
+			path: '/profile',
+			label: m.profile(),
+			icon: SettingsIcon,
+			filledIcon: SettingsFilledIcon
+		}
+	];
+
 	const charityNav = [
 		{
 			path: '/dashboard',
@@ -175,8 +208,9 @@
 			case 'charity':
 				return charityNav;
 			case 'moderator':
-			case 'admin':
 				return moderatorNav;
+			case 'admin':
+				return adminNav;
 			case 'user':
 			default:
 				return userNav;

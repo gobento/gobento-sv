@@ -1,5 +1,5 @@
 // src/routes/(dock)/offers/[id]/+page.server.ts
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import {
@@ -88,6 +88,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const isOwner = account.id === offer.businessAccountId;
 	const isUser = account.accountType === 'user';
+	const isCharity = account.accountType === 'charity';
 	const logoUrl = await getSignedDownloadUrl(logo.key);
 
 	// Get the offer's own image URL if exists
@@ -145,6 +146,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		},
 		isOwner,
 		isUser,
+		isCharity,
 
 		isReserved: activeReservationCount >= offer.quantity,
 		userReservation: userReservation
@@ -163,6 +165,91 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 };
 
 export const actions: Actions = {
+	// Charities collect surplus food for free (it's a donation), so this creates a
+	// reservation directly without going through the payment flow.
+	reservePickup: async ({ params, locals, request }) => {
+		const account = locals.account!;
+
+		if (account.accountType !== 'charity') {
+			return fail(403, { pickup: { error: 'Only charity accounts can reserve a free pickup' } });
+		}
+
+		const formData = await request.formData();
+		const pickupDateStr = formData.get('pickupDate');
+
+		const [offer] = await db
+			.select()
+			.from(businessOffers)
+			.where(eq(businessOffers.id, params.id))
+			.limit(1);
+
+		if (!offer) {
+			return fail(404, { pickup: { error: 'Offer not found' } });
+		}
+
+		if (!offer.isActive) {
+			return fail(400, { pickup: { error: 'This offer is no longer available' } });
+		}
+
+		// Prevent a charity from double-reserving the same offer
+		const [existing] = await db
+			.select({ id: reservations.id })
+			.from(reservations)
+			.where(
+				and(
+					eq(reservations.offerId, offer.id),
+					eq(reservations.userAccountId, account.id),
+					eq(reservations.status, 'active')
+				)
+			)
+			.limit(1);
+
+		if (existing) {
+			throw redirect(303, `/reservations/${existing.id}`);
+		}
+
+		// Respect the available quantity
+		const [{ count }] = await db
+			.select({ count: sql<number>`cast(count(*) as integer)` })
+			.from(reservations)
+			.where(and(eq(reservations.offerId, offer.id), eq(reservations.status, 'active')));
+
+		if ((count ?? 0) >= offer.quantity) {
+			return fail(400, { pickup: { error: 'All bags for this offer are already reserved' } });
+		}
+
+		const pickupFrom =
+			typeof pickupDateStr === 'string' && pickupDateStr ? new Date(pickupDateStr) : new Date();
+
+		if (isNaN(pickupFrom.getTime())) {
+			return fail(400, { pickup: { error: 'Invalid pickup date' } });
+		}
+
+		const pickupUntil = new Date(pickupFrom.getTime() + 3600000);
+
+		let reservationId: string;
+		try {
+			const [reservation] = await db
+				.insert(reservations)
+				.values({
+					id: randomUUID(),
+					offerId: offer.id,
+					userAccountId: account.id,
+					status: 'active',
+					pickupFrom,
+					pickupUntil,
+					claimToken: `CLAIM-${randomUUID()}`
+				})
+				.returning();
+			reservationId = reservation.id;
+		} catch (err) {
+			console.error('Error creating charity pickup reservation:', err);
+			return fail(500, { pickup: { error: 'Failed to reserve pickup. Please try again.' } });
+		}
+
+		throw redirect(303, `/reservations/${reservationId}`);
+	},
+
 	submitComplaint: async ({ params, locals, request }) => {
 		const account = locals.account!;
 

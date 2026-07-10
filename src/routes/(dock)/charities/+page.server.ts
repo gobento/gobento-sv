@@ -109,7 +109,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		charities = charities.filter((c) => c.country === country);
 	}
 	if (foodType) {
-		charities = charities.filter((c) => c.foodTypes.includes(foodType));
+		const selected = foodType;
+		charities = charities.filter((c) => c.foodTypes.includes(selected));
 	}
 
 	charities.sort((a, b) => a.name.localeCompare(b.name));

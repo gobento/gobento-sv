@@ -16,8 +16,8 @@ import { getReservationReceipt } from '$lib/server/pdf/getReservationReceipt';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;
-	if (account.accountType !== 'user') {
-		throw error(403, 'Only user accounts can access reservations');
+	if (account.accountType !== 'user' && account.accountType !== 'charity') {
+		throw error(403, 'Only user and charity accounts can access reservations');
 	}
 
 	// Fetch all reservations for the current user (active, claimed, completed)
