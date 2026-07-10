@@ -1,6 +1,12 @@
 // src/routes/(dock)/offers/+page.server.ts
 import { db } from '$lib/server/db';
-import { businessOffers, businessLocations, files, reservations } from '$lib/server/schema';
+import {
+	businessOffers,
+	businessLocations,
+	businessProfiles,
+	files,
+	reservations
+} from '$lib/server/schema';
 import { eq, and, asc, desc, gte, lte, inArray, sql, type SQL } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import { getSignedDownloadUrl } from '$lib/server/backblaze';
@@ -12,6 +18,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	if (account.accountType !== 'business') {
 		throw error(403, 'Only business accounts can access offers');
 	}
+
+	// Offer creation is gated until a moderator approves the business
+	const [profile] = await db
+		.select({ verificationStatus: businessProfiles.verificationStatus })
+		.from(businessProfiles)
+		.where(eq(businessProfiles.accountId, account.id))
+		.limit(1);
+	const verificationStatus = profile?.verificationStatus ?? 'pending';
 
 	// Parse filter/sort query params
 	const statusParam = url.searchParams.get('status'); // 'active' | 'inactive' | null
@@ -75,25 +89,25 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			locationCity: businessLocations.city,
 			locationProvince: businessLocations.province,
 			imageKey: files.key
-			})
-			.from(businessOffers)
-			.leftJoin(businessLocations, eq(businessOffers.locationId, businessLocations.id))
-			.leftJoin(files, eq(businessOffers.imageId, files.id))
-			.where(and(...conditions))
-			.orderBy(orderBy);
+		})
+		.from(businessOffers)
+		.leftJoin(businessLocations, eq(businessOffers.locationId, businessLocations.id))
+		.leftJoin(files, eq(businessOffers.imageId, files.id))
+		.where(and(...conditions))
+		.orderBy(orderBy);
 
 	// Count active reservations per offer so we can warn before deletion
 	const offerIds = rows.map((r) => r.id);
 	const reservationCounts =
 		offerIds.length > 0
 			? await db
-				.select({
-					offerId: reservations.offerId,
-					count: sql<number>`cast(count(*) as integer)`
-				})
-				.from(reservations)
-				.where(and(inArray(reservations.offerId, offerIds), eq(reservations.status, 'active')))
-				.groupBy(reservations.offerId)
+					.select({
+						offerId: reservations.offerId,
+						count: sql<number>`cast(count(*) as integer)`
+					})
+					.from(reservations)
+					.where(and(inArray(reservations.offerId, offerIds), eq(reservations.status, 'active')))
+					.groupBy(reservations.offerId)
 			: [];
 	const reservationCountMap = new Map(reservationCounts.map((r) => [r.offerId, r.count]));
 
@@ -121,6 +135,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		offers,
 		stats,
+		verificationStatus,
 		filters: {
 			status: statusParam ?? 'all',
 			recurring: recurringParam ?? 'all',

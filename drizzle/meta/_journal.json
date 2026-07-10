@@ -1,13 +1,55 @@
 {
-	"version": "7",
-	"dialect": "postgresql",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "7",
-			"when": 1761076113255,
-			"tag": "0000_typical_doctor_spectrum",
-			"breakpoints": true
-		}
-	]
-}
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1761076113255,
+      "tag": "0000_typical_doctor_spectrum",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783679602504,
+      "tag": "0001_add_complaints",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783681184521,
+      "tag": "0002_add_payment_confirmation",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783681184522,
+      "tag": "0003_add_charity_verification",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783681184523,
+      "tag": "0004_add_business_verification",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783681184524,
+      "tag": "0005_add_charity_pickups",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783681184525,
+      "tag": "0006_add_payment_attempts",
+      "breakpoints": true
+    }
+    ]
+    }

@@ -214,12 +214,12 @@ export async function notifyNewOfferAllLocations(
 	};
 
 	await notifyAllSubscribers(notificationPayload);
-	}
+}
 
-	/**
-	* Send a notification to all active push subscriptions of a single account
-	*/
-	export async function notifyAccount(accountId: string, payload: NotificationPayload) {
+/**
+ * Send a notification to all active push subscriptions of a single account
+ */
+export async function notifyAccount(accountId: string, payload: NotificationPayload) {
 	const subscribers = await db
 		.select({ ntfyTopic: pushSubscriptions.ntfyTopic })
 		.from(pushSubscriptions)
@@ -235,20 +235,18 @@ export async function notifyNewOfferAllLocations(
 	);
 
 	const successCount = results.filter((r) => r.status === 'fulfilled' && r.value === true).length;
-	console.log(
-		`Sent ${successCount}/${subscribers.length} notifications to account ${accountId}`
-	);
-	}
+	console.log(`Sent ${successCount}/${subscribers.length} notifications to account ${accountId}`);
+}
 
-	/**
-	* Notify a business that a user filed a complaint about one of their offers or locations
-	*/
-	export async function notifyComplaint(params: {
+/**
+ * Notify a business that a user filed a complaint about one of their offers or locations
+ */
+export async function notifyComplaint(params: {
 	businessAccountId: string;
 	targetType: 'offer' | 'location';
 	targetName: string;
 	categoryLabel: string;
-	}) {
+}) {
 	const { businessAccountId, targetType, targetName, categoryLabel } = params;
 
 	const complaintsUrl = `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/complaints`;
@@ -269,4 +267,4 @@ export async function notifyNewOfferAllLocations(
 	};
 
 	await notifyAccount(businessAccountId, notificationPayload);
-	}
+}

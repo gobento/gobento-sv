@@ -1,6 +1,6 @@
 // src/lib/server/payments/handler.ts
 import { db } from '$lib/server/db';
-import { payments, businessWallets, reservations } from '$lib/server/schema';
+import { payments, businessWallets, reservations, paymentAttempts } from '$lib/server/schema';
 import { eq, and } from 'drizzle-orm';
 import { TetherService } from './tether';
 import { ZarinpalService } from './zarinpal';
@@ -10,6 +10,41 @@ import { SettlementService } from './settlement';
 export class PaymentHandler {
 	private static tetherService = new TetherService();
 	private static currencyService = new CurrencyService();
+
+	/**
+	 * Record a single payment attempt in the full payment-attempt log.
+	 * Best-effort only: logging must never break the payment flow.
+	 */
+	private static async logAttempt(attempt: {
+		paymentId?: string | null;
+		offerId?: string | null;
+		userAccountId?: string | null;
+		businessAccountId?: string | null;
+		paymentMethod: 'iban' | 'tether';
+		amount?: number | null;
+		currency?: string | null;
+		outcome: 'initiated' | 'redirected' | 'switched' | 'failed' | 'cancelled' | 'completed';
+		reason?: string | null;
+		isMock?: boolean;
+	}): Promise<void> {
+		try {
+			await db.insert(paymentAttempts).values({
+				id: crypto.randomUUID(),
+				paymentId: attempt.paymentId ?? null,
+				offerId: attempt.offerId ?? null,
+				userAccountId: attempt.userAccountId ?? null,
+				businessAccountId: attempt.businessAccountId ?? null,
+				paymentMethod: attempt.paymentMethod,
+				amount: attempt.amount ?? null,
+				currency: attempt.currency ?? null,
+				outcome: attempt.outcome,
+				reason: attempt.reason ?? null,
+				isMock: attempt.isMock ?? false
+			});
+		} catch (err) {
+			console.error('Failed to log payment attempt:', err);
+		}
+	}
 
 	/**
 	 * Calculate platform fee (round UP to ensure we cover costs)
@@ -109,6 +144,18 @@ export class PaymentHandler {
 				})
 				.returning();
 
+			// Log the attempt for this payment option.
+			await this.logAttempt({
+				paymentId: payment.id,
+				offerId: params.offerId,
+				userAccountId: params.userAccountId,
+				businessAccountId: params.businessAccountId,
+				paymentMethod: params.paymentMethod,
+				amount: params.amount,
+				currency: params.currency,
+				outcome: 'initiated'
+			});
+
 			// Handle payment method
 			if (params.paymentMethod === 'iban') {
 				// Initiate Zarinpal payment
@@ -135,6 +182,18 @@ export class PaymentHandler {
 						})
 						.where(eq(payments.id, payment.id));
 
+					await this.logAttempt({
+						paymentId: payment.id,
+						offerId: params.offerId,
+						userAccountId: params.userAccountId,
+						businessAccountId: params.businessAccountId,
+						paymentMethod: 'iban',
+						amount: params.amount,
+						currency: params.currency,
+						outcome: 'failed',
+						reason: zarinpalResult.error
+					});
+
 					return {
 						success: false,
 						error: zarinpalResult.error
@@ -149,6 +208,17 @@ export class PaymentHandler {
 						status: 'processing'
 					})
 					.where(eq(payments.id, payment.id));
+
+				await this.logAttempt({
+					paymentId: payment.id,
+					offerId: params.offerId,
+					userAccountId: params.userAccountId,
+					businessAccountId: params.businessAccountId,
+					paymentMethod: 'iban',
+					amount: params.amount,
+					currency: params.currency,
+					outcome: 'redirected'
+				});
 
 				return {
 					success: true,
@@ -172,6 +242,27 @@ export class PaymentHandler {
 						// Fallback to IBAN payment
 						console.log('Business USDT wallet not configured, falling back to IBAN');
 
+						// Mark the original Tether attempt as switched to IBAN.
+						await db
+							.update(payments)
+							.set({
+								status: 'failed',
+								errorMessage: 'Switched to IBAN: business USDT wallet not configured'
+							})
+							.where(eq(payments.id, payment.id));
+
+						await this.logAttempt({
+							paymentId: payment.id,
+							offerId: params.offerId,
+							userAccountId: params.userAccountId,
+							businessAccountId: params.businessAccountId,
+							paymentMethod: 'tether',
+							amount: params.amount,
+							currency: params.currency,
+							outcome: 'switched',
+							reason: 'Business USDT wallet not configured, falling back to IBAN'
+						});
+
 						return await this.initiatePayment({
 							...params,
 							paymentMethod: 'iban'
@@ -185,6 +276,18 @@ export class PaymentHandler {
 							errorMessage: 'Business wallet not configured for either USDT or IBAN'
 						})
 						.where(eq(payments.id, payment.id));
+
+					await this.logAttempt({
+						paymentId: payment.id,
+						offerId: params.offerId,
+						userAccountId: params.userAccountId,
+						businessAccountId: params.businessAccountId,
+						paymentMethod: 'tether',
+						amount: params.amount,
+						currency: params.currency,
+						outcome: 'failed',
+						reason: 'Business wallet not configured for either USDT or IBAN'
+					});
 
 					return {
 						success: false,
@@ -208,6 +311,18 @@ export class PaymentHandler {
 						})
 						.where(eq(payments.id, payment.id));
 
+					await this.logAttempt({
+						paymentId: payment.id,
+						offerId: params.offerId,
+						userAccountId: params.userAccountId,
+						businessAccountId: params.businessAccountId,
+						paymentMethod: 'tether',
+						amount: params.amount,
+						currency: params.currency,
+						outcome: 'failed',
+						reason: tetherResult.error
+					});
+
 					return {
 						success: false,
 						error: tetherResult.error
@@ -221,6 +336,17 @@ export class PaymentHandler {
 						status: 'processing'
 					})
 					.where(eq(payments.id, payment.id));
+
+				await this.logAttempt({
+					paymentId: payment.id,
+					offerId: params.offerId,
+					userAccountId: params.userAccountId,
+					businessAccountId: params.businessAccountId,
+					paymentMethod: 'tether',
+					amount: params.amount,
+					currency: params.currency,
+					outcome: 'redirected'
+				});
 
 				return {
 					success: true,
@@ -332,6 +458,18 @@ export class PaymentHandler {
 						})
 						.where(eq(payments.id, params.paymentId));
 
+					await this.logAttempt({
+						paymentId: payment.id,
+						offerId: payment.offerId,
+						userAccountId: payment.userAccountId,
+						businessAccountId: payment.businessAccountId,
+						paymentMethod: payment.paymentMethod,
+						amount: payment.amount,
+						currency: payment.currency,
+						outcome: 'cancelled',
+						reason: 'Payment cancelled by user'
+					});
+
 					return {
 						success: false,
 						error: 'Payment cancelled'
@@ -353,6 +491,18 @@ export class PaymentHandler {
 						})
 						.where(eq(payments.id, params.paymentId));
 
+					await this.logAttempt({
+						paymentId: payment.id,
+						offerId: payment.offerId,
+						userAccountId: payment.userAccountId,
+						businessAccountId: payment.businessAccountId,
+						paymentMethod: payment.paymentMethod,
+						amount: payment.amount,
+						currency: payment.currency,
+						outcome: 'failed',
+						reason: verifyResult.error
+					});
+
 					return {
 						success: false,
 						error: verifyResult.error
@@ -369,6 +519,17 @@ export class PaymentHandler {
 						payoutStatus: 'queued_for_payout'
 					})
 					.where(eq(payments.id, params.paymentId));
+
+				await this.logAttempt({
+					paymentId: payment.id,
+					offerId: payment.offerId,
+					userAccountId: payment.userAccountId,
+					businessAccountId: payment.businessAccountId,
+					paymentMethod: payment.paymentMethod,
+					amount: payment.amount,
+					currency: payment.currency,
+					outcome: 'completed'
+				});
 
 				// Create reservation
 				const metadata = payment.metadata ? JSON.parse(payment.metadata) : {};

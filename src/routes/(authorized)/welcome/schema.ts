@@ -55,6 +55,15 @@ const charitySchema = v.pipe(
 			v.maxLength(500, 'Description must be less than 500 characters')
 		),
 		country: v.pipe(v.string('Country is required'), v.minLength(1, 'Please select a country')),
+		registrationNumber: v.pipe(
+			v.string('Registration number is required'),
+			v.minLength(2, 'Registration number must be at least 2 characters'),
+			v.maxLength(100, 'Registration number must be less than 100 characters')
+		),
+		contactEmail: v.pipe(
+			v.string('Contact email is required'),
+			v.email('Please enter a valid contact email')
+		),
 		paymentMethod: v.picklist(['iban', 'tether'], 'Please select a payment method'),
 		ibanNumber: v.optional(v.pipe(v.string(), v.minLength(1, 'IBAN number is required'))),
 		tetherAddress: v.optional(

@@ -16,7 +16,9 @@ import {
 export const accounts = pgTable('accounts', {
 	id: text('id').primaryKey(),
 	email: text('email').notNull().unique(),
-	accountType: text('account_type', { enum: ['user', 'business', 'charity', 'admin'] }).notNull(),
+	accountType: text('account_type', {
+		enum: ['user', 'moderator', 'business', 'charity', 'admin']
+	}).notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
 
@@ -42,8 +44,10 @@ export const userProfiles = pgTable('user_profiles', {
 	// Payment configuration - users can have optional payment methods
 	ibanNumber: text('iban_number'),
 	ibanEnabled: boolean('iban_enabled').notNull().default(false),
+	ibanConfirmed: boolean('iban_confirmed').notNull().default(false),
 	tetherAddress: text('tether_address'),
 	tetherEnabled: boolean('tether_enabled').notNull().default(false),
+	tetherConfirmed: boolean('tether_confirmed').notNull().default(false),
 	preferredPaymentMethod: text('preferred_payment_method', {
 		enum: ['iban', 'tether']
 	}),
@@ -66,7 +70,19 @@ export const businessProfiles = pgTable('business_profiles', {
 	}).notNull(),
 	profilePictureId: text('profile_picture_id')
 		.notNull()
-		.references(() => files.id, { onDelete: 'restrict' })
+		.references(() => files.id, { onDelete: 'restrict' }),
+
+	// Verification handled manually by a moderator before the business can go live
+	verificationStatus: text('verification_status', {
+		enum: ['pending', 'verified', 'rejected']
+	})
+		.notNull()
+		.default('pending'),
+	verificationNotes: text('verification_notes'),
+	verifiedAt: timestamp('verified_at', { withTimezone: true }),
+	verifiedByAccountId: text('verified_by_account_id').references(() => accounts.id, {
+		onDelete: 'set null'
+	})
 });
 
 // Business locations
@@ -198,7 +214,86 @@ export const charityProfiles = pgTable('charity_profiles', {
 	country: text('country').notNull(),
 	profilePictureId: text('profile_picture_id')
 		.notNull()
-		.references(() => files.id, { onDelete: 'restrict' })
+		.references(() => files.id, { onDelete: 'restrict' }),
+
+	// Verification handled manually by Go Bento staff before the charity goes live
+	registrationNumber: text('registration_number').notNull(),
+	contactEmail: text('contact_email').notNull(),
+	verificationStatus: text('verification_status', {
+		enum: ['pending', 'verified', 'rejected']
+	})
+		.notNull()
+		.default('pending'),
+	verificationNotes: text('verification_notes'),
+	verifiedAt: timestamp('verified_at', { withTimezone: true }),
+	verifiedByAccountId: text('verified_by_account_id').references(() => accounts.id, {
+		onDelete: 'set null'
+	})
+});
+
+// Food types a charity is willing to receive (used for business search + matching)
+export const charityFoodPreferences = pgTable(
+	'charity_food_preferences',
+	{
+		charityAccountId: text('charity_account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		foodType: text('food_type', {
+			enum: [
+				'bakery',
+				'produce',
+				'dairy',
+				'prepared_meals',
+				'packaged_dry',
+				'frozen',
+				'beverages',
+				'other'
+			]
+		}).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => ({
+		pk: primaryKey({ columns: [table.charityAccountId, table.foodType] })
+	})
+);
+
+// Pickup requests sent by a business to a charity to collect surplus food
+export const pickupRequests = pgTable('pickup_requests', {
+	id: text('id').primaryKey(),
+	businessAccountId: text('business_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	charityAccountId: text('charity_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	locationId: text('location_id').references(() => businessLocations.id, { onDelete: 'set null' }),
+	offerId: text('offer_id').references(() => businessOffers.id, { onDelete: 'set null' }),
+	foodType: text('food_type', {
+		enum: [
+			'bakery',
+			'produce',
+			'dairy',
+			'prepared_meals',
+			'packaged_dry',
+			'frozen',
+			'beverages',
+			'other'
+		]
+	}),
+	message: text('message').notNull(),
+	proposedPickupFrom: timestamp('proposed_pickup_from', { withTimezone: true }),
+	proposedPickupUntil: timestamp('proposed_pickup_until', { withTimezone: true }),
+	status: text('status', {
+		enum: ['pending', 'accepted', 'declined', 'cancelled', 'completed']
+	})
+		.notNull()
+		.default('pending'),
+	reservationId: text('reservation_id').references(() => reservations.id, {
+		onDelete: 'set null'
+	}),
+	notes: text('notes'),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	respondedAt: timestamp('responded_at', { withTimezone: true })
 });
 
 // Admin-specific data
@@ -240,10 +335,10 @@ export const notificationLog = pgTable('notification_log', {
 	ntfyTopic: text('ntfy_topic').notNull(),
 	sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
 	status: text('status', { enum: ['sent', 'failed'] }).notNull()
-	});
+});
 
-	// User complaints about offers or locations
-	export const complaints = pgTable('complaints', {
+// User complaints about offers or locations
+export const complaints = pgTable('complaints', {
 	id: text('id').primaryKey(),
 	reporterAccountId: text('reporter_account_id')
 		.notNull()
@@ -267,9 +362,9 @@ export const notificationLog = pgTable('notification_log', {
 	}),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	resolvedAt: timestamp('resolved_at', { withTimezone: true })
-	});
+});
 
-	// Payment transactions
+// Payment transactions
 export const payments = pgTable('payments', {
 	id: text('id').primaryKey(),
 	offerId: text('offer_id')
@@ -325,8 +420,10 @@ export const businessWallets = pgTable('business_wallets', {
 	// At least one must be provided and enabled
 	ibanNumber: text('iban_number'),
 	ibanEnabled: boolean('iban_enabled').notNull().default(false),
+	ibanConfirmed: boolean('iban_confirmed').notNull().default(false),
 	tetherAddress: text('tether_address'),
 	tetherEnabled: boolean('tether_enabled').notNull().default(false),
+	tetherConfirmed: boolean('tether_confirmed').notNull().default(false),
 	preferredPaymentMethod: text('preferred_payment_method', {
 		enum: ['iban', 'tether']
 	}).notNull(),
@@ -389,6 +486,31 @@ export const settlementPayments = pgTable('settlement_payments', {
 	addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow()
 });
 
+// Full log of every payment option a user attempted for an offer, including
+// switches (e.g. Tether → IBAN fallback), failures and cancellations. Unlike the
+// `payments` table — which stores the surviving intent — this records every step.
+export const paymentAttempts = pgTable('payment_attempts', {
+	id: text('id').primaryKey(),
+	// The payment record this attempt is associated with, when one was created.
+	paymentId: text('payment_id').references(() => payments.id, { onDelete: 'set null' }),
+	offerId: text('offer_id').references(() => businessOffers.id, { onDelete: 'set null' }),
+	userAccountId: text('user_account_id').references(() => accounts.id, { onDelete: 'set null' }),
+	businessAccountId: text('business_account_id').references(() => accounts.id, {
+		onDelete: 'set null'
+	}),
+	paymentMethod: text('payment_method', { enum: ['iban', 'tether'] }).notNull(),
+	amount: doublePrecision('amount'),
+	currency: text('currency'),
+	// Lifecycle outcome of this individual attempt.
+	outcome: text('outcome', {
+		enum: ['initiated', 'redirected', 'switched', 'failed', 'cancelled', 'completed']
+	}).notNull(),
+	// Human-readable context: error message, fallback reason, etc.
+	reason: text('reason'),
+	isMock: boolean('is_mock').notNull().default(false),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+});
+
 // Export types
 export type MonthlySettlement = typeof monthlySettlements.$inferSelect;
 export type SettlementPayment = typeof settlementPayments.$inferSelect;
@@ -408,5 +530,8 @@ export type Reservation = typeof reservations.$inferSelect;
 export type ReservationInvite = typeof reservationInvites.$inferSelect;
 export type ReservationClaim = typeof reservationClaims.$inferSelect;
 export type CharityProfile = typeof charityProfiles.$inferSelect;
+export type CharityFoodPreference = typeof charityFoodPreferences.$inferSelect;
+export type PickupRequest = typeof pickupRequests.$inferSelect;
 export type AdminProfile = typeof adminProfiles.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
+export type PaymentAttempt = typeof paymentAttempts.$inferSelect;

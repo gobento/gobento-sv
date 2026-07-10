@@ -5,13 +5,76 @@ import { db } from '$lib/server/db';
 import {
 	businessProfiles,
 	charityProfiles,
+	charityFoodPreferences,
 	files,
 	businessWallets,
 	userProfiles
 } from '$lib/server/schema';
+import { parseFoodTypes } from '$lib/foodTypes';
+import type { BusinessWallet } from '$lib/server/schema';
 import { eq } from 'drizzle-orm';
 import { uploadImageWithPreset, getSignedDownloadUrl } from '$lib/server/backblaze';
 import { randomUUID } from 'crypto';
+import { PaymentMethodVerifier } from '$lib/server/payments/verification';
+
+// Existing confirmation state of the stored payment methods
+interface StoredPaymentMethods {
+	ibanNumber: string | null;
+	ibanConfirmed: boolean;
+	tetherAddress: string | null;
+	tetherConfirmed: boolean;
+}
+
+/**
+ * Confirm the submitted payment methods, running a test payment only when a
+ * method is enabled and its details have changed (or were never confirmed).
+ * Already-confirmed, unchanged methods are left untouched.
+ */
+async function confirmPaymentMethods(params: {
+	existing: StoredPaymentMethods | undefined;
+	ibanEnabled: boolean;
+	tetherEnabled: boolean;
+	newIban: string | null;
+	newTether: string | null;
+}): Promise<
+	| { success: true; ibanConfirmed: boolean; tetherConfirmed: boolean }
+	| { success: false; error: string }
+> {
+	let ibanConfirmed = false;
+	let tetherConfirmed = false;
+
+	if (params.ibanEnabled) {
+		const unchanged =
+			!!params.existing?.ibanConfirmed && params.existing.ibanNumber === params.newIban;
+
+		if (unchanged) {
+			ibanConfirmed = true;
+		} else {
+			const result = await PaymentMethodVerifier.verifyIban(params.newIban ?? '');
+			if (!result.success) {
+				return { success: false, error: result.error ?? 'Bank account verification failed' };
+			}
+			ibanConfirmed = true;
+		}
+	}
+
+	if (params.tetherEnabled) {
+		const unchanged =
+			!!params.existing?.tetherConfirmed && params.existing.tetherAddress === params.newTether;
+
+		if (unchanged) {
+			tetherConfirmed = true;
+		} else {
+			const result = await PaymentMethodVerifier.verifyTether(params.newTether ?? '');
+			if (!result.success) {
+				return { success: false, error: result.error ?? 'Payment method verification failed' };
+			}
+			tetherConfirmed = true;
+		}
+	}
+
+	return { success: true, ibanConfirmed, tetherConfirmed };
+}
 
 // Helper functions
 async function getProfilePictureUrl(profilePictureId: string | null): Promise<string | null> {
@@ -68,7 +131,7 @@ async function loadBusinessProfile(accountId: string) {
 		.where(eq(businessWallets.accountId, accountId))
 		.limit(1);
 
-	return { profile, profilePictureUrl, wallet };
+	return { profile, profilePictureUrl, wallet, foodPreferences: [] as string[] };
 }
 
 async function loadCharityProfile(accountId: string) {
@@ -80,7 +143,17 @@ async function loadCharityProfile(accountId: string) {
 
 	const profilePictureUrl = await getProfilePictureUrl(profile?.profilePictureId);
 
-	return { profile, profilePictureUrl, wallet: null };
+	const preferenceRows = await db
+		.select({ foodType: charityFoodPreferences.foodType })
+		.from(charityFoodPreferences)
+		.where(eq(charityFoodPreferences.charityAccountId, accountId));
+
+	return {
+		profile,
+		profilePictureUrl,
+		wallet: null,
+		foodPreferences: preferenceRows.map((row) => row.foodType)
+	};
 }
 
 async function loadUserProfile(accountId: string) {
@@ -90,7 +163,7 @@ async function loadUserProfile(accountId: string) {
 		.where(eq(userProfiles.accountId, accountId))
 		.limit(1);
 
-	return { profile, profilePictureUrl: null, wallet: null };
+	return { profile, profilePictureUrl: null, wallet: null, foodPreferences: [] as string[] };
 }
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -135,6 +208,10 @@ export const actions: Actions = {
 		const tetherAddress = formData.get('tetherAddress') as string;
 		const preferredPaymentMethod = formData.get('preferredPaymentMethod') as 'iban' | 'tether';
 
+		// Normalized payment details used for both verification and persistence
+		const normalizedIban = ibanEnabled ? ibanNumber.trim().replace(/\s/g, '') : null;
+		const normalizedTether = tetherEnabled ? tetherAddress.trim() : null;
+
 		try {
 			if (accountType === 'business' || accountType === 'charity') {
 				const profileTable = accountType === 'business' ? businessProfiles : charityProfiles;
@@ -144,6 +221,35 @@ export const actions: Actions = {
 					.from(profileTable)
 					.where(eq(profileTable.accountId, accountId))
 					.limit(1);
+
+				// Confirm payment methods with a test payment before persisting anything
+				// (business only). Running this first avoids orphaned uploads on failure.
+				let ibanConfirmed = false;
+				let tetherConfirmed = false;
+				let existingWallet: BusinessWallet | undefined;
+
+				if (accountType === 'business') {
+					[existingWallet] = await db
+						.select()
+						.from(businessWallets)
+						.where(eq(businessWallets.accountId, accountId))
+						.limit(1);
+
+					const confirmation = await confirmPaymentMethods({
+						existing: existingWallet,
+						ibanEnabled,
+						tetherEnabled,
+						newIban: normalizedIban,
+						newTether: normalizedTether
+					});
+
+					if (!confirmation.success) {
+						return fail(400, { error: confirmation.error });
+					}
+
+					ibanConfirmed = confirmation.ibanConfirmed;
+					tetherConfirmed = confirmation.tetherConfirmed;
+				}
 
 				let profilePictureId = currentProfile?.profilePictureId;
 
@@ -168,19 +274,33 @@ export const actions: Actions = {
 					})
 					.where(eq(profileTable.accountId, accountId));
 
+				// Replace the charity's accepted food-type preferences
+				if (accountType === 'charity') {
+					const selectedFoodTypes = parseFoodTypes(formData.getAll('foodTypes').map(String));
+
+					await db
+						.delete(charityFoodPreferences)
+						.where(eq(charityFoodPreferences.charityAccountId, accountId));
+
+					if (selectedFoodTypes.length > 0) {
+						await db.insert(charityFoodPreferences).values(
+							selectedFoodTypes.map((foodType) => ({
+								charityAccountId: accountId,
+								foodType
+							}))
+						);
+					}
+				}
+
 				// Update wallet for business accounts
 				if (accountType === 'business') {
-					const [existingWallet] = await db
-						.select()
-						.from(businessWallets)
-						.where(eq(businessWallets.accountId, accountId))
-						.limit(1);
-
 					const walletData = {
-						ibanNumber: ibanEnabled ? ibanNumber.trim().replace(/\s/g, '') : null,
+						ibanNumber: normalizedIban,
 						ibanEnabled,
-						tetherAddress: tetherEnabled ? tetherAddress.trim() : null,
+						ibanConfirmed,
+						tetherAddress: normalizedTether,
 						tetherEnabled,
+						tetherConfirmed,
 						preferredPaymentMethod,
 						updatedAt: new Date()
 					};
@@ -204,11 +324,26 @@ export const actions: Actions = {
 					.where(eq(userProfiles.accountId, accountId))
 					.limit(1);
 
-				const userData = {
-					ibanNumber: ibanEnabled ? ibanNumber.trim().replace(/\s/g, '') : null,
+				// Confirm payment methods with a test payment before persisting
+				const confirmation = await confirmPaymentMethods({
+					existing: existingProfile,
 					ibanEnabled,
-					tetherAddress: tetherEnabled ? tetherAddress.trim() : null,
 					tetherEnabled,
+					newIban: normalizedIban,
+					newTether: normalizedTether
+				});
+
+				if (!confirmation.success) {
+					return fail(400, { error: confirmation.error });
+				}
+
+				const userData = {
+					ibanNumber: normalizedIban,
+					ibanEnabled,
+					ibanConfirmed: confirmation.ibanConfirmed,
+					tetherAddress: normalizedTether,
+					tetherEnabled,
+					tetherConfirmed: confirmation.tetherConfirmed,
 					preferredPaymentMethod,
 					updatedAt: new Date()
 				};

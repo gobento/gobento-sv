@@ -20,12 +20,16 @@
 
 	import { formatDate, formatTime } from '$lib/util';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import Alert from '$lib/components/Alert.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import NotFound from '$lib/components/NotFound.svelte';
 	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
 	import { useImagePreloader, extractImageUrls } from '$lib/utils/imagePreloader.svelte';
 
 	let { data } = $props();
+
+	// Businesses can only post offers once a moderator has approved them
+	const isVerified = $derived(data.verificationStatus === 'verified');
 
 	// Preload offer images for a snappier experience
 	useImagePreloader(() => extractImageUrls(data.offers));
@@ -202,14 +206,28 @@
 	description="Manage your special offers and promotions"
 	icon={IconTag}
 >
+	{#if !isVerified}
+		<Alert type="warn" class="mb-6">
+			{#if data.verificationStatus === 'rejected'}
+				Your business was not approved, so you can't post offers. Please contact our team for the
+				next steps.
+			{:else}
+				Your business is awaiting moderator approval. You'll be able to create offers once it's
+				verified.
+			{/if}
+		</Alert>
+	{/if}
+
 	{#if data.stats.total === 0}
 		<NotFound
 			icon={IconTag}
 			title="No offers yet"
-			description="Create your first offer to attract customers and boost your business"
-			actionLabel="Create First Offer"
-			actionHref="/offers/new"
-			actionIcon={IconAdd}
+			description={isVerified
+				? 'Create your first offer to attract customers and boost your business'
+				: 'You can create offers once your business has been approved by a moderator'}
+			actionLabel={isVerified ? 'Create First Offer' : undefined}
+			actionHref={isVerified ? '/offers/new' : undefined}
+			actionIcon={isVerified ? IconAdd : undefined}
 		/>
 	{:else}
 		<!-- Summary bar -->
@@ -228,10 +246,12 @@
 					<div class="text-xl font-bold text-secondary">{data.stats.allLocations}</div>
 				</div>
 			</div>
-			<a href="/offers/new" class="btn gap-2 btn-primary">
-				<IconAdd class="size-5" />
-				Create Offer
-			</a>
+			{#if isVerified}
+				<a href="/offers/new" class="btn gap-2 btn-primary">
+					<IconAdd class="size-5" />
+					Create Offer
+				</a>
+			{/if}
 		</div>
 
 		<!-- Filter bar -->

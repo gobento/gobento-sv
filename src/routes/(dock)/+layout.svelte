@@ -33,6 +33,10 @@
 	import WarningIcon from '~icons/fluent/warning-24-regular';
 	import WarningFilledIcon from '~icons/fluent/warning-24-filled';
 
+	// Moderator navigation
+	import ShieldIcon from '~icons/fluent/shield-task-24-regular';
+	import ShieldFilledIcon from '~icons/fluent/shield-task-24-filled';
+
 	interface Props {
 		children: any;
 		data: LayoutData;
@@ -88,6 +92,12 @@
 			filledIcon: ChartFilledIcon
 		},
 		{
+			path: '/charities',
+			label: 'Charities',
+			icon: HeartIcon,
+			filledIcon: HeartFilledIcon
+		},
+		{
 			path: '/transactions',
 			label: 'Payments',
 			icon: MoneyIcon,
@@ -104,6 +114,21 @@
 			label: 'Complaints',
 			icon: WarningIcon,
 			filledIcon: WarningFilledIcon
+		},
+		{
+			path: '/profile',
+			label: m.profile(),
+			icon: SettingsIcon,
+			filledIcon: SettingsFilledIcon
+		}
+	];
+
+	const moderatorNav = [
+		{
+			path: '/moderation',
+			label: 'Moderation',
+			icon: ShieldIcon,
+			filledIcon: ShieldFilledIcon
 		},
 		{
 			path: '/profile',
@@ -149,6 +174,9 @@
 				return businessNav;
 			case 'charity':
 				return charityNav;
+			case 'moderator':
+			case 'admin':
+				return moderatorNav;
 			case 'user':
 			default:
 				return userNav;

@@ -1,6 +1,6 @@
 // src/routes/(dock)/offers/new/+page.server.ts
 import { db } from '$lib/server/db';
-import { businessLocations, businessOffers, files } from '$lib/server/schema';
+import { businessLocations, businessOffers, businessProfiles, files } from '$lib/server/schema';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
@@ -13,6 +13,17 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (account.accountType !== 'business') {
 		throw error(403, 'Only business accounts can create offers');
+	}
+
+	// Businesses must be approved by a moderator before they can post offers
+	const [profile] = await db
+		.select({ verificationStatus: businessProfiles.verificationStatus })
+		.from(businessProfiles)
+		.where(eq(businessProfiles.accountId, account.id))
+		.limit(1);
+
+	if (profile?.verificationStatus !== 'verified') {
+		throw redirect(303, '/offers');
 	}
 
 	// Get the locationId from query params if present
@@ -48,6 +59,19 @@ export const actions = {
 
 		if (account.accountType !== 'business') {
 			return fail(403, { message: 'Only business accounts can create offers' });
+		}
+
+		// Businesses must be approved by a moderator before they can post offers
+		const [profile] = await db
+			.select({ verificationStatus: businessProfiles.verificationStatus })
+			.from(businessProfiles)
+			.where(eq(businessProfiles.accountId, account.id))
+			.limit(1);
+
+		if (profile?.verificationStatus !== 'verified') {
+			return fail(403, {
+				message: 'Your business must be approved by a moderator before you can post offers'
+			});
 		}
 
 		const formData = await request.formData();

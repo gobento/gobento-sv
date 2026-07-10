@@ -231,12 +231,30 @@ export const actions = {
 				// Redirect to locations (throws redirect error)
 				throw redirect(303, '/locations');
 			} else if (accountType === 'charity') {
+				if (!('registrationNumber' in form.data) || !form.data.registrationNumber) {
+					return fail(400, {
+						form,
+						message: 'Registration number is required for verification'
+					});
+				}
+
+				if (!('contactEmail' in form.data) || !form.data.contactEmail) {
+					return fail(400, {
+						form,
+						message: 'Contact email is required for verification'
+					});
+				}
+
+				// Charities start unverified and are reviewed manually by Go Bento staff
 				await db.insert(charityProfiles).values({
 					accountId: account.id,
 					name: form.data.name,
 					description: form.data.description,
 					country: form.data.country,
-					profilePictureId: fileId
+					profilePictureId: fileId,
+					registrationNumber: form.data.registrationNumber,
+					contactEmail: form.data.contactEmail,
+					verificationStatus: 'pending'
 				});
 
 				// Create charity wallet configuration
@@ -262,8 +280,8 @@ export const actions = {
 						}
 					});
 
-				// Redirect to dashboard (throws redirect error)
-				throw redirect(303, '/dashboard');
+				// Redirect to the profile, where the pending-verification notice is shown
+				throw redirect(303, '/profile');
 			}
 		} catch (error) {
 			// SvelteKit redirects throw an error - we need to re-throw them

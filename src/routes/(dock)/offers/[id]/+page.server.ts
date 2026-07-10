@@ -160,9 +160,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	console.log('result', result);
 	return result;
-	};
+};
 
-	export const actions: Actions = {
+export const actions: Actions = {
 	submitComplaint: async ({ params, locals, request }) => {
 		const account = locals.account!;
 
@@ -222,4 +222,4 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			return fail(500, { complaint: { error: 'Failed to submit complaint. Please try again.' } });
 		}
 	}
-	};
+};

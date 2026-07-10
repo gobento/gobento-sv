@@ -65,6 +65,12 @@
 					label: 'Charity Account',
 					emptyMessage: 'Complete your profile to connect with supporters'
 				};
+			case 'moderator':
+				return {
+					icon: IconShield,
+					label: 'Moderator',
+					emptyMessage: ''
+				};
 			case 'admin':
 				return {
 					icon: IconShield,
@@ -281,6 +287,55 @@
 	</div>
 {:else}
 	<div class="mx-auto w-full max-w-3xl space-y-6 p-4 pt-6 sm:p-6">
+		<!-- Business/charity verification status -->
+		{#if (isCharity || isBusiness) && data.profile && 'verificationStatus' in data.profile}
+			{#if data.profile.verificationStatus === 'pending'}
+				<div class="flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/10 p-4">
+					<div
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/20 text-warning"
+					>
+						<IconShield class="size-5" />
+					</div>
+					<div class="min-w-0 flex-1 text-sm">
+						<p class="font-semibold">Verification in progress</p>
+						<p class="text-base-content/70">
+							A moderator is reviewing your {isBusiness ? 'business' : 'charity'}. We'll email you
+							as soon as your account is verified and ready to go live.
+						</p>
+					</div>
+				</div>
+			{:else if data.profile.verificationStatus === 'rejected'}
+				<div class="flex items-start gap-3 rounded-2xl border border-error/30 bg-error/10 p-4">
+					<div
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-error/20 text-error"
+					>
+						<IconShield class="size-5" />
+					</div>
+					<div class="min-w-0 flex-1 text-sm">
+						<p class="font-semibold">Verification unsuccessful</p>
+						<p class="text-base-content/70">
+							{data.profile.verificationNotes ||
+								'We could not verify your account with the details provided. Please contact our team for the next steps.'}
+						</p>
+					</div>
+				</div>
+			{:else}
+				<div class="flex items-start gap-3 rounded-2xl border border-success/30 bg-success/10 p-4">
+					<div
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success/20 text-success"
+					>
+						<IconShield class="size-5" />
+					</div>
+					<div class="min-w-0 flex-1 text-sm">
+						<p class="font-semibold">Verified {isBusiness ? 'business' : 'charity'}</p>
+						<p class="text-base-content/70">
+							Your {isBusiness ? 'business' : 'charity'} has been verified by a moderator.
+						</p>
+					</div>
+				</div>
+			{/if}
+		{/if}
+
 		<!-- Hero Header -->
 		<div class="card overflow-hidden bg-base-100 shadow-sm">
 			<div class="relative h-28 bg-linear-to-br from-primary via-primary to-accent sm:h-32">
@@ -333,10 +388,21 @@
 					<p class="mt-2 text-base-content/60">{config.emptyMessage}</p>
 				{/if}
 
-				<!-- Account Type Badge -->
-				<div class="badge mt-4 gap-2 badge-lg badge-primary badge-outline">
-					<config.icon class="size-4" />
-					<span>{config.label}</span>
+				<!-- Badges -->
+				<div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+					<!-- Account Type Badge -->
+					<div class="badge gap-2 badge-lg badge-primary badge-outline">
+						<config.icon class="size-4" />
+						<span>{config.label}</span>
+					</div>
+
+					<!-- Pending verification badge -->
+					{#if (isCharity || isBusiness) && data.profile && 'verificationStatus' in data.profile && data.profile.verificationStatus === 'pending'}
+						<div class="badge gap-2 badge-lg badge-warning badge-outline">
+							<IconShield class="size-4" />
+							<span>Pending verification</span>
+						</div>
+					{/if}
 				</div>
 			</div>
 		</div>

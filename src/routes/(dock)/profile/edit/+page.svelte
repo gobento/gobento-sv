@@ -16,6 +16,7 @@
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconStar from '~icons/fluent/star-24-filled';
 	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import { FOOD_TYPES, FOOD_TYPE_LABELS } from '$lib/foodTypes';
 
 	interface Props {
 		data: PageData;
@@ -59,6 +60,34 @@
 			? data.wallet?.preferredPaymentMethod || 'iban'
 			: data.profile?.preferredPaymentMethod || 'iban'
 	);
+
+	// Confirmation state of the currently stored payment methods. A test payment
+	// runs on save whenever an enabled method is unconfirmed or its details change.
+	const initialIbanConfirmed =
+		data.account.accountType === 'business'
+			? data.wallet?.ibanConfirmed || false
+			: data.profile?.ibanConfirmed || false;
+	const initialTetherConfirmed =
+		data.account.accountType === 'business'
+			? data.wallet?.tetherConfirmed || false
+			: data.profile?.tetherConfirmed || false;
+	const initialIbanNumber =
+		data.account.accountType === 'business'
+			? data.wallet?.ibanNumber || ''
+			: data.profile?.ibanNumber || '';
+	const initialTetherAddress =
+		data.account.accountType === 'business'
+			? data.wallet?.tetherAddress || ''
+			: data.profile?.tetherAddress || '';
+
+	const ibanNeedsTest = $derived(
+		ibanEnabled &&
+			(!initialIbanConfirmed || ibanNumber.trim().replace(/\s/g, '') !== initialIbanNumber)
+	);
+	const tetherNeedsTest = $derived(
+		tetherEnabled && (!initialTetherConfirmed || tetherAddress.trim() !== initialTetherAddress)
+	);
+	const anyTestRequired = $derived(ibanNeedsTest || tetherNeedsTest);
 
 	let hasExistingPicture = $state(!!data.profile?.profilePictureId);
 	let keepExistingPicture = $state(hasExistingPicture);
@@ -121,8 +150,22 @@
 
 	const config = $derived(getAccountTypeConfig(data.account.accountType));
 	const isBusiness = $derived(data.account.accountType === 'business');
+	const isCharity = $derived(data.account.accountType === 'charity');
 	const isUser = $derived(data.account.accountType === 'user');
+
+	// Charity food-type preferences (which surplus food they want to receive)
+	let selectedFoodTypes = $state<string[]>([...(data.foodPreferences ?? [])]);
+
+	function toggleFoodType(type: string) {
+		if (selectedFoodTypes.includes(type)) {
+			selectedFoodTypes = selectedFoodTypes.filter((t) => t !== type);
+		} else {
+			selectedFoodTypes = [...selectedFoodTypes, type];
+		}
+	}
 	const needsProfile = $derived(config.needsProfile);
+	// Payment confirmation state is only persisted for business and user accounts
+	const tracksPayments = $derived(isBusiness || isUser);
 
 	// Check how many payment methods are enabled
 	const enabledPaymentMethodsCount = $derived((ibanEnabled ? 1 : 0) + (tetherEnabled ? 1 : 0));
@@ -332,6 +375,61 @@
 			</div>
 		{/if}
 
+		{#if isCharity}
+			<!-- Accepted Food Types -->
+			<div class="card border border-base-300 bg-base-100 shadow-sm">
+				<div class="card-body gap-6">
+					<div class="flex items-start gap-3">
+						<div
+							class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+						>
+							<IconHeart class="size-5" />
+						</div>
+						<div class="flex-1">
+							<h2 class="text-base font-semibold">Food you accept</h2>
+							<p class="text-sm text-base-content/60">
+								Businesses use this to find you when they have surplus food to give away
+							</p>
+						</div>
+					</div>
+
+					<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+						{#each FOOD_TYPES as type}
+							<label
+								class="flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-colors {selectedFoodTypes.includes(
+									type
+								)
+									? 'border-primary bg-primary/5'
+									: 'border-base-300'}"
+							>
+								<input
+									type="checkbox"
+									class="checkbox checkbox-primary"
+									checked={selectedFoodTypes.includes(type)}
+									onchange={() => toggleFoodType(type)}
+									disabled={saving}
+								/>
+								<span class="text-sm font-medium">{FOOD_TYPE_LABELS[type]}</span>
+							</label>
+						{/each}
+					</div>
+
+					{#if selectedFoodTypes.length === 0}
+						<div class="alert border-0 bg-base-200/50">
+							<IconInfo class="size-5 shrink-0 opacity-70" />
+							<span class="text-sm opacity-80"
+								>Select at least one type so businesses can find you.</span
+							>
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			{#each selectedFoodTypes as type}
+				<input type="hidden" name="foodTypes" value={type} />
+			{/each}
+		{/if}
+
 		<!-- Payment Settings -->
 		<div class="card border border-base-300 bg-base-100 shadow-sm">
 			<div class="card-body gap-6">
@@ -424,6 +522,19 @@
 										<p class="text-xs opacity-60">
 											International Bank Account Number for EUR transfers
 										</p>
+										{#if tracksPayments}
+											{#if ibanNeedsTest}
+												<p class="flex items-center gap-1.5 text-xs text-warning">
+													<IconInfo class="size-3.5 shrink-0" />
+													A test payment will confirm this account when you save
+												</p>
+											{:else}
+												<p class="flex items-center gap-1.5 text-xs text-success">
+													<IconCheck class="size-3.5 shrink-0" />
+													Confirmed with a test payment
+												</p>
+											{/if}
+										{/if}
 									</div>
 								{/if}
 							</div>
@@ -504,6 +615,19 @@
 											disabled={saving}
 										/>
 										<p class="text-xs opacity-60">ERC-20 USDT wallet address on Ethereum network</p>
+										{#if tracksPayments}
+											{#if tetherNeedsTest}
+												<p class="flex items-center gap-1.5 text-xs text-warning">
+													<IconInfo class="size-3.5 shrink-0" />
+													A test payment will confirm this wallet when you save
+												</p>
+											{:else}
+												<p class="flex items-center gap-1.5 text-xs text-success">
+													<IconCheck class="size-3.5 shrink-0" />
+													Confirmed with a test payment
+												</p>
+											{/if}
+										{/if}
 									</div>
 								{/if}
 							</div>
@@ -559,10 +683,10 @@
 				>
 					{#if saving}
 						<span class="loading loading-sm loading-spinner"></span>
-						Saving...
+						{tracksPayments && anyTestRequired ? 'Verifying payment...' : 'Saving...'}
 					{:else}
 						<IconCheck class="size-5" />
-						Save Changes
+						{tracksPayments && anyTestRequired ? 'Save & Verify' : 'Save Changes'}
 					{/if}
 				</button>
 			</div>

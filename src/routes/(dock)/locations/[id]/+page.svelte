@@ -329,6 +329,7 @@
 		bind:open={complaintOpen}
 		targetType="location"
 		targetName={data.location.name}
+		location={data.location}
 		result={complaintResult}
 	/>
 {/if}

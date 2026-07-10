@@ -187,7 +187,7 @@
 						disabled={isSubmitting}
 						class="group relative w-full overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-200 active:scale-[0.99]"
 						class:border-primary={dragActive}
-						class:bg-primary/5={dragActive}
+						class:bg-primary-5={dragActive}
 						class:border-base-300={!dragActive && !selectedImage}
 						class:border-success={selectedImage && !dragActive}
 						class:hover:border-primary={!isSubmitting}
@@ -385,7 +385,8 @@
 								<p class="font-semibold">Customer will pay {buyerTotal()} {currency}</p>
 								<p class="mt-1 text-base-content/70">
 									A {paymentFee.toFixed(2)}
-									{currency} platform fee is added at checkout to cover transaction costs and service development.
+									{currency} platform fee is added at checkout to cover transaction costs and service
+									development.
 								</p>
 							</div>
 						</div>
@@ -566,7 +567,8 @@
 							class="input-bordered input w-full"
 							class:input-error={form?.field === 'validUntil'}
 						/>
-						<span class="mt-1 text-xs text-base-content/60">Leave empty to default to tomorrow</span>
+						<span class="mt-1 text-xs text-base-content/60">Leave empty to default to tomorrow</span
+						>
 					</div>
 				{/if}
 			</div>
