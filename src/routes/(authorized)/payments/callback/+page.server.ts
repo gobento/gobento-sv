@@ -1,10 +1,10 @@
 // src/routes/(authorized)/payments/callback/+page.server.ts
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { db } from '$lib/server/db';
-import { payments } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { payments } from '#lib/server/schema.js';
 import { eq } from 'drizzle-orm';
-import { PaymentHandler } from '$lib/server/payments/handler';
+import { PaymentHandler } from '#lib/server/payments/handler.js';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const account = locals.account!;

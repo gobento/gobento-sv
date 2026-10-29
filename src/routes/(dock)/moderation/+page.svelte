@@ -6,8 +6,8 @@
 	import IconDismiss from '~icons/fluent/dismiss-circle-24-regular';
 	import IconBuilding from '~icons/fluent/building-24-regular';
 	import IconHeart from '~icons/fluent/heart-24-regular';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import Alert from '$lib/components/Alert.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import Alert from '#lib/components/Alert.svelte';
 
 	let { data, form } = $props();
 

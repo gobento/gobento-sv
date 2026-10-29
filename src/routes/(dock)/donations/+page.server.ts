@@ -1,6 +1,6 @@
 // src/routes/(dock)/donations/+page.server.ts
 import type { PageServerLoad, Actions } from './$types';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	pickupRequests,
 	businessProfiles,
@@ -8,13 +8,13 @@ import {
 	businessOffers,
 	reservations,
 	files
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
-import { notifyAccount } from '$lib/server/notifications';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
+import { notifyAccount } from '#lib/server/notifications.js';
 import { randomUUID } from 'crypto';
-import { env } from '$env/dynamic/private';
+import { PUBLIC_APP_URL } from '$app/env/private';
 
 function generateClaimToken(): string {
 	return `CLAIM-${randomUUID()}`;
@@ -143,7 +143,7 @@ export const actions: Actions = {
 				.set({ status: 'accepted', respondedAt: new Date(), reservationId })
 				.where(eq(pickupRequests.id, requestId));
 
-			const url = `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/charities`;
+			const url = `${PUBLIC_APP_URL || 'http://localhost:5173'}/charities`;
 			await notifyAccount(pickup.businessAccountId, {
 				title: 'Pickup request accepted',
 				message: 'A charity accepted your food pickup request.',
@@ -195,7 +195,7 @@ export const actions: Actions = {
 				.set({ status: 'declined', respondedAt: new Date(), notes })
 				.where(eq(pickupRequests.id, requestId));
 
-			const url = `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/charities`;
+			const url = `${PUBLIC_APP_URL || 'http://localhost:5173'}/charities`;
 			await notifyAccount(pickup.businessAccountId, {
 				title: 'Pickup request declined',
 				message: 'A charity declined your food pickup request.',

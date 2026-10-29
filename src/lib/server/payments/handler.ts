@@ -1,6 +1,6 @@
 // src/lib/server/payments/handler.ts
-import { db } from '$lib/server/db';
-import { payments, businessWallets, reservations, paymentAttempts } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { payments, businessWallets, reservations, paymentAttempts } from '#lib/server/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { TetherService } from './tether';
 import { ZarinpalService } from './zarinpal';

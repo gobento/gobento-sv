@@ -6,10 +6,10 @@
 	import IconSend from '~icons/fluent/send-24-filled';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-filled';
 	import IconWarning from '~icons/fluent/warning-24-regular';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import Modal from '$lib/components/Modal.svelte';
-	import Alert from '$lib/components/Alert.svelte';
-	import CollapsibleHelp from '$lib/components/CollapsibleHelp.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import Modal from '#lib/components/Modal.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import CollapsibleHelp from '#lib/components/CollapsibleHelp.svelte';
 	import PaymentProgress from '../../PaymentProgress.svelte';
 	import { superForm } from 'sveltekit-superforms';
 	import { valibot } from 'sveltekit-superforms/adapters';

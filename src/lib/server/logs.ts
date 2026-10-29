@@ -1,4 +1,4 @@
-import { APP_URL } from '$env/static/private';
+import { APP_URL } from '$app/env/private';
 import type { RequestEvent } from '@sveltejs/kit';
 
 export async function log(statusCode: number, event: RequestEvent) {
@@ -42,11 +42,11 @@ export async function log(statusCode: number, event: RequestEvent) {
 		const session = event?.locals?.session ?? undefined;
 
 		const logData: object = {
-			level: level,
+			level,
 			method: event.request.method,
 			path: event.url.pathname,
 			status: statusCode,
-			timeInMs: timeInMs, // Now safe - will be undefined or a valid number
+			timeInMs, // Now safe - will be undefined or a valid number
 			accountId: account?.id,
 			email: account?.email,
 			accountType: account?.accountType,
@@ -54,10 +54,10 @@ export async function log(statusCode: number, event: RequestEvent) {
 			sessionExpiresAt: session?.expiresAt?.toISOString?.(),
 			userAgent: event.request.headers.get('user-agent') ?? undefined,
 			clientIp: event.request.headers.get('x-forwarded-for') ?? undefined,
-			referer: referer,
-			error: error,
-			errorId: errorId,
-			errorStackTrace: errorStackTrace,
+			referer,
+			error,
+			errorId,
+			errorStackTrace,
 			...urlParams,
 			...messageEvents,
 			...trackEvents
@@ -87,7 +87,7 @@ export async function parseMessage(message: unknown): Promise<object> {
 	try {
 		if (message) {
 			if (typeof message === 'string') {
-				messageObj = { message: message };
+				messageObj = { message };
 			} else {
 				messageObj = message;
 			}
@@ -103,7 +103,7 @@ export async function parseTrack(track: unknown): Promise<object> {
 	try {
 		if (track) {
 			if (typeof track === 'string') {
-				trackObj = { track: track };
+				trackObj = { track };
 			} else {
 				trackObj = track;
 			}

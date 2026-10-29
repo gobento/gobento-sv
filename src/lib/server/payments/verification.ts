@@ -15,7 +15,7 @@
  * deterministically, so verification succeeds without any real network calls.
  */
 import { ethers } from 'ethers';
-import { APP_URL } from '$env/static/private';
+import { APP_URL } from '$app/env/private';
 import { TetherService } from './tether';
 import { ZarinpalService } from './zarinpal';
 import { isValidIban } from './iban';

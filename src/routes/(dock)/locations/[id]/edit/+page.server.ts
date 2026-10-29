@@ -1,10 +1,10 @@
 // src/routes/(dock)/locations/[id]/edit/+page.server.ts
-import { db } from '$lib/server/db';
-import { businessLocations, businessProfiles, files } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { businessLocations, businessProfiles, files } from '#lib/server/schema.js';
 import { eq } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getSignedDownloadUrl, uploadFileFromForm } from '$lib/server/backblaze';
+import { getSignedDownloadUrl, uploadFileFromForm } from '#lib/server/backblaze.js';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const session = locals.session!;

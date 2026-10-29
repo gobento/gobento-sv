@@ -1,15 +1,15 @@
 // src/routes/(dock)/offers/+page.server.ts
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	businessOffers,
 	businessLocations,
 	businessProfiles,
 	files,
 	reservations
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, asc, desc, gte, lte, inArray, sql, type SQL } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {

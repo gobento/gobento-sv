@@ -1,6 +1,6 @@
 // src/lib/server/admin.ts
 import { error } from '@sveltejs/kit';
-import type { Account } from '$lib/server/schema';
+import type { Account } from '#lib/server/schema.js';
 
 /**
  * Guards a page/endpoint so only `admin` accounts may proceed.

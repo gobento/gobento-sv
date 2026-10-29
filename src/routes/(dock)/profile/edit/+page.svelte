@@ -15,8 +15,8 @@
 	import IconEdit from '~icons/fluent/edit-24-regular';
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconStar from '~icons/fluent/star-24-filled';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import { FOOD_TYPES, FOOD_TYPE_LABELS } from '$lib/foodTypes';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import { FOOD_TYPES, FOOD_TYPE_LABELS } from '#lib/foodTypes.js';
 
 	interface Props {
 		data: PageData;
@@ -515,7 +515,7 @@
 											type="text"
 											bind:value={ibanNumber}
 											placeholder="DE89 3704 0044 0532 0130 00"
-											class="input-bordered input input-sm w-full font-mono text-xs"
+											class="input-bordered input w-full font-mono text-xs input-sm"
 											required
 											disabled={saving}
 										/>
@@ -610,7 +610,7 @@
 											type="text"
 											bind:value={tetherAddress}
 											placeholder="0x..."
-											class="input-bordered input input-sm w-full font-mono text-xs"
+											class="input-bordered input w-full font-mono text-xs input-sm"
 											required
 											disabled={saving}
 										/>

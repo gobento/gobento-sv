@@ -1,6 +1,6 @@
 // src/lib/server/pdf/getReservationReceipt.ts
-import { db } from '$lib/server/db';
-import { reservations, payments, businessOffers, accounts } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { reservations, payments, businessOffers, accounts } from '#lib/server/schema.js';
 import { and, desc, eq } from 'drizzle-orm';
 import { createPaymentReceipt } from './createPaymentReceipt';
 

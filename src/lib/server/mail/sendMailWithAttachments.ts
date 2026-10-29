@@ -1,6 +1,6 @@
 // src/lib/server/mail/sendMailWithAttachments.ts
 import nodemailer from 'nodemailer';
-import { MAIL_USER, MAIL_PASS } from '$env/static/private';
+import { MAIL_USER, MAIL_PASS } from '$app/env/private';
 
 export async function sendEmailWithAttachment(
 	to: string,

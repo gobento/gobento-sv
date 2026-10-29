@@ -1,7 +1,7 @@
 // /src/routes/(dock)/analytics/+page.server.ts
 import type { PageServerLoad, Actions } from './$types';
-import { getAnalyticsData } from '$lib/server/analytics';
-import { buildXlsx, type Sheet } from '$lib/server/xlsx';
+import { getAnalyticsData } from '#lib/server/analytics.js';
+import { buildXlsx, type Sheet } from '#lib/server/xlsx.js';
 import { error, fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {

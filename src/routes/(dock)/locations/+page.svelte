@@ -5,9 +5,9 @@
 	import IconTag from '~icons/fluent/tag-24-regular';
 	import IconSearch from '~icons/fluent/search-24-regular';
 	import IconBuilding from '~icons/fluent/building-24-regular';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import NotFound from '$lib/components/NotFound.svelte';
-	import OptimizedImage from '$lib/components/images/OptimizedImage.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import NotFound from '#lib/components/NotFound.svelte';
+	import OptimizedImage from '#lib/components/images/OptimizedImage.svelte';
 
 	let { data } = $props();
 

@@ -1,7 +1,7 @@
 // src/routes/api/admin/process-payouts/+server.ts
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { SettlementService } from '$lib/server/payments/settlement';
+import { SettlementService } from '#lib/server/payments/settlement.js';
 
 /**
  * Admin endpoint to process monthly payouts

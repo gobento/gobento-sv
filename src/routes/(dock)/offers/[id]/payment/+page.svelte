@@ -7,14 +7,14 @@
 	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
 	import IconShield from '~icons/fluent/shield-24-regular';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-filled';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import Modal from '$lib/components/Modal.svelte';
-	import Alert from '$lib/components/Alert.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import Modal from '#lib/components/Modal.svelte';
+	import Alert from '#lib/components/Alert.svelte';
 	import PaymentProgress from './PaymentProgress.svelte';
 	import { superForm } from 'sveltekit-superforms';
 	import { valibot } from 'sveltekit-superforms/adapters';
 	import { initPaymentSchema } from './schema';
-	import { formatPrice, formatDate } from '$lib/util';
+	import { formatPrice, formatDate } from '#lib/util.js';
 
 	type Method = 'iban' | 'tether';
 

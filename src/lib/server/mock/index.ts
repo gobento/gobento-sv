@@ -1,5 +1,5 @@
 // src/lib/server/mock/index.ts
-import { env } from '$env/dynamic/private';
+import { MOCK, MOCK_PAYMENTS } from '$app/env/private';
 import { handleMockRequest } from './rest-mock';
 
 export { handleMockRequest, findMockRoute, mockRoutes } from './rest-mock';
@@ -13,7 +13,7 @@ export type { MockRoute } from './rest-mock';
  * flag is honoured as a backwards-compatible alias.
  */
 export function isMockEnabled(): boolean {
-	return env.MOCK === 'true' || env.MOCK_PAYMENTS === 'true';
+	return MOCK === 'true' || MOCK_PAYMENTS === 'true';
 }
 
 /**

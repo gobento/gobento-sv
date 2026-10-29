@@ -1,12 +1,12 @@
 // src/routes/(dock)/offers/new/+page.server.ts
-import { db } from '$lib/server/db';
-import { businessLocations, businessOffers, businessProfiles, files } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { businessLocations, businessOffers, businessProfiles, files } from '#lib/server/schema.js';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { Actions, PageServerLoad } from './$types';
-import { notifyNewOffer } from '$lib/server/notifications';
-import { uploadImageWithPreset } from '$lib/server/backblaze';
+import { notifyNewOffer } from '#lib/server/notifications.js';
+import { uploadImageWithPreset } from '#lib/server/backblaze.js';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const account = locals.account!;

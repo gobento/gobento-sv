@@ -1,5 +1,6 @@
 // src/app.d.ts
-import type { Account, Session } from '$lib/server/schema';
+/// <reference types="unplugin-icons/types/svelte" />
+import type { Account, Session } from '#lib/server/schema.js';
 
 declare global {
 	namespace App {

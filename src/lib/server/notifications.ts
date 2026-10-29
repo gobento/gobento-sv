@@ -1,9 +1,8 @@
 // src/lib/server/notifications.ts
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import { businessLocations, businessProfiles, pushSubscriptions } from './schema';
 import { and, eq } from 'drizzle-orm';
-import { env } from '$env/dynamic/private';
-import { NTFY_SERVER } from '$env/static/private';
+import { PUBLIC_APP_URL, NTFY_SERVER } from '$app/env/private';
 
 interface NotificationPayload {
 	title: string;
@@ -47,12 +46,7 @@ export async function sendNotification(topic: string, payload: NotificationPaylo
 		console.log('Headers:', headers);
 		console.log('Message:', payload.message);
 
-		const response = await fetch(url, {
-			method: 'POST',
-			headers: headers,
-			body: payload.message
-		});
-
+		const response = await fetch(url, { method: 'POST', headers, body: payload.message });
 		let responseText: string;
 		try {
 			responseText = await response.text();
@@ -156,12 +150,12 @@ export async function notifyNewOffer(
 		message: `${offerName} - ${priceFormatted} at ${locationData.name}, ${locationData.city}`,
 		tags: ['tada', 'shopping_bags'],
 		priority: 'default',
-		click: `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/offers/${offerId}`,
+		click: `${PUBLIC_APP_URL || 'http://localhost:5173'}/offers/${offerId}`,
 		actions: [
 			{
 				action: 'view',
 				label: 'View Offer',
-				url: `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/offers/${offerId}`
+				url: `${PUBLIC_APP_URL || 'http://localhost:5173'}/offers/${offerId}`
 			}
 		]
 	};
@@ -203,12 +197,12 @@ export async function notifyNewOfferAllLocations(
 		message: `${offerName} - ${priceFormatted} at all locations`,
 		tags: ['tada', 'shopping_bags'],
 		priority: 'default',
-		click: `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/offers/${offerId}`,
+		click: `${PUBLIC_APP_URL || 'http://localhost:5173'}/offers/${offerId}`,
 		actions: [
 			{
 				action: 'view',
 				label: 'View Offer',
-				url: `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/offers/${offerId}`
+				url: `${PUBLIC_APP_URL || 'http://localhost:5173'}/offers/${offerId}`
 			}
 		]
 	};
@@ -249,7 +243,7 @@ export async function notifyComplaint(params: {
 }) {
 	const { businessAccountId, targetType, targetName, categoryLabel } = params;
 
-	const complaintsUrl = `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/complaints`;
+	const complaintsUrl = `${PUBLIC_APP_URL || 'http://localhost:5173'}/complaints`;
 
 	const notificationPayload: NotificationPayload = {
 		title: `New complaint about a ${targetType}`,

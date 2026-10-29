@@ -1,7 +1,7 @@
 // src/lib/server/payments/zarinpal.ts
 
-import { ZARINPAL_MERCHANT_ID, ZARINPAL_SANDBOX, APP_URL } from '$env/static/private';
-import { mockableFetch, isMockEnabled } from '$lib/server/mock';
+import { ZARINPAL_MERCHANT_ID, ZARINPAL_SANDBOX, APP_URL } from '$app/env/private';
+import { mockableFetch, isMockEnabled } from '#lib/server/mock/index.js';
 
 interface ZarinpalRequestResponse {
 	data: {

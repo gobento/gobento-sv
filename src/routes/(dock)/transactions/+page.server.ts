@@ -1,11 +1,11 @@
 // src/routes/transactions/+page.server.ts
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	monthlySettlements,
 	settlementPayments,
 	payments,
 	businessWallets
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';

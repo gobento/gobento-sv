@@ -1,6 +1,6 @@
 <!-- src/routes/(dock)/transactions/+page.svelte -->
 <script lang="ts">
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconDismissCircle from '~icons/fluent/dismiss-circle-24-regular';

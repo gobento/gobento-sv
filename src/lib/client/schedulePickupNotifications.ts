@@ -2,7 +2,7 @@
 import {
 	scheduleNotification,
 	cancelScheduledNotification
-} from '$lib/client/notificationScheduler';
+} from '#lib/client/notificationScheduler.js';
 
 /**
  * Schedule pickup notifications after successful payment

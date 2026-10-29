@@ -1,7 +1,7 @@
 // src/routes/(dock)/offers/[id]/+page.server.ts
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	businessOffers,
 	businessLocations,
@@ -11,14 +11,14 @@ import {
 	reservations,
 	businessWallets,
 	complaints
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
-import { priceWithMargin } from '$lib/server/payments/currency';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
+import { priceWithMargin } from '#lib/server/payments/currency.js';
 import { randomUUID } from 'crypto';
 import * as v from 'valibot';
-import { complaintSchema, COMPLAINT_CATEGORY_LABELS } from '$lib/complaints';
-import { notifyComplaint } from '$lib/server/notifications';
+import { complaintSchema, COMPLAINT_CATEGORY_LABELS } from '#lib/complaints.js';
+import { notifyComplaint } from '#lib/server/notifications.js';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;

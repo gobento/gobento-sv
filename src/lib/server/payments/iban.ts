@@ -3,7 +3,7 @@
  * IBAN validation utilities.
  *
  * Intentionally free of any SvelteKit / environment imports so the logic can be
- * unit tested in isolation (the test runner does not resolve `$env`/`$lib`).
+ * unit tested in isolation (the test runner does not resolve `$env`/`#lib`).
  */
 
 /**

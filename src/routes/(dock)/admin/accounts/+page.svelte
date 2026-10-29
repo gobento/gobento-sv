@@ -1,6 +1,6 @@
 <!-- src/routes/(dock)/admin/accounts/+page.svelte -->
 <script lang="ts">
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import IconPeople from '~icons/fluent/people-24-filled';
 	import IconSearch from '~icons/fluent/search-24-regular';
 	import IconMail from '~icons/fluent/mail-24-regular';
@@ -32,7 +32,7 @@
 	icon={IconPeople}
 >
 	<form method="GET" class="mb-6 flex max-w-md gap-2">
-		<label class="input input-bordered flex flex-1 items-center gap-2">
+		<label class="input-bordered input flex flex-1 items-center gap-2">
 			<IconSearch class="size-4 opacity-60" />
 			<input
 				type="search"
@@ -46,7 +46,7 @@
 	</form>
 
 	{#if data.truncated}
-		<div class="alert alert-warning mb-4">
+		<div class="mb-4 alert alert-warning">
 			Showing the first 200 results. Refine your search to narrow them down.
 		</div>
 	{/if}
@@ -70,7 +70,7 @@
 							<div class="text-xs text-base-content/50">{account.id.slice(0, 8)}…</div>
 						</td>
 						<td>
-							<a href="mailto:{account.email}" class="link inline-flex items-center gap-1">
+							<a href="mailto:{account.email}" class="inline-flex link items-center gap-1">
 								<IconMail class="size-4 opacity-60" />
 								{account.email}
 							</a>
@@ -80,7 +80,7 @@
 								{account.accountType}
 							</span>
 						</td>
-						<td class="whitespace-nowrap text-sm text-base-content/70">
+						<td class="text-sm whitespace-nowrap text-base-content/70">
 							{formatDate(account.createdAt)}
 						</td>
 						<td>
@@ -107,9 +107,9 @@
 													<span class="badge badge-ghost badge-xs">enabled</span>
 												{/if}
 												{#if pm.confirmed}
-													<span class="badge badge-success badge-xs">confirmed</span>
+													<span class="badge badge-xs badge-success">confirmed</span>
 												{:else}
-													<span class="badge badge-warning badge-xs">unconfirmed</span>
+													<span class="badge badge-xs badge-warning">unconfirmed</span>
 												{/if}
 											</div>
 											<code class="text-xs break-all text-base-content/70">{pm.value}</code>

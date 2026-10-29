@@ -1,6 +1,6 @@
 // src/routes/(dock)/charities/+page.server.ts
 import type { PageServerLoad, Actions } from './$types';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	accounts,
 	charityProfiles,
@@ -9,14 +9,14 @@ import {
 	businessOffers,
 	pickupRequests,
 	files
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
-import { isFoodType, type FoodType } from '$lib/foodTypes';
-import { notifyAccount } from '$lib/server/notifications';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
+import { isFoodType, type FoodType } from '#lib/foodTypes.js';
+import { notifyAccount } from '#lib/server/notifications.js';
 import { randomUUID } from 'crypto';
-import { env } from '$env/dynamic/private';
+import { PUBLIC_APP_URL } from '$app/env/private';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const account = locals.account!;
@@ -212,7 +212,7 @@ export const actions: Actions = {
 				status: 'pending'
 			});
 
-			const donationsUrl = `${env.PUBLIC_APP_URL || 'http://localhost:5173'}/donations`;
+			const donationsUrl = `${PUBLIC_APP_URL || 'http://localhost:5173'}/donations`;
 			await notifyAccount(charityAccountId, {
 				title: 'New food pickup request',
 				message: `A business would like you to collect surplus food. Tap to review the request.`,

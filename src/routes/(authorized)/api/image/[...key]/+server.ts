@@ -1,10 +1,10 @@
 // src/routes/api/file/[id]/+server.ts
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import { files } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { files } from '#lib/server/schema.js';
 import { eq } from 'drizzle-orm';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 
 export const GET: RequestHandler = async ({ params }) => {
 	const fileId = params.id;

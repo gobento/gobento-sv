@@ -1,6 +1,6 @@
 <!-- src/routes/(dock)/admin/+page.svelte -->
 <script lang="ts">
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import IconDataBar from '~icons/fluent/data-bar-vertical-24-filled';
 	import IconPeople from '~icons/fluent/people-24-regular';
 	import IconMoneyHand from '~icons/fluent/money-hand-24-regular';
@@ -146,7 +146,7 @@
 				<h3 class="card-title text-base">Payments by status</h3>
 				<div class="flex flex-wrap gap-2">
 					{#each data.transactions.byStatus as row (row.status)}
-						<span class="badge {statusBadge[row.status] ?? 'badge-neutral'} badge-lg gap-1">
+						<span class="badge {statusBadge[row.status] ?? 'badge-neutral'} gap-1 badge-lg">
 							{row.status}: <strong>{row.count}</strong>
 						</span>
 					{:else}
@@ -180,7 +180,7 @@
 
 	<!-- Completed by currency -->
 	{#if data.transactions.currencyBreakdown.length > 0}
-		<div class="mb-8 card bg-base-100 shadow">
+		<div class="card mb-8 bg-base-100 shadow">
 			<div class="card-body">
 				<h3 class="card-title text-base">Completed revenue by currency</h3>
 				<div class="overflow-x-auto">
@@ -223,7 +223,7 @@
 			</p>
 			<div class="mt-2 flex flex-wrap gap-2">
 				{#each data.attempts.byOutcome as row (row.outcome)}
-					<span class="badge {outcomeBadge[row.outcome] ?? 'badge-neutral'} badge-lg gap-1">
+					<span class="badge {outcomeBadge[row.outcome] ?? 'badge-neutral'} gap-1 badge-lg">
 						{row.outcome}: <strong>{row.count}</strong>
 					</span>
 				{:else}

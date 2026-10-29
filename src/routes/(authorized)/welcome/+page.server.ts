@@ -3,7 +3,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	accounts,
 	businessProfiles,
@@ -11,11 +11,11 @@ import {
 	files,
 	businessWallets,
 	userProfiles
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { welcomeSchema } from './schema';
-import { uploadImageWithPreset } from '$lib/server/backblaze';
+import { uploadImageWithPreset } from '#lib/server/backblaze.js';
 
 export const load: PageServerLoad = async () => {
 	const form = await superValidate(valibot(welcomeSchema));

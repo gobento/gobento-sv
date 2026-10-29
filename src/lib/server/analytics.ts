@@ -1,11 +1,11 @@
 // src/lib/server/analytics.ts
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	reservations,
 	businessOffers,
 	businessLocations,
 	favoriteLocations
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, gte, sql, desc } from 'drizzle-orm';
 
 export interface AnalyticsData {

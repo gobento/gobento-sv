@@ -1,7 +1,9 @@
 // src/lib/server/payments/tether.ts
 import { Contract, ethers, JsonRpcProvider, Wallet } from 'ethers';
-import { TETHER_CONTRACT_ADDRESS, ETHEREUM_RPC_URL, TETHER_PRIVATE_KEY } from '$env/static/private';
-import { isMockEnabled } from '$lib/server/mock';
+
+import { TETHER_CONTRACT_ADDRESS, ETHEREUM_RPC_URL, TETHER_PRIVATE_KEY } from '$app/env/private';
+
+import { isMockEnabled } from '#lib/server/mock/index.js';
 
 // ERC-20 USDT ABI (simplified - only what we need)
 const USDT_ABI = [

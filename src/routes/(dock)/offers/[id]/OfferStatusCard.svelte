@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatDate } from '$lib/util.js';
+	import { formatDate } from '#lib/util.js';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
 	import IconLock from '~icons/fluent/lock-closed-24-filled';
 	import IconClock from '~icons/fluent/clock-24-regular';
@@ -10,7 +10,7 @@
 	import IconWarning from '~icons/fluent/warning-24-filled';
 	import IconShoppingBag from '~icons/fluent/shopping-bag-24-filled';
 	import IconFire from '~icons/fluent/fire-24-filled';
-	import { formatTime } from '$lib/util';
+	import { formatTime } from '#lib/util.js';
 
 	interface Props {
 		// User status

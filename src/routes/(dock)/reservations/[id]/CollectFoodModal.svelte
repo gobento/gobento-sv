@@ -1,12 +1,11 @@
-<!-- /src/lib/components/CollectFoodModal.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import IconQrCode from '~icons/fluent/qr-code-24-regular';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
 	import IconDismiss from '~icons/fluent/dismiss-circle-24-regular';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
-	import Modal from '$lib/components/Modal.svelte';
+	import Modal from '#lib/components/Modal.svelte';
 
 	let {
 		open = $bindable(false),
@@ -89,6 +88,8 @@
 		}
 	});
 </script>
+
+<!-- /src/lib/components/CollectFoodModal.svelte -->
 
 <svelte:window
 	onmousemove={handleSwipeMove}

@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { invalidateSession } from '$lib/server/auth';
+import { invalidateSession } from '#lib/server/auth.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals, cookies }) => {

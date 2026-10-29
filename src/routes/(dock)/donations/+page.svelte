@@ -2,8 +2,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import { FOOD_TYPE_LABELS, isFoodType } from '$lib/foodTypes';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import { FOOD_TYPE_LABELS, isFoodType } from '#lib/foodTypes.js';
 	import IconHeart from '~icons/fluent/heart-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
@@ -139,7 +139,7 @@
 									<input type="hidden" name="requestId" value={req.id} />
 									<button
 										type="submit"
-										class="btn gap-2 btn-sm btn-primary"
+										class="btn gap-2 btn-primary btn-sm"
 										disabled={processingId === req.id}
 									>
 										{#if processingId === req.id}

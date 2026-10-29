@@ -1,5 +1,5 @@
 // src/routes/(dock)/locations/[id]/+page.server.ts
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	businessLocations,
 	businessOffers,
@@ -9,15 +9,15 @@ import {
 	accounts,
 	pushSubscriptions,
 	complaints
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 import { randomUUID } from 'crypto';
 import * as v from 'valibot';
-import { complaintSchema, COMPLAINT_CATEGORY_LABELS } from '$lib/complaints';
-import { notifyComplaint } from '$lib/server/notifications';
+import { complaintSchema, COMPLAINT_CATEGORY_LABELS } from '#lib/complaints.js';
+import { notifyComplaint } from '#lib/server/notifications.js';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const account = locals.account!;

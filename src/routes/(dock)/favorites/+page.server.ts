@@ -1,16 +1,16 @@
 // src/routes/(dock)/favorites/+page.server.ts
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	favoriteLocations,
 	businessLocations,
 	businessProfiles,
 	businessOffers,
 	files
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, count, inArray } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;

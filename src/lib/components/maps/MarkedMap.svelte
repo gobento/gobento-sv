@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Map, TileLayer, Marker } from 'sveaflet';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 
 	interface MarkedMapProps {
 		latitude: number;
@@ -32,6 +32,7 @@
 			url={'https://tile.openstreetmap.org/{z}/{x}/{y}.png'}
 			attribution={"&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}
 		/>
-		<Marker latLng={[latitude, longitude]} width={40} height={40} html={customMarkerHtml}></Marker>
+
+		<Marker latLng={[latitude, longitude]} width={40} height={40} html={customMarkerHtml} />
 	</Map>
 {/if}

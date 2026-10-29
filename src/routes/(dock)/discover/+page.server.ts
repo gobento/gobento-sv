@@ -1,18 +1,18 @@
 // src/routes/(dock)/discover/+page.server.ts
 import type { PageServerLoad } from './$types';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	businessOffers,
 	businessProfiles,
 	businessLocations,
 	files,
 	accounts
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
-import { calculateDistance } from '$lib/util';
-import { priceWithMargin } from '$lib/server/payments/currency';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
+import { calculateDistance } from '#lib/util.js';
+import { priceWithMargin } from '#lib/server/payments/currency.js';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const lat = url.searchParams.get('lat');

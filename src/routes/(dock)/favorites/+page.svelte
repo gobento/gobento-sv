@@ -1,8 +1,8 @@
 <!-- src/routes/(dock)/favorites/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import NotFound from '$lib/components/NotFound.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import NotFound from '#lib/components/NotFound.svelte';
 	import IconHeart from '~icons/fluent/heart-24-filled';
 	import IconHeartBroken from '~icons/fluent/heart-broken-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
@@ -12,8 +12,8 @@
 	import IconDelete from '~icons/fluent/delete-24-regular';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 
-	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
-	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
+	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
+	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
 
 	let { data } = $props();
 

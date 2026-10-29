@@ -1,10 +1,10 @@
 // src/routes/auth/callback/google/+server.ts
 import { OAuth2RequestError } from 'arctic';
-import { google, generateSessionToken, createSession } from '$lib/server/auth';
-import { db } from '$lib/server/db';
+import { google, generateSessionToken, createSession } from '#lib/server/auth.js';
+import { db } from '#lib/server/db.js';
 import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
-import { accounts, userProfiles } from '$lib/server/schema';
+import { accounts, userProfiles } from '#lib/server/schema.js';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
 	const code = url.searchParams.get('code');

@@ -13,7 +13,7 @@
 	import IconDownload from '~icons/fluent/arrow-download-20-filled';
 	import ChartFilledIcon from '~icons/fluent/data-bar-vertical-24-filled';
 
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -73,7 +73,7 @@
 
 <BaseLayout title="Analytics" description="Track performance and insights" icon={ChartFilledIcon}>
 	<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-		<select class="select-bordered select w-full bg-base-200 select-sm font-medium sm:w-auto">
+		<select class="select-bordered select w-full bg-base-200 font-medium select-sm sm:w-auto">
 			<option>Last 30 Days</option>
 			<option>Last 7 Days</option>
 			<option>Last 90 Days</option>

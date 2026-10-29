@@ -19,8 +19,8 @@
 	import IconReceipt from '~icons/fluent/receipt-24-regular';
 	import IconSettings from '~icons/fluent/settings-24-regular';
 	import FluentBuildingShop24Regular from '~icons/fluent/building-shop-24-regular';
-	import { formatDate } from '$lib/util';
-	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
+	import { formatDate } from '#lib/util.js';
+	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
 
 	interface Props {
 		data: PageData;
@@ -391,14 +391,14 @@
 				<!-- Badges -->
 				<div class="mt-4 flex flex-wrap items-center justify-center gap-2">
 					<!-- Account Type Badge -->
-					<div class="badge gap-2 badge-lg badge-primary badge-outline">
+					<div class="badge gap-2 badge-outline badge-lg badge-primary">
 						<config.icon class="size-4" />
 						<span>{config.label}</span>
 					</div>
 
 					<!-- Pending verification badge -->
 					{#if (isCharity || isBusiness) && data.profile && 'verificationStatus' in data.profile && data.profile.verificationStatus === 'pending'}
-						<div class="badge gap-2 badge-lg badge-warning badge-outline">
+						<div class="badge gap-2 badge-outline badge-lg badge-warning">
 							<IconShield class="size-4" />
 							<span>Pending verification</span>
 						</div>

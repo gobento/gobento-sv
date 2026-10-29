@@ -1,7 +1,7 @@
 // src/routes/(dock)/profile/+page.server.ts
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	accounts,
 	businessProfiles,
@@ -11,12 +11,12 @@ import {
 	businessWallets,
 	reservations,
 	businessOffers
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, inArray, sql } from 'drizzle-orm';
 
 // Approximate environmental impact per rescued meal (kept in sync with /impact)
 const CO2_PER_MEAL = 1.25; // kg
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const accountId = locals.account!.id;
@@ -109,9 +109,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			})
 			.from(reservations)
 			.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
-			.where(
-				and(eq(reservations.userAccountId, accountId), eq(reservations.status, 'claimed'))
-			);
+			.where(and(eq(reservations.userAccountId, accountId), eq(reservations.status, 'claimed')));
 
 		const mealsRescued = claimed.length;
 		const moneySaved = claimed.reduce((sum, r) => sum + (r.originalValue - r.price), 0);
@@ -130,9 +128,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		const activeCountResult = await db
 			.select({ count: sql<number>`count(*)::int` })
 			.from(reservations)
-			.where(
-				and(eq(reservations.userAccountId, accountId), eq(reservations.status, 'active'))
-			);
+			.where(and(eq(reservations.userAccountId, accountId), eq(reservations.status, 'active')));
 
 		userImpact = {
 			mealsRescued,

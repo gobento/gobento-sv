@@ -1,7 +1,7 @@
 // src/routes/(dock)/profile/edit/+page.server.ts
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	businessProfiles,
 	charityProfiles,
@@ -9,13 +9,13 @@ import {
 	files,
 	businessWallets,
 	userProfiles
-} from '$lib/server/schema';
-import { parseFoodTypes } from '$lib/foodTypes';
-import type { BusinessWallet } from '$lib/server/schema';
+} from '#lib/server/schema.js';
+import { parseFoodTypes } from '#lib/foodTypes.js';
+import type { BusinessWallet } from '#lib/server/schema.js';
 import { eq } from 'drizzle-orm';
-import { uploadImageWithPreset, getSignedDownloadUrl } from '$lib/server/backblaze';
+import { uploadImageWithPreset, getSignedDownloadUrl } from '#lib/server/backblaze.js';
 import { randomUUID } from 'crypto';
-import { PaymentMethodVerifier } from '$lib/server/payments/verification';
+import { PaymentMethodVerifier } from '#lib/server/payments/verification.js';
 
 // Existing confirmation state of the stored payment methods
 interface StoredPaymentMethods {

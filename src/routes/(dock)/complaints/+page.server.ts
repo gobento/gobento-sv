@@ -1,8 +1,8 @@
 // src/routes/(dock)/complaints/+page.server.ts
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { db } from '$lib/server/db';
-import { complaints, businessOffers, businessLocations, accounts } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { complaints, businessOffers, businessLocations, accounts } from '#lib/server/schema.js';
 import { and, asc, desc, eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {

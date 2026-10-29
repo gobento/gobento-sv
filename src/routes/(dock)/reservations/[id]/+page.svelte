@@ -1,8 +1,7 @@
-<!-- /src/routes/(dock)/reservations/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { browser } from '$app/environment';
-	import { formatDate, formatTime, downloadBase64Pdf } from '$lib/util.js';
+	import { browser } from '$app/env';
+	import { formatDate, formatTime, downloadBase64Pdf } from '#lib/util.js';
 	import { onMount, onDestroy } from 'svelte';
 
 	import IconLocation from '~icons/fluent/location-24-regular';
@@ -21,10 +20,10 @@
 	import CollectFoodModal from './CollectFoodModal.svelte';
 	import CreateInviteModal from './CreateInviteModal.svelte';
 
-	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
-	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
-	import LocationCard from '$lib/components/maps/LocationCard.svelte';
-	import Alert from '$lib/components/Alert.svelte';
+	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
+	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
+	import LocationCard from '#lib/components/maps/LocationCard.svelte';
+	import Alert from '#lib/components/Alert.svelte';
 	import { page } from '$app/state';
 
 	let { data, form } = $props();
@@ -199,6 +198,8 @@
 			: `Your Reservation: ${data.offer.name}`;
 </script>
 
+<!-- /src/routes/(dock)/reservations/[id]/+page.svelte -->
+
 <svelte:head>
 	<title>{pageTitle}</title>
 	<meta name="description" content={reservationDescription} />
@@ -339,9 +340,10 @@
 							<div
 								class="flex min-w-[70px] flex-col items-center rounded-xl bg-base-100 p-4 shadow-sm sm:min-w-[90px]"
 							>
-								<span class="text-3xl leading-none font-bold text-warning tabular-nums sm:text-4xl">
-									{daysLeft}
-								</span>
+								<span class="text-3xl leading-none font-bold text-warning tabular-nums sm:text-4xl"
+									>{daysLeft}</span
+								>
+
 								<span
 									class="mt-2 text-xs font-medium tracking-wider text-base-content/50 uppercase"
 								>
@@ -479,7 +481,7 @@
 				{#if browser && 'Notification' in window && Notification.permission === 'default'}
 					<button
 						onclick={requestNotificationPermission}
-						class="btn mt-6 btn-block gap-2 btn-outline btn-sm btn-primary"
+						class="btn mt-6 btn-block gap-2 btn-outline btn-primary btn-sm"
 					>
 						<FluentAlert24Regular class="size-4" />
 						Get Notified When Ready
@@ -753,10 +755,9 @@
 				</form>
 			{:else}
 				<p class="mb-4 text-sm text-base-content/60">Let a friend collect this food instead!</p>
-				<button onclick={() => (showInviteModal = true)} class="btn btn-block gap-2 btn-primary">
-					<IconShare class="size-5" />
-					Pass to Friend
-				</button>
+				<button onclick={() => (showInviteModal = true)} class="btn btn-block gap-2 btn-primary"
+					><IconShare class="size-5" />Pass to Friend</button
+				>
 			{/if}
 		</div>
 	{/if}

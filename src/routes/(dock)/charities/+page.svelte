@@ -4,8 +4,8 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import { FOOD_TYPES, FOOD_TYPE_LABELS } from '$lib/foodTypes';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import { FOOD_TYPES, FOOD_TYPE_LABELS } from '#lib/foodTypes.js';
 	import IconHeart from '~icons/fluent/heart-24-regular';
 	import IconSearch from '~icons/fluent/search-24-regular';
 	import IconMail from '~icons/fluent/mail-24-regular';
@@ -95,7 +95,7 @@
 	</div>
 
 	{#if page.form?.request?.success}
-		<div class="alert mb-6 alert-success">
+		<div class="mb-6 alert alert-success">
 			<IconCheck class="size-5 shrink-0" />
 			<span>Your pickup request has been sent.</span>
 		</div>
@@ -133,7 +133,7 @@
 								{/each}
 							</div>
 						{:else}
-							<p class="text-xs italic text-base-content/50">No food preferences set</p>
+							<p class="text-xs text-base-content/50 italic">No food preferences set</p>
 						{/if}
 
 						<div class="flex items-center gap-1.5 text-xs text-base-content/60">
@@ -149,7 +149,7 @@
 							{:else}
 								<span></span>
 							{/if}
-							<button class="btn gap-2 btn-sm btn-primary" onclick={() => openRequest(charity)}>
+							<button class="btn gap-2 btn-primary btn-sm" onclick={() => openRequest(charity)}>
 								<IconSend class="size-4" />
 								Request pickup
 							</button>

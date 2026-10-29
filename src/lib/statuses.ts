@@ -5,7 +5,7 @@
  * same label and the same colour, whichever page renders it.
  */
 import type { Component } from 'svelte';
-import type { Tone } from '$lib/components/ui/tokens';
+import type { Tone } from '#lib/components/ui/tokens.js';
 
 import IconClock from '~icons/fluent/clock-24-regular';
 import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-regular';

@@ -1,7 +1,7 @@
 <!-- src/routes/(public)/test/+page.svelte -->
 <script lang="ts">
 	import type { ActionData } from './$types';
-	import FileUpload from '$lib/components/FileUpload.svelte';
+	import FileUpload from '#lib/components/FileUpload.svelte';
 	import IconCloudArrowUp from '~icons/fluent/cloud-arrow-up-24-regular';
 	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
 	import IconDismissCircle from '~icons/fluent/dismiss-circle-24-filled';
@@ -131,7 +131,7 @@
 							href={form.url}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="btn flex-1 btn-sm btn-primary sm:flex-none"
+							class="btn flex-1 btn-primary btn-sm sm:flex-none"
 						>
 							<IconOpen class="h-4 w-4" />
 							Open

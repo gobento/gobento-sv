@@ -4,8 +4,8 @@
  * Uses CoinGecko free API (no auth required)
  */
 
-import { FEE_PERCENTAGE } from '$env/static/private';
-import { mockableFetch } from '$lib/server/mock';
+import { FEE_PERCENTAGE } from '$app/env/private';
+import { mockableFetch } from '#lib/server/mock/index.js';
 
 interface ConversionRates {
 	EUR_TO_USDT: number;

@@ -7,7 +7,7 @@
 	import IconSearch from '~icons/fluent/search-24-regular';
 	import IconImage from '~icons/fluent/image-24-regular';
 	import IconCamera from '~icons/fluent/camera-24-regular';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import { page } from '$app/state';
 
 	let { data } = $props();
@@ -220,7 +220,7 @@
 					bind:value={searchQuery}
 					onkeydown={(e) => e.key === 'Enter' && searchLocation()}
 					placeholder="Enter address, city, or place name..."
-					class="input-bordered input input-lg join-item flex-1"
+					class="input-bordered input join-item flex-1 input-lg"
 				/>
 				<button
 					onclick={searchLocation}

@@ -1,4 +1,3 @@
-<!-- src/routes/(dock)/discover/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
@@ -15,14 +14,14 @@
 
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { browser } from '$app/environment';
-	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
-	import NotFound from '$lib/components/NotFound.svelte';
-	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
-	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
+	import { browser } from '$app/env';
+	import PriceDisplay from '#lib/components/PriceDisplay.svelte';
+	import NotFound from '#lib/components/NotFound.svelte';
+	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
+	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
 
-	import { formatDistance } from '$lib/util';
-	import { useImagePreloader, extractImageUrls } from '$lib/utils/imagePreloader.svelte';
+	import { formatDistance } from '#lib/util.js';
+	import { useImagePreloader, extractImageUrls } from '#lib/utils/imagePreloader.svelte.js';
 	import { page } from '$app/state';
 
 	let { data }: { data: PageData } = $props();
@@ -234,6 +233,8 @@
 	}
 </script>
 
+<!-- src/routes/(dock)/discover/+page.svelte -->
+
 <div class="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:px-6">
 	<!-- Header -->
 	<header class="mb-5 flex items-center gap-3">
@@ -281,7 +282,7 @@
 				{#if searchQuery}
 					<button
 						type="button"
-						class="btn btn-circle btn-ghost btn-xs absolute top-1/2 right-2 -translate-y-1/2 text-base-content/50"
+						class="btn absolute top-1/2 right-2 btn-circle -translate-y-1/2 btn-ghost text-base-content/50 btn-xs"
 						onclick={clearLocation}
 						aria-label="Clear location"
 					>
@@ -322,12 +323,12 @@
 
 		<!-- Category chips (horizontally scrollable) -->
 		<div
-			class="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+			class="-mx-4 mt-3 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden"
 		>
 			{#each businessTypes as type}
 				<button
 					type="button"
-					class="btn btn-sm shrink-0 rounded-full {selectedTypes.includes(type.value)
+					class="btn shrink-0 rounded-full btn-sm {selectedTypes.includes(type.value)
 						? 'btn-primary'
 						: 'border-base-300 bg-base-200 btn-ghost'}"
 					onclick={() => handleTypeToggle(type.value)}
@@ -435,12 +436,12 @@
 				</div>
 
 				<div
-					class="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+					class="-mx-4 flex [scrollbar-width:none] gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden"
 				>
 					{#each data.locations as loc (loc.id)}
 						<a
 							href="/locations/{loc.id}"
-							class="group flex w-60 shrink-0 flex-col overflow-hidden rounded-3xl bg-base-100 shadow-sm ring-1 ring-base-200 transition-all duration-200 outline-primary outline-offset-2 hover:-translate-y-1 hover:shadow-xl hover:outline-2"
+							class="group flex w-60 shrink-0 flex-col overflow-hidden rounded-3xl bg-base-100 shadow-sm ring-1 ring-base-200 outline-offset-2 outline-primary transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:outline-2"
 						>
 							<div
 								class="relative h-32 overflow-hidden bg-linear-to-br from-primary/20 via-secondary/10 to-accent/10"
@@ -458,7 +459,7 @@
 
 								<!-- Offer count badge -->
 								<span
-									class="badge badge-primary badge-sm absolute top-3 right-3 border-0 font-semibold shadow"
+									class="absolute top-3 right-3 badge border-0 badge-sm font-semibold shadow badge-primary"
 								>
 									{loc.offerCount}
 									{loc.offerCount === 1 ? 'offer' : 'offers'}
@@ -524,7 +525,7 @@
 			{@const ended = timeRemaining.diff <= 0}
 			<a
 				href="/offers/{offer.id}"
-				class="group flex h-full flex-col overflow-hidden rounded-3xl bg-base-100 shadow-sm ring-1 ring-base-200 transition-all duration-200 outline-primary outline-offset-2 hover:-translate-y-1 hover:shadow-xl hover:outline-2"
+				class="group flex h-full flex-col overflow-hidden rounded-3xl bg-base-100 shadow-sm ring-1 ring-base-200 outline-offset-2 outline-primary transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:outline-2"
 			>
 				<!-- Photo -->
 				<div
@@ -555,29 +556,31 @@
 
 					<!-- Discount badge -->
 					<div class="absolute top-3 left-3">
-						<span class="badge badge-primary badge-lg border-0 font-bold shadow-md">
-							-{Math.round(((offer.originalValue - offer.price) / offer.originalValue) * 100)}%
-						</span>
+						<span class="badge border-0 badge-lg font-bold shadow-md badge-primary"
+							>-{Math.round(
+								((offer.originalValue - offer.price) / offer.originalValue) * 100
+							)}%</span
+						>
 					</div>
 
 					<!-- Urgency / recurring badge -->
 					<div class="absolute top-3 right-3 flex flex-col items-end gap-1.5">
 						{#if soonEnding}
 							<span
-								class="badge badge-error badge-sm gap-1 border-0 font-semibold text-error-content shadow"
+								class="badge gap-1 border-0 badge-sm font-semibold text-error-content shadow badge-error"
 							>
 								<IconTimer class="size-3" />
 								{timeRemaining.totalMinutes}min left
 							</span>
 						{:else if ended}
 							<span
-								class="badge badge-sm gap-1 border-0 bg-neutral font-semibold text-neutral-content shadow"
+								class="badge gap-1 border-0 bg-neutral badge-sm font-semibold text-neutral-content shadow"
 							>
 								Pickup ended
 							</span>
 						{/if}
 						{#if offer.isRecurring}
-							<span class="badge badge-secondary badge-sm gap-1 border-0 font-semibold shadow">
+							<span class="badge gap-1 border-0 badge-sm font-semibold shadow badge-secondary">
 								<IconCalendar class="size-3" />
 								Recurring
 							</span>

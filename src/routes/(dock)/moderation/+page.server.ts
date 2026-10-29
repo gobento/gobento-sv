@@ -1,10 +1,10 @@
 // src/routes/(dock)/moderation/+page.server.ts
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { db } from '$lib/server/db';
-import { accounts, businessProfiles, charityProfiles, files } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { accounts, businessProfiles, charityProfiles, files } from '#lib/server/schema.js';
 import { asc, desc, eq } from 'drizzle-orm';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 
 // Accounts allowed to review new businesses and charities
 const MODERATOR_TYPES = ['moderator', 'admin'] as const;

@@ -1,6 +1,6 @@
 // src/lib/server/pdf/createPaymentReceipt.ts
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import type { Payment, Account, BusinessOffer } from '$lib/server/schema';
+import type { Payment, Account, BusinessOffer } from '#lib/server/schema.js';
 
 interface PaymentReceiptOptions {
 	payment: Payment;

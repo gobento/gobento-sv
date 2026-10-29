@@ -2,7 +2,7 @@
 
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { isMockEnabled } from '$lib/server/mock';
+import { isMockEnabled } from '#lib/server/mock/index.js';
 
 export const load: PageServerLoad = async ({ url }) => {
 	// Only allow in mock mode

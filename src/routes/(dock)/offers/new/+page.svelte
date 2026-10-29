@@ -1,4 +1,3 @@
-<!-- src/routes/(dock)/offers/new/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import IconInfo from '~icons/fluent/info-24-regular';
@@ -11,8 +10,8 @@
 	import IconTimer from '~icons/fluent/timer-24-regular';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 
-	import { env } from '$env/dynamic/public';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import { PUBLIC_PAYMENT_FEE } from '$app/env/public';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
 
 	let { data, form } = $props();
 
@@ -109,7 +108,7 @@
 	let validUntil = $state('');
 
 	// Calculate what the buyer will actually pay
-	const paymentFee = parseFloat(env.PUBLIC_PAYMENT_FEE || '0');
+	const paymentFee = parseFloat(PUBLIC_PAYMENT_FEE || '0');
 	const buyerTotal = $derived(() => {
 		const priceNum = parseFloat(price);
 		if (isNaN(priceNum) || priceNum <= 0) return null;
@@ -123,6 +122,8 @@
 		return Math.round(((orig - disc) / orig) * 100);
 	});
 </script>
+
+<!-- src/routes/(dock)/offers/new/+page.svelte -->
 
 <BaseLayout
 	title="Create New Offer"

@@ -1,7 +1,7 @@
 // src/routes/auth/login/google/+server.ts
 import { redirect } from '@sveltejs/kit';
 import { generateState, generateCodeVerifier } from 'arctic';
-import { google } from '$lib/server/auth';
+import { google } from '#lib/server/auth.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {

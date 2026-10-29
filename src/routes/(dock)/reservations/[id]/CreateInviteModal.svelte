@@ -7,8 +7,8 @@
 	import IconCopy from '~icons/fluent/copy-24-regular';
 	import IconLink from '~icons/fluent/link-24-regular';
 
-	import Modal from '$lib/components/Modal.svelte';
-	import Alert from '$lib/components/Alert.svelte';
+	import Modal from '#lib/components/Modal.svelte';
+	import Alert from '#lib/components/Alert.svelte';
 
 	let {
 		open = $bindable(false),

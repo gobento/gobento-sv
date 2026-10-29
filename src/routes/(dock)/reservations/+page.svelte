@@ -8,11 +8,11 @@
 	import IconArrowDownload from '~icons/fluent/arrow-download-24-regular';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
 	import IconFilter from '~icons/fluent/filter-24-regular';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
 
-	import NotFound from '$lib/components/NotFound.svelte';
-	import { formatDate, formatTime, downloadBase64Pdf } from '$lib/util.js';
+	import NotFound from '#lib/components/NotFound.svelte';
+	import { formatDate, formatTime, downloadBase64Pdf } from '#lib/util.js';
 
 	let { data } = $props();
 

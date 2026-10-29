@@ -1,11 +1,11 @@
 // src/lib/server/payments/settlement.ts
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	payments,
 	businessWallets,
 	monthlySettlements,
 	settlementPayments
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, gte, lt, isNull } from 'drizzle-orm';
 import { TetherService } from './tether';
 import { ZarinpalService } from './zarinpal';

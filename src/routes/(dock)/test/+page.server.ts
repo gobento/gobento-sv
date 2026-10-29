@@ -1,9 +1,9 @@
 // src/routes/(public)/test/+page.server.ts
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { uploadFileFromForm } from '$lib/server/backblaze';
-import { db } from '$lib/server/db';
-import { files } from '$lib/server/schema';
+import { uploadFileFromForm } from '#lib/server/backblaze.js';
+import { db } from '#lib/server/db.js';
+import { files } from '#lib/server/schema.js';
 
 export const actions: Actions = {
 	upload: async ({ request, locals }) => {

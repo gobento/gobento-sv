@@ -1,10 +1,10 @@
 // src/routes/(dock)/locations/+page.server.ts
-import { db } from '$lib/server/db';
-import { businessLocations, businessOffers, files } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { businessLocations, businessOffers, files } from '#lib/server/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;

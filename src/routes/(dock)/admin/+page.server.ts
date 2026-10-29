@@ -1,7 +1,7 @@
 // src/routes/(dock)/admin/+page.server.ts
 import type { PageServerLoad } from './$types';
-import { db } from '$lib/server/db';
-import { assertAdmin } from '$lib/server/admin';
+import { db } from '#lib/server/db.js';
+import { assertAdmin } from '#lib/server/admin.js';
 import {
 	accounts,
 	payments,
@@ -9,7 +9,7 @@ import {
 	reservations,
 	sessions,
 	monthlySettlements
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { and, eq, gt, gte, sql } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {

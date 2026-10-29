@@ -1,12 +1,12 @@
 // /src/routes/(dock)/dashboard/+page.server.ts
 import type { PageServerLoad } from './$types';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	reservations,
 	businessOffers,
 	businessLocations,
 	favoriteLocations
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, gte, sql, desc } from 'drizzle-orm';
 import { error, redirect } from '@sveltejs/kit';
 

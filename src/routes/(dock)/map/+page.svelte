@@ -1,4 +1,3 @@
-<!-- src/routes/(dock)/map/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
 	import IconTimer from '~icons/fluent/timer-24-regular';
@@ -12,13 +11,13 @@
 
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { Map, TileLayer, Marker } from 'sveaflet';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import PriceDisplay from '$lib/components/PriceDisplay.svelte';
-	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
-	import { formatDistance } from '$lib/util';
-	import NotFound from '$lib/components/NotFound.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import PriceDisplay from '#lib/components/PriceDisplay.svelte';
+	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
+	import { formatDistance } from '#lib/util.js';
+	import NotFound from '#lib/components/NotFound.svelte';
 	import { page } from '$app/state';
 
 	let { data }: { data: PageData } = $props();
@@ -261,6 +260,8 @@
 		selectedOffer ? getPickupTimeRemaining(selectedOffer.pickupTimeUntil, currentTime) : null
 	);
 </script>
+
+<!-- src/routes/(dock)/map/+page.svelte -->
 
 <BaseLayout title="Map View" description="Browse offers on a map" icon={IconMap}>
 	<!-- Location Search & Filters -->

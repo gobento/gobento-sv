@@ -2,13 +2,13 @@
 
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import { payments } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { payments } from '#lib/server/schema.js';
 import { eq } from 'drizzle-orm';
-import { PaymentHandler } from '$lib/server/payments/handler';
-import { ZarinpalService } from '$lib/server/payments/zarinpal';
-import { TetherService } from '$lib/server/payments/tether';
-import { PAYMENT_WEBHOOK_SECRET, ZARINPAL_WEBHOOK_SECRET } from '$env/static/private';
+import { PaymentHandler } from '#lib/server/payments/handler.js';
+import { ZarinpalService } from '#lib/server/payments/zarinpal.js';
+import { TetherService } from '#lib/server/payments/tether.js';
+import { PAYMENT_WEBHOOK_SECRET, ZARINPAL_WEBHOOK_SECRET } from '$app/env/private';
 import crypto from 'crypto';
 
 /**

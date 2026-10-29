@@ -9,7 +9,7 @@ import {
 	BACKBLAZE_BUCKET_NAME,
 	BACKBLAZE_REGION,
 	BACKBLAZE_ENDPOINT
-} from '$env/static/private';
+} from '$app/env/private';
 
 const s3Client = new S3Client({
 	endpoint: BACKBLAZE_ENDPOINT,

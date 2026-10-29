@@ -1,10 +1,10 @@
 <!-- src/lib/components/ui/StatusBadge.svelte -->
 <script lang="ts">
-	import { statusMeta, type StatusMeta } from '$lib/statuses';
+	import { statusMeta, type StatusMeta } from '#lib/statuses.js';
 	import { cx, TONE_BADGE } from './tokens';
 
 	interface Props {
-		/** One of the maps exported from `$lib/statuses`. */
+		/** One of the maps exported from `#lib/statuses.js`. */
 		map: Record<string, StatusMeta>;
 		status: string;
 		size?: 'sm' | 'md' | 'lg';
@@ -22,7 +22,13 @@
 </script>
 
 <span
-	class={cx('badge gap-1', TONE_BADGE[meta.tone], SIZES[size], outline && 'badge-outline', className)}
+	class={cx(
+		'badge gap-1',
+		TONE_BADGE[meta.tone],
+		SIZES[size],
+		outline && 'badge-outline',
+		className
+	)}
 >
 	{#if Icon}
 		<Icon class={glyph} />

@@ -1,5 +1,5 @@
 // src/routes/(dock)/reservations/[id]/+page.server.ts
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	reservations,
 	businessOffers,
@@ -9,16 +9,16 @@ import {
 	reservationClaims,
 	accounts,
 	files
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { alias } from 'drizzle-orm/pg-core';
 
 import { eq, and, or } from 'drizzle-orm';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { randomBytes } from 'crypto';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
-import { priceWithMargin } from '$lib/server/payments/currency';
-import { getReservationReceipt } from '$lib/server/pdf/getReservationReceipt';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
+import { priceWithMargin } from '#lib/server/payments/currency.js';
+import { getReservationReceipt } from '#lib/server/pdf/getReservationReceipt.js';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const account = locals.account!;

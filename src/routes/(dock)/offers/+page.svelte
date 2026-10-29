@@ -18,13 +18,13 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
-	import { formatDate, formatTime } from '$lib/util';
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
-	import Alert from '$lib/components/Alert.svelte';
-	import Modal from '$lib/components/Modal.svelte';
-	import NotFound from '$lib/components/NotFound.svelte';
-	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
-	import { useImagePreloader, extractImageUrls } from '$lib/utils/imagePreloader.svelte';
+	import { formatDate, formatTime } from '#lib/util.js';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import Modal from '#lib/components/Modal.svelte';
+	import NotFound from '#lib/components/NotFound.svelte';
+	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
+	import { useImagePreloader, extractImageUrls } from '#lib/utils/imagePreloader.svelte.js';
 
 	let { data } = $props();
 
@@ -100,7 +100,7 @@
 			<!-- Status badge -->
 			<div class="absolute top-3 left-3">
 				{#if offer.isActive}
-					<span class="badge gap-1 border-none badge-sm badge-success shadow">
+					<span class="badge gap-1 border-none badge-sm shadow badge-success">
 						<IconCheckmark class="size-3" />
 						{#if offer.validUntil}
 							Active until {formatDate(offer.validUntil)}
@@ -109,14 +109,14 @@
 						{/if}
 					</span>
 				{:else}
-					<span class="badge border-none badge-sm badge-neutral shadow">Inactive</span>
+					<span class="badge border-none badge-sm shadow badge-neutral">Inactive</span>
 				{/if}
 			</div>
 
 			<!-- Reserved badge -->
 			{#if offer.reservedCount > 0}
 				<div class="absolute top-3 right-3">
-					<span class="badge gap-1 border-none badge-sm badge-warning shadow">
+					<span class="badge gap-1 border-none badge-sm shadow badge-warning">
 						<IconPeople class="size-3" />
 						{offer.reservedCount} reserved
 					</span>
@@ -185,12 +185,12 @@
 
 			<!-- Actions -->
 			<div class="mt-5 flex items-center gap-2 border-t border-base-200 pt-4">
-				<a href="/offers/{offer.id}" class="btn flex-1 gap-1 btn-outline btn-sm btn-primary">
+				<a href="/offers/{offer.id}" class="btn flex-1 gap-1 btn-outline btn-primary btn-sm">
 					View details
 					<IconArrowRight class="size-4" />
 				</a>
 				<button
-					class="btn btn-square btn-outline btn-sm btn-error"
+					class="btn btn-square btn-outline btn-error btn-sm"
 					aria-label="Delete offer"
 					onclick={() => requestDelete(offer)}
 				>
@@ -306,7 +306,7 @@
 						type="number"
 						min="0"
 						placeholder="0"
-						class="input-bordered input input-sm w-24"
+						class="input-bordered input w-24 input-sm"
 						value={data.filters.minAmount ?? ''}
 						onchange={(e) => updateFilter('minAmount', e.currentTarget.value)}
 					/>
@@ -317,7 +317,7 @@
 						type="number"
 						min="0"
 						placeholder="∞"
-						class="input-bordered input input-sm w-24"
+						class="input-bordered input w-24 input-sm"
 						value={data.filters.maxAmount ?? ''}
 						onchange={(e) => updateFilter('maxAmount', e.currentTarget.value)}
 					/>

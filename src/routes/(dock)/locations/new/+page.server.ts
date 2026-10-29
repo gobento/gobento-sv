@@ -1,11 +1,11 @@
 // src/routes/(dock)/locations/new/+page.server.ts
-import { db } from '$lib/server/db';
-import { businessLocations, businessProfiles, files } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { businessLocations, businessProfiles, files } from '#lib/server/schema.js';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { Actions, PageServerLoad } from './$types';
-import { uploadImageWithPreset } from '$lib/server/backblaze';
+import { uploadImageWithPreset } from '#lib/server/backblaze.js';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;

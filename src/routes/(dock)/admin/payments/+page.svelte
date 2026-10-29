@@ -1,6 +1,6 @@
 <!-- src/routes/(dock)/admin/payments/+page.svelte -->
 <script lang="ts">
-	import BaseLayout from '$lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import IconReceipt from '~icons/fluent/receipt-24-filled';
 	import type { PageData } from './$types';
 
@@ -49,12 +49,12 @@
 				name="q"
 				value={data.filters.q}
 				placeholder="user or business email…"
-				class="input input-bordered"
+				class="input-bordered input"
 			/>
 		</label>
 		<label class="form-control">
 			<span class="label-text mb-1">Outcome</span>
-			<select name="outcome" class="select select-bordered">
+			<select name="outcome" class="select-bordered select">
 				<option value="">All outcomes</option>
 				{#each data.outcomes as o (o)}
 					<option value={o} selected={data.filters.outcome === o}>{o}</option>
@@ -63,7 +63,7 @@
 		</label>
 		<label class="form-control">
 			<span class="label-text mb-1">Method</span>
-			<select name="method" class="select select-bordered">
+			<select name="method" class="select-bordered select">
 				<option value="">All methods</option>
 				{#each data.methods as mth (mth)}
 					<option value={mth} selected={data.filters.method === mth}>
@@ -77,7 +77,7 @@
 	</form>
 
 	{#if data.truncated}
-		<div class="alert alert-warning mb-4">
+		<div class="mb-4 alert alert-warning">
 			Showing the most recent 300 attempts. Use the filters to narrow the results.
 		</div>
 	{/if}
@@ -99,7 +99,7 @@
 			<tbody>
 				{#each data.attempts as a (a.id)}
 					<tr class="align-top">
-						<td class="whitespace-nowrap text-xs text-base-content/70"
+						<td class="text-xs whitespace-nowrap text-base-content/70"
 							>{formatDateTime(a.createdAt)}</td
 						>
 						<td class="text-sm">{a.userEmail ?? '—'}</td>
@@ -114,7 +114,7 @@
 								{a.paymentMethod === 'iban' ? 'Bank / IBAN' : 'USDT'}
 							</span>
 						</td>
-						<td class="whitespace-nowrap text-sm">{formatAmount(a.amount, a.currency)}</td>
+						<td class="text-sm whitespace-nowrap">{formatAmount(a.amount, a.currency)}</td>
 						<td>
 							<span class="badge badge-sm {outcomeBadge[a.outcome] ?? 'badge-neutral'}"
 								>{a.outcome}</span

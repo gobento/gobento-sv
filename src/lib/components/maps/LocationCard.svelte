@@ -48,7 +48,7 @@
 
 	<button
 		onclick={toggleMap}
-		class="group btn h-auto min-h-0 w-full justify-start rounded-xl bg-base-200 p-4 normal-case btn-ghost hover:bg-base-300"
+		class="group btn h-auto min-h-0 w-full justify-start rounded-xl bg-base-200 btn-ghost p-4 normal-case hover:bg-base-300"
 	>
 		<div class="flex w-full items-start justify-between gap-3">
 			<div class="flex-1 space-y-1 text-left">
@@ -76,7 +76,7 @@
 
 	{#if isExpanded}
 		<div class="mt-3 h-[300px] w-full overflow-hidden rounded-xl border border-base-200">
-			{#await import('$lib/components/maps/MarkedMap.svelte')}
+			{#await import('#lib/components/maps/MarkedMap.svelte')}
 				<div class="flex h-full items-center justify-center">
 					<IconFluentMap24Regular class="size-12 animate-pulse text-base-content/50" />
 				</div>

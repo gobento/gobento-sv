@@ -1,8 +1,8 @@
 // src/routes/(dock)/admin/payments/+page.server.ts
 import type { PageServerLoad } from './$types';
-import { db } from '$lib/server/db';
-import { assertAdmin } from '$lib/server/admin';
-import { paymentAttempts, accounts, businessOffers } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { assertAdmin } from '#lib/server/admin.js';
+import { paymentAttempts, accounts, businessOffers } from '#lib/server/schema.js';
 import { alias } from 'drizzle-orm/pg-core';
 import { and, desc, eq, ilike, or, type SQL } from 'drizzle-orm';
 

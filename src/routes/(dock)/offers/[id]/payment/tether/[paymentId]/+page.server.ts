@@ -1,13 +1,13 @@
 // src/routes/(dock)/offers/[id]/payment/tether/[paymentId]/+page.server.ts
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { db } from '$lib/server/db';
-import { payments, businessOffers } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { payments, businessOffers } from '#lib/server/schema.js';
 import { eq } from 'drizzle-orm';
-import { PaymentHandler } from '$lib/server/payments/handler';
+import { PaymentHandler } from '#lib/server/payments/handler.js';
 import { superValidate, setError } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
-import { TETHER_CONTRACT_ADDRESS } from '$env/static/private';
+import { TETHER_CONTRACT_ADDRESS } from '$app/env/private';
 import { txHashSchema } from './schema';
 
 export const load: PageServerLoad = async ({ params, locals }) => {

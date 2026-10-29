@@ -1,7 +1,7 @@
 <!-- src/lib/components/PriceDisplay.svelte -->
 <script lang="ts">
 	import { get } from 'lodash-es';
-	import { formatPrice } from '$lib/util';
+	import { formatPrice } from '#lib/util.js';
 
 	interface Props {
 		originalValue: number;

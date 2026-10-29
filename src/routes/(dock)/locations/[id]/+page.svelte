@@ -13,11 +13,11 @@
 	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-regular';
-	import LocationCard from '$lib/components/maps/LocationCard.svelte';
-	import OptimizedLogoImage from '$lib/components/images/OptimizedLogoImage.svelte';
-	import OptimizedLocationImage from '$lib/components/images/OptimizedLocationImage.svelte';
-	import ComplaintModal from '$lib/components/ComplaintModal.svelte';
-	import { formatDate, formatTime, formatPrice } from '$lib/util';
+	import LocationCard from '#lib/components/maps/LocationCard.svelte';
+	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
+	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
+	import ComplaintModal from '#lib/components/ComplaintModal.svelte';
+	import { formatDate, formatTime, formatPrice } from '#lib/util.js';
 
 	let { data, form } = $props();
 
@@ -254,7 +254,7 @@
 			<!-- Status badge -->
 			<div class="absolute top-3 left-3">
 				{#if offer.isActive}
-					<span class="badge gap-1 border-none badge-sm badge-success shadow">
+					<span class="badge gap-1 border-none badge-sm shadow badge-success">
 						<IconCheckmark class="size-3" />
 						{#if offer.validUntil}
 							Active until {formatDate(offer.validUntil)}
@@ -263,14 +263,14 @@
 						{/if}
 					</span>
 				{:else}
-					<span class="badge border-none badge-sm badge-neutral shadow">Inactive</span>
+					<span class="badge border-none badge-sm shadow badge-neutral">Inactive</span>
 				{/if}
 			</div>
 
 			<!-- Recurring badge -->
 			{#if offer.isRecurring}
 				<div class="absolute top-3 right-3">
-					<span class="badge gap-1 border-none badge-sm badge-info shadow">
+					<span class="badge gap-1 border-none badge-sm shadow badge-info">
 						<IconRepeat class="size-3" />
 						Recurring
 					</span>

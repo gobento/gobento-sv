@@ -1,15 +1,15 @@
 // src/routes/(dock)/offers/[id]/payment/+page.server.ts
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { db } from '$lib/server/db';
-import { businessOffers, businessWallets, reservations } from '$lib/server/schema';
+import { db } from '#lib/server/db.js';
+import { businessOffers, businessWallets, reservations } from '#lib/server/schema.js';
 import { eq, and } from 'drizzle-orm';
-import { PaymentHandler } from '$lib/server/payments/handler';
-import { TETHER_CONTRACT_ADDRESS } from '$env/static/private';
+import { PaymentHandler } from '#lib/server/payments/handler.js';
+import { TETHER_CONTRACT_ADDRESS } from '$app/env/private';
 import { superValidate, setError } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { initPaymentSchema } from './schema';
-import { priceWithMargin } from '$lib/server/payments/currency';
+import { priceWithMargin } from '#lib/server/payments/currency.js';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const account = locals.account!;
@@ -70,7 +70,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		offer: {
 			id: offer.id,
 			name: offer.name,
-			price: price,
+			price,
 			currency: wallet.ibanEnabled ? 'EUR' : 'IRR',
 			isRecurring: offer.isRecurring
 		},

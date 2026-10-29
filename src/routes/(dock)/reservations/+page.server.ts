@@ -1,5 +1,5 @@
 // src/routes/(dock)/reservations/+page.server.ts
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db.js';
 import {
 	reservations,
 	businessOffers,
@@ -7,12 +7,12 @@ import {
 	businessProfiles,
 	files,
 	accounts
-} from '$lib/server/schema';
+} from '#lib/server/schema.js';
 import { eq, and, inArray } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { getSignedDownloadUrl } from '$lib/server/backblaze';
-import { getReservationReceipt } from '$lib/server/pdf/getReservationReceipt';
+import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
+import { getReservationReceipt } from '#lib/server/pdf/getReservationReceipt.js';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;
