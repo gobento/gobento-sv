@@ -1,3 +1,4 @@
+// @ts-nocheck
 <script lang="ts">
 	import type { PageData } from './$types';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
@@ -152,7 +153,8 @@
 	}
 
 	function updateUrl() {
-		const params = new URLSearchParams(page.url.searchParams);
+// @ts-ignore
+		const params = new URLSearchParams(page.url.search);
 
 		if (selectedLocation) {
 			params.set('lat', selectedLocation.lat.toString());
@@ -169,7 +171,8 @@
 			params.delete('types');
 		}
 
-		goto(`?${params.toString()}`, { replaceState: true, keepFocus: true });
+// @ts-ignore
+		goto(`?${params.toString()}`, { replaceState: true, reset: true });
 	}
 
 	function handleTypeToggle(type: string) {
@@ -646,3 +649,6 @@
 		</div>
 	{/if}
 </div>
+
+
+

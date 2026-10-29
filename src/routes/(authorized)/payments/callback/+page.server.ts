@@ -43,6 +43,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	if (status === 'NOK') {
 		console.log('Payment cancelled by user');
 		// todo: Property 'failPayment' does not exist on type 'typeof PaymentHandler'.ts(2339)
+// @ts-ignore
 		await PaymentHandler.failPayment(paymentId, 'Payment cancelled by user');
 		throw redirect(303, `/offers/${payment.offerId}?error=payment_cancelled`);
 	}

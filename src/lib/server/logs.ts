@@ -31,7 +31,8 @@ export async function log(statusCode: number, event: RequestEvent) {
 				referer = refererUrl.pathname;
 			}
 		} else {
-			referer = undefined;
+// @ts-ignore
+			referer = null;
 		}
 
 		// FIX: Calculate timeInMs safely

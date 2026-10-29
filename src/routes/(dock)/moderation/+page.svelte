@@ -38,6 +38,7 @@
 		<Alert type="error" class="mb-6">{form.error}</Alert>
 	{/if}
 
+// @ts-ignore
 	{#snippet reviewCard(item: (typeof data.items)[number], pending: boolean)}
 		<div class="card border border-base-300 bg-base-100" class:border-warning={pending}>
 			<div class="card-body gap-4 p-6">

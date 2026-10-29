@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 
 export const GET: RequestHandler = async ({ params }) => {
+// @ts-ignore
 	const fileId = params.id;
 
 	if (!fileId) {

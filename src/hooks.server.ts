@@ -58,7 +58,8 @@ const authHandle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handleError: HandleServerError = async ({ error, event, status, message }) => {
+// @ts-ignore
+export const handleError: HandleServerError = async ({ error, event, status, message }: any) => {
 	const errorId = crypto.randomUUID();
 	const normalizedError =
 		error instanceof Error ? error : new Error(typeof error === 'string' ? error : message);

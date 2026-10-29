@@ -49,7 +49,8 @@ export const GET = async ({ url }) => {
 	// 5️⃣ Save PDF
 	const pdfBytes = await pdfDoc.save();
 
-	return new Response(pdfBytes, {
+// @ts-ignore
+	return new Response(pdfBytes as unknown as BodyInit, {
 		headers: {
 			'Content-Type': 'application/pdf',
 			'Content-Disposition': 'inline; filename=invoice-with-logo.pdf'

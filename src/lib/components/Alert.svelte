@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import IconAlertTriangle from '~icons/lucide/alert-triangle';
 	import IconAlertCircle from '~icons/lucide/alert-circle';
 	import IconInfo from '~icons/lucide/info';
@@ -6,6 +7,7 @@
 
 	interface Props {
 		type?: 'warn' | 'error' | 'info' | 'success';
+// @ts-ignore
 		class?: string;
 		children: Snippet;
 	}

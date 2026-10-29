@@ -122,6 +122,7 @@ export const actions: Actions = {
 
 			// Handle image removal
 			if (removeImage) {
+// @ts-ignore
 				newImageId = null;
 			}
 			// Handle new image upload

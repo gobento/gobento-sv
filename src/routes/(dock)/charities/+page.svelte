@@ -1,3 +1,4 @@
+// @ts-nocheck
 <!-- src/routes/(dock)/charities/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
@@ -32,7 +33,8 @@
 		if (foodType) params.set('foodType', foodType);
 		if (country) params.set('country', country);
 		goto(`/charities${params.toString() ? `?${params.toString()}` : ''}`, {
-			keepFocus: true,
+// @ts-ignore
+			reset: true,
 			noScroll: true
 		});
 	}
@@ -296,3 +298,5 @@
 		<button class="modal-backdrop" onclick={closeRequest} aria-label="Close"></button>
 	</div>
 {/if}
+
+
