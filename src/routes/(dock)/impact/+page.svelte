@@ -12,6 +12,7 @@
 	import IconPeople from '~icons/fluent/people-24-regular';
 	import IconSparkle from '~icons/fluent/sparkle-24-regular';
 	import Reveal from '#lib/components/motion/Reveal.svelte';
+	import AnimatedNumber from '#lib/components/motion/AnimatedNumber.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -19,7 +20,9 @@
 		{
 			icon: IconMoney,
 			title: 'Money Saved',
-			value: `${data.stats.currency === 'EUR' ? '€' : data.stats.currency}${data.stats.moneySaved.toFixed(2)}`,
+			prefix: data.stats.currency === 'EUR' ? '€' : data.stats.currency,
+			value: data.stats.moneySaved,
+			decimals: 2,
 			subtitle: 'From discounted offers',
 			color: 'text-success',
 			bgColor: 'bg-success/10'
@@ -27,7 +30,10 @@
 		{
 			icon: IconLeaf,
 			title: 'CO₂ Prevented',
-			value: `${data.stats.co2Saved} kg`,
+			prefix: '',
+			suffix: ' kg',
+			value: data.stats.co2Saved,
+			decimals: 0,
 			subtitle: `Equivalent to ${Math.round(data.stats.co2Saved * 4)} km driving`,
 			color: 'text-accent',
 			bgColor: 'bg-accent/10'
@@ -35,7 +41,10 @@
 		{
 			icon: IconWeatherMoon,
 			title: 'Energy Saved',
-			value: `${data.stats.energySaved} kWh`,
+			prefix: '',
+			suffix: ' kWh',
+			value: data.stats.energySaved,
+			decimals: 0,
 			subtitle: `Powers a home for ${Math.round(data.stats.energySaved / 30)} days`,
 			color: 'text-warning',
 			bgColor: 'bg-warning/10'
@@ -43,7 +52,9 @@
 		{
 			icon: IconFood,
 			title: 'Meals Rescued',
-			value: data.stats.totalReservations.toString(),
+			prefix: '',
+			value: data.stats.totalReservations,
+			decimals: 0,
 			subtitle: 'From going to waste',
 			color: 'text-primary',
 			bgColor: 'bg-primary/10'
@@ -120,7 +131,9 @@
 						<card.icon class="size-6 {card.color}" />
 					</div>
 					<h3 class="text-sm font-medium opacity-70">{card.title}</h3>
-					<p class="text-lg font-bold">{card.value}</p>
+					<p class="text-lg font-bold">
+						{card.prefix ?? ''}<AnimatedNumber value={card.value} decimals={card.decimals} />{card.suffix ?? ''}
+					</p>
 					<p class="text-xs opacity-60">{card.subtitle}</p>
 				</div>
 			</div>
