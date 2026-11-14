@@ -25,6 +25,7 @@
 	import LocationCard from '#lib/components/maps/LocationCard.svelte';
 	import Alert from '#lib/components/Alert.svelte';
 	import { page } from '$app/state';
+	import Confetti from '#lib/components/motion/Confetti.svelte';
 
 	let { data, form } = $props();
 
@@ -241,6 +242,9 @@
 		<meta name="robots" content="noindex, nofollow" />
 	{/if}
 </svelte:head>
+
+<!-- Celebrates a freshly completed payment (?success=true). -->
+<Confetti show={page.url.searchParams.get('success') === 'true'} />
 
 <div class="space-y-4">
 	<!-- Status Banners -->

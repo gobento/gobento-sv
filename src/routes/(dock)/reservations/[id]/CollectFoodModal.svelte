@@ -6,6 +6,7 @@
 	import IconDismiss from '~icons/fluent/dismiss-circle-24-regular';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import Modal from '#lib/components/Modal.svelte';
+	import Confetti from '#lib/components/motion/Confetti.svelte';
 
 	let {
 		open = $bindable(false),
@@ -23,6 +24,7 @@
 	let isDragging = $state(false);
 	let startX = $state(0);
 	let collectLoading = $state(false);
+	let celebrate = $state(false);
 
 	function handleSwipeStart(e: MouseEvent | TouchEvent) {
 		isDragging = true;
@@ -56,6 +58,7 @@
 	}
 
 	async function handleCollect() {
+		celebrate = false;
 		collectLoading = true;
 		const formEl = document.getElementById('collectForm') as HTMLFormElement;
 		if (formEl) {
@@ -79,6 +82,7 @@
 		if (form?.success && !collectLoading) {
 			open = false;
 			swipeProgress = 0;
+			celebrate = true;
 			if (onCollectComplete) {
 				onCollectComplete();
 			}
