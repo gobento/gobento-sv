@@ -3,8 +3,12 @@
 @plugin '@tailwindcss/forms';
 @plugin 'daisyui' {
 	themes:
-		dark --default,
+		light --default,
 		dark --prefersdark;
+}
+
+html {
+	color-scheme: light dark;
 }
 
 :global(.leaflet-popup-content-wrapper) {
