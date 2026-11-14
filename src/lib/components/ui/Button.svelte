@@ -83,7 +83,7 @@
 
 	const classes = $derived(
 		cx(
-			'btn gap-2',
+			'btn gap-2 transition-all duration-200 ease-spring motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-md motion-safe:active:translate-y-0 motion-safe:active:scale-[0.96] motion-safe:active:shadow-sm',
 			VARIANTS[variant],
 			SIZES[size],
 			outline && 'btn-outline',

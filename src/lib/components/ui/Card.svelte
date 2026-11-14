@@ -40,7 +40,7 @@
 			'card border border-base-300 shadow-sm',
 			surface === 'muted' ? 'bg-base-200' : 'bg-base-100',
 			(interactive || href) &&
-				'transition-all duration-200 hover:border-primary/40 hover:shadow-md',
+				'transition-all duration-300 ease-spring motion-safe:hover:-translate-y-1 motion-safe:hover:border-primary/40 motion-safe:hover:shadow-md',
 			className
 		)
 	);
