@@ -13,7 +13,7 @@
 </script>
 
 <div class="p-6">
-	<div class="mb-10">
+	<div class="animate-rise-in mb-10">
 		<div class="flex items-center gap-3">
 			{#if icon}
 				<div class="flex size-10 items-center justify-center rounded-lg bg-primary/10">

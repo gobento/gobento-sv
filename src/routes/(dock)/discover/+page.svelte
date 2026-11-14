@@ -1,4 +1,3 @@
-// @ts-nocheck
 <script lang="ts">
 	import type { PageData } from './$types';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
@@ -20,6 +19,7 @@
 	import NotFound from '#lib/components/NotFound.svelte';
 	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
 	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
+	import Reveal from '#lib/components/motion/Reveal.svelte';
 
 	import { formatDistance } from '#lib/util.js';
 	import { useImagePreloader, extractImageUrls } from '#lib/utils/imagePreloader.svelte.js';
@@ -153,7 +153,7 @@
 	}
 
 	function updateUrl() {
-// @ts-ignore
+		// @ts-ignore
 		const params = new URLSearchParams(page.url.search);
 
 		if (selectedLocation) {
@@ -171,7 +171,7 @@
 			params.delete('types');
 		}
 
-// @ts-ignore
+		// @ts-ignore
 		goto(`?${params.toString()}`, { replaceState: true, reset: true });
 	}
 
@@ -235,6 +235,8 @@
 		return businessTypeLabels[type] ?? 'Business';
 	}
 </script>
+
+// @ts-nocheck
 
 <!-- src/routes/(dock)/discover/+page.svelte -->
 
@@ -409,15 +411,15 @@
 
 			<!-- Desktop: every deal side by side -->
 			<div class="hidden gap-4 sm:grid sm:grid-cols-2">
-				{#each data.specialDeals as deal (deal.type)}
-					{@render dealCard(deal)}
+				{#each data.specialDeals as deal, i (deal.type)}
+					<Reveal delay={i * 100}>{@render dealCard(deal)}</Reveal>
 				{/each}
 			</div>
 
 			<!-- Mobile: just the first deal here; any second one appears between
 				 sections further down -->
 			<div class="grid sm:hidden">
-				{@render dealCard(data.specialDeals[0])}
+				<Reveal>{@render dealCard(data.specialDeals[0])}</Reveal>
 			</div>
 		</section>
 	{/if}
@@ -641,14 +643,11 @@
 		{/snippet}
 
 		<div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-			{#each data.offers as offer (offer.id)}
+			{#each data.offers as offer, i (offer.id)}
 				{#if offer?.business?.logo}
-					{@render offerCard(offer)}
+					<Reveal delay={Math.min(i, 9) * 60} variant="pop">{@render offerCard(offer)}</Reveal>
 				{/if}
 			{/each}
 		</div>
 	{/if}
 </div>
-
-
-

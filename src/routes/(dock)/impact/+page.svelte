@@ -1,4 +1,3 @@
-// @ts-nocheck
 <!-- src/routes/(authorized)/impact/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
@@ -12,6 +11,7 @@
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconPeople from '~icons/fluent/people-24-regular';
 	import IconSparkle from '~icons/fluent/sparkle-24-regular';
+	import Reveal from '#lib/components/motion/Reveal.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -95,6 +95,8 @@
 	]);
 </script>
 
+// @ts-nocheck
+
 <!-- Header -->
 <div class="space-y-3 text-center">
 	<div
@@ -108,17 +110,21 @@
 
 <!-- Main Impact Cards -->
 <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-	{#each impactCards as card}
-		<div class="card bg-base-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-			<div class="card-body">
-				<div class="inline-flex rounded-xl p-3 {card.bgColor} w-fit">
-					<card.icon class="size-6 {card.color}" />
+	{#each impactCards as card, i}
+		<Reveal delay={i * 90}>
+			<div
+				class="card bg-base-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+			>
+				<div class="card-body">
+					<div class="inline-flex rounded-xl p-3 {card.bgColor} w-fit">
+						<card.icon class="size-6 {card.color}" />
+					</div>
+					<h3 class="text-sm font-medium opacity-70">{card.title}</h3>
+					<p class="text-lg font-bold">{card.value}</p>
+					<p class="text-xs opacity-60">{card.subtitle}</p>
 				</div>
-				<h3 class="text-sm font-medium opacity-70">{card.title}</h3>
-				<p class="text-lg font-bold">{card.value}</p>
-				<p class="text-xs opacity-60">{card.subtitle}</p>
 			</div>
-		</div>
+		</Reveal>
 	{/each}
 </div>
 
@@ -210,7 +216,7 @@
 							<div>
 								<p class="font-medium">{activity.name}</p>
 								<p class="text-xs opacity-60">
-// @ts-ignore
+									// @ts-ignore
 									{new Date(activity.claimedAt).toLocaleDateString()}
 								</p>
 							</div>
@@ -233,4 +239,3 @@
 		Find More Offers
 	</a>
 </div>
-
