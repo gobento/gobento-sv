@@ -1,4 +1,3 @@
-// src/routes/api/file/[id]/+server.ts
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '#lib/server/db.js';
@@ -7,8 +6,7 @@ import { eq } from 'drizzle-orm';
 import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 
 export const GET: RequestHandler = async ({ params }) => {
-// @ts-ignore
-	const fileId = params.id;
+	const fileId = params.key;
 
 	if (!fileId) {
 		throw error(400, 'File ID required');
@@ -24,11 +22,12 @@ export const GET: RequestHandler = async ({ params }) => {
 			throw error(404, 'File not found');
 		}
 
-		// Generate signed URL (valid for 1 hour)
+		// Generate signed URL
 		const signedUrl = await getSignedDownloadUrl(fileRecord.key);
 
 		// Redirect to signed URL
-		throw redirect(302, signedUrl);
+		// Signed bucket URLs (or the mock-file route) are on another origin.
+		throw redirect(302, signedUrl, { external: true });
 	} catch (err) {
 		if (err instanceof Error && 'status' in err) {
 			throw err; // Re-throw SvelteKit errors

@@ -58,11 +58,25 @@ const authHandle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-// @ts-ignore
-export const handleError: HandleServerError = async ({ error, event, status, message }: any) => {
+export const handleError: HandleServerError = async (input) => {
+	const { event } = input;
 	const errorId = crypto.randomUUID();
-	const normalizedError =
-		error instanceof Error ? error : new Error(typeof error === 'string' ? error : message);
+
+	// App errors (`error(...)`), framework errors (404s) and validation errors
+	// carry their own status and safe message; anything else is a crash.
+	const expected = input.kind !== 'unknown';
+	const status = expected ? input.error.status : 500;
+	const message = expected ? input.error.message : 'Internal Error';
+
+	// A missing page or asset is not worth a stack trace.
+	if (input.kind === 'framework' && status === 404) {
+		return { errorId };
+	}
+
+	const cause =
+		input.error instanceof Error
+			? input.error
+			: new Error(typeof input.error === 'string' ? input.error : message);
 
 	// Safe error logging without relying on the custom logger, which might fail.
 	console.error(
@@ -70,15 +84,15 @@ export const handleError: HandleServerError = async ({ error, event, status, mes
 	);
 	console.error(`   account: ${event.locals.account?.id ?? 'anonymous'}`);
 	console.error(`   session: ${event.locals.session?.id ?? 'none'}`);
-	console.error(`   message: ${normalizedError.message}`);
-	if (normalizedError.stack) {
-		console.error(normalizedError.stack);
+	if (!expected) {
+		console.error(`   message: ${cause.message}`);
+		if (cause.stack) console.error(cause.stack);
 	}
 
 	// Try to persist the error with the custom logger, but never let it throw.
 	try {
-		event.locals.error = normalizedError.message || 'Unknown error';
-		event.locals.errorStackTrace = normalizedError.stack;
+		event.locals.error = expected ? message : cause.message || 'Unknown error';
+		event.locals.errorStackTrace = expected ? undefined : cause.stack;
 		event.locals.errorId = errorId;
 
 		await log(status, event);
@@ -86,10 +100,8 @@ export const handleError: HandleServerError = async ({ error, event, status, mes
 		console.error('Failed to call log function:', logError);
 	}
 
-	return {
-		message: 'An unexpected error occurred.',
-		errorId
-	};
+	// Expected errors keep their own message; crashes get a generic one.
+	return expected ? { errorId } : { message: 'An unexpected error occurred.', errorId };
 };
 
 export const handle = sequence(timerHandle, rateLimitHandle, authHandle);

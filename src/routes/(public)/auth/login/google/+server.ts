@@ -25,5 +25,5 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	cookies.set('google_oauth_state', `${state}|${encodeURIComponent(next)}`, OAUTH_COOKIE);
 	cookies.set('google_code_verifier', codeVerifier, OAUTH_COOKIE);
 
-	redirect(302, authUrl.toString());
+	redirect(302, authUrl.toString(), { external: ['https://accounts.google.com'] });
 };
