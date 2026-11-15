@@ -18,11 +18,13 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"test": "vitest run",
+		"db:snapshot": "drizzle-kit export --sql > src/lib/server/mock/schema.sql",
 		"test:watch": "vitest"
 	},
 	"devDependencies": {
 		"@aws-sdk/client-s3": "3.1159.0",
 		"@aws-sdk/s3-request-presigner": "3.1159.0",
+		"@electric-sql/pglite": "^0.5.16",
 		"@eslint/compat": "^2.1.1",
 		"@eslint/js": "^10.0.1",
 		"@iconify-json/circle-flags": "1.2.12",
@@ -35,6 +37,7 @@
 		"@inlang/paraglide-js": "2.29.3",
 		"@oslojs/crypto": "1.0.1",
 		"@oslojs/oauth2": "0.5.0",
+		"@playwright/test": "^1.65.1",
 		"@sveltejs/adapter-auto": "8.0.0",
 		"@sveltejs/adapter-vercel": "7.0.1",
 		"@sveltejs/kit": "3.1.0",

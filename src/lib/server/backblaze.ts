@@ -10,6 +10,8 @@ import {
 	BACKBLAZE_REGION,
 	BACKBLAZE_ENDPOINT
 } from '$app/env/private';
+import { isMockEnabled } from './mock';
+import { mockFileUrl, putMockFile } from './mock/storage';
 
 const s3Client = new S3Client({
 	endpoint: BACKBLAZE_ENDPOINT,
@@ -121,6 +123,11 @@ export async function uploadFile(
 			}
 		});
 
+		if (isMockEnabled()) {
+			putMockFile(uniqueKey, { body: processedBuffer, contentType: finalContentType });
+			return { success: true, key: uniqueKey };
+		}
+
 		await s3Client.send(command);
 
 		return {
@@ -215,6 +222,8 @@ export async function getSignedDownloadUrl(
 	key: string,
 	expiresIn: number = 604800 // 7 days
 ): Promise<string> {
+	if (isMockEnabled()) return mockFileUrl(key);
+
 	const command = new GetObjectCommand({
 		Bucket: BACKBLAZE_BUCKET_NAME,
 		Key: key,
@@ -230,6 +239,8 @@ export async function getSignedDownloadUrl(
  * @returns Signed URL with 1 hour expiration
  */
 export async function getSignedDownloadUrlShort(key: string): Promise<string> {
+	if (isMockEnabled()) return mockFileUrl(key);
+
 	const command = new GetObjectCommand({
 		Bucket: BACKBLAZE_BUCKET_NAME,
 		Key: key,
