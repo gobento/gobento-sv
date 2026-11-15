@@ -166,6 +166,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const activeInvite = invites.find((inv) => inv.status === 'accepted' || inv.status === 'pending');
 
 	return {
+		serverNow: Date.now(),
 		reservation: {
 			...details,
 			// The pickup code is for whoever may collect, not for someone still deciding on an invite.

@@ -28,7 +28,9 @@
 		{ role: 'business', label: 'Business', hint: 'Publish surplus offers', icon: IconShop },
 		{ role: 'charity', label: 'Charity', hint: 'Collect donations', icon: IconHeart },
 		{ role: 'moderator', label: 'Moderator', hint: 'Review accounts', icon: IconShield },
-		{ role: 'admin', label: 'Admin', hint: 'Run the platform', icon: IconSettings }
+		{ role: 'admin', label: 'Admin', hint: 'Run the platform', icon: IconSettings },
+		{ role: 'staff', label: 'Shop staff', hint: 'Pack and hand over', icon: IconShop },
+		{ role: 'charityStaff', label: 'Charity staff', hint: 'Collect pickups', icon: IconHeart }
 	];
 
 	// Leaving for Google takes a moment; show that the tap registered.

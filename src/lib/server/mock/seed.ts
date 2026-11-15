@@ -65,7 +65,9 @@ export async function seedMockDatabase(db: Database, now = new Date()): Promise<
 			account('charity-mahlzeit', 'charity', 50),
 			account('charity-alle', 'charity', 1),
 			account(DEMO_ACCOUNTS.moderator, 'moderator', 150),
-			account(DEMO_ACCOUNTS.admin, 'admin', 200)
+			account(DEMO_ACCOUNTS.admin, 'admin', 200),
+			account(DEMO_ACCOUNTS.staff, 'employee', 20),
+			account(DEMO_ACCOUNTS.charityStaff, 'employee', 20)
 		]);
 
 	await db.insert(t.adminProfiles).values({ accountId: DEMO_ACCOUNTS.admin });
@@ -516,6 +518,29 @@ export async function seedMockDatabase(db: Database, now = new Date()): Promise<
 			pickupFrom: todayAt(18, 1),
 			pickupUntil: todayAt(20, 1)
 		},
+		// Counter demo: two more bags to hand out at Kreuzberg today.
+		{
+			id: 'res-kiez-lena-today',
+			offerId: 'offer-pastry-bag',
+			business: B,
+			user: 'user-lena',
+			price: 4.5,
+			status: 'active',
+			reservedAt: at(-4 * HOUR),
+			pickupFrom: todayAt(new Date(now).getHours() + 1),
+			pickupUntil: todayAt(new Date(now).getHours() + 3)
+		},
+		{
+			id: 'res-kiez-omid-today',
+			offerId: 'offer-pastry-bag',
+			business: B,
+			user: 'user-omid',
+			price: 4.5,
+			status: 'active',
+			reservedAt: at(-2 * HOUR),
+			pickupFrom: todayAt(new Date(now).getHours() + 1),
+			pickupUntil: todayAt(new Date(now).getHours() + 3)
+		},
 		{
 			id: 'res-claimed',
 			offerId: 'offer-veggie',
@@ -783,6 +808,17 @@ export async function seedMockDatabase(db: Database, now = new Date()): Promise<
 			createdAt: at(-7 * DAY),
 			respondedAt: at(-7 * DAY + 3 * HOUR)
 		}
+	]);
+
+	// --- Staff ----------------------------------------------------------------
+	await db.insert(t.employees).values([
+		{
+			accountId: DEMO_ACCOUNTS.staff,
+			employerAccountId: B,
+			locationId: 'loc-kiez-kreuzberg',
+			name: 'Mia Becker'
+		},
+		{ accountId: DEMO_ACCOUNTS.charityStaff, employerAccountId: DEMO_ACCOUNTS.charity, name: 'Jonas Wolf' }
 	]);
 
 	// --- Regular gifts --------------------------------------------------------

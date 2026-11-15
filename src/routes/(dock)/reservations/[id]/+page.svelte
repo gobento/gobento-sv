@@ -631,6 +631,8 @@
 	<CollectFoodModal
 		bind:open={showCollectModal}
 		claimToken={reservation.claimToken}
+		reservationId={reservation.id}
+		serverNow={data.serverNow}
 		offerName={data.offer.name}
 		businessName={data.business.name}
 		oncollected={onCollected}

@@ -14,6 +14,7 @@
 	import IconChart from '~icons/fluent/data-trending-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconArrow from '~icons/fluent/arrow-right-24-regular';
+	import IconPeople from '~icons/fluent/people-team-24-regular';
 
 	let { data }: { data: PageData } = $props();
 
@@ -149,6 +150,8 @@
 
 		<SectionCard title="Locations" icon={IconLocation} bodyClass="gap-3" class="lg:col-span-2">
 			{#snippet actions()}
+				<a href="/shift" class="btn gap-1 btn-ghost btn-sm"><IconBag class="size-4" /> Counter</a>
+				<a href="/team" class="btn gap-1 btn-ghost btn-sm"><IconPeople class="size-4" /> Team</a>
 				<a href="/locations" class="btn gap-1 btn-ghost btn-sm">All <IconArrow class="size-4" /></a>
 			{/snippet}
 			{#if data.locationPerformanceData.length === 0}

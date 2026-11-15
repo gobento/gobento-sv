@@ -6,7 +6,9 @@ export const DEMO_ACCOUNTS = {
 	business: 'demo-business',
 	charity: 'demo-charity',
 	moderator: 'demo-moderator',
-	admin: 'demo-admin'
+	admin: 'demo-admin',
+	staff: 'demo-staff',
+	charityStaff: 'demo-charity-staff'
 } as const;
 
 export type DemoRole = keyof typeof DEMO_ACCOUNTS;

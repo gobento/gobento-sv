@@ -6,16 +6,27 @@
 	import Modal from '#lib/components/Modal.svelte';
 	import Alert from '#lib/components/Alert.svelte';
 	import Spinner from '#lib/components/ui/Spinner.svelte';
+	import PickupQr from '#lib/components/reservations/PickupQr.svelte';
 
 	interface Props {
 		open: boolean;
 		claimToken: string;
+		reservationId: string;
+		serverNow: number;
 		offerName: string;
 		businessName: string;
 		oncollected: () => void;
 	}
 
-	let { open = $bindable(false), claimToken, offerName, businessName, oncollected }: Props = $props();
+	let {
+		open = $bindable(false),
+		claimToken,
+		reservationId,
+		serverNow,
+		offerName,
+		businessName,
+		oncollected
+	}: Props = $props();
 
 	const THUMB = 56;
 	const CONFIRM_AT = 0.9;
@@ -82,15 +93,19 @@
 <Modal bind:open title="Collect your food" position="bottom" size="small" dismissible={!submitting}>
 	<div class="space-y-5">
 		<p class="text-sm text-base-content/70">
-			Show this screen to the staff at <strong class="text-base-content">{businessName}</strong>,
-			then slide to confirm once you have your bag.
+			Show this code to the staff at <strong class="text-base-content">{businessName}</strong>.
+			They scan it and hand you <strong class="text-base-content">{offerName}</strong>.
 		</p>
 
-		<div class="rounded-2xl border border-dashed border-base-300 bg-base-200/60 p-4 text-center">
-			<p class="eyebrow">Pickup code</p>
-			<p class="mt-1.5 font-mono text-sm font-bold break-all select-all" dir="ltr">{claimToken}</p>
-			<p class="mt-2 truncate text-sm text-base-content/60">{offerName}</p>
+		<div class="rounded-2xl border border-dashed border-base-300 bg-base-200/60 p-4">
+			{#if open}
+				<PickupQr {reservationId} {claimToken} {serverNow} />
+			{/if}
 		</div>
+
+		<p class="text-xs text-base-content/60">
+			No scanner at the counter? Once you have your bag, slide to confirm.
+		</p>
 
 		{#if errorMessage}
 			<Alert type="error">{errorMessage}</Alert>

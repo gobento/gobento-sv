@@ -3,7 +3,7 @@
  * Role-aware navigation, kept free of UI imports so it can be unit tested and
  * shared between the server (home redirect) and the app shell.
  */
-export type AccountType = 'user' | 'business' | 'charity' | 'moderator' | 'admin';
+export type AccountType = 'user' | 'business' | 'charity' | 'moderator' | 'admin' | 'employee';
 
 export type NavIcon =
 	| 'discover'
@@ -43,6 +43,7 @@ const NAVIGATION: Record<AccountType, NavItem[]> = {
 		{ path: '/transactions', label: 'Payments', icon: 'money' },
 		{ path: '/analytics', label: 'Analytics', icon: 'chart' },
 		{ path: '/charities', label: 'Charities', icon: 'heart' },
+		{ path: '/team', label: 'Team', icon: 'person' },
 		{ path: '/complaints', label: 'Complaints', icon: 'warning' },
 		SETTINGS
 	],
@@ -50,8 +51,11 @@ const NAVIGATION: Record<AccountType, NavItem[]> = {
 		{ path: '/donations', label: 'Donations', icon: 'heart' },
 		{ path: '/discover', label: 'Discover', icon: 'discover' },
 		{ path: '/reservations', label: 'Pickups', icon: 'bag' },
+		{ path: '/team', label: 'Team', icon: 'person' },
 		SETTINGS
 	],
+	// Staff of a business or charity: the counter / collection view only.
+	employee: [{ path: '/shift', label: 'Shift', icon: 'bag' }, SETTINGS],
 	moderator: [{ path: '/moderation', label: 'Moderation', icon: 'shield' }, SETTINGS],
 	admin: [
 		{ path: '/admin', label: 'Overview', icon: 'home' },

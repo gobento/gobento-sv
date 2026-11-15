@@ -6,6 +6,7 @@
 	import { page } from '$app/state';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import StatTile from '#lib/components/ui/StatTile.svelte';
+	import PickupQr from '#lib/components/reservations/PickupQr.svelte';
 	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';
 	import { GIFT_STATUS, PICKUP_STATUS } from '#lib/statuses.js';
 	import { formatPickupWindow } from '#lib/components/reservations/pickup.js';
@@ -270,8 +271,17 @@
 							{/if}
 						</div>
 						<p class="text-sm text-base-content/70">{req.message}</p>
-						{#if req.reservationClaimToken}
-							<p class="font-mono text-xs">Claim code: {req.reservationClaimToken}</p>
+						{#if req.reservationId && req.reservationClaimToken && req.reservationStatus === 'active'}
+							<details class="rounded-xl bg-base-200/60 p-3">
+								<summary class="cursor-pointer text-sm font-semibold">Show pickup code</summary>
+								<div class="mt-3">
+									<PickupQr
+										reservationId={req.reservationId}
+										claimToken={req.reservationClaimToken}
+										serverNow={data.serverNow}
+									/>
+								</div>
+							</details>
 						{/if}
 						<div class="card-actions justify-end">
 							<form

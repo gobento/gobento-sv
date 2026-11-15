@@ -75,6 +75,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			locationAddress: businessLocations.address,
 			offerId: businessOffers.id,
 			offerName: businessOffers.name,
+			reservationId: reservations.id,
+			reservationStatus: reservations.status,
 			reservationClaimToken: reservations.claimToken,
 			reservationPickupFrom: reservations.pickupFrom,
 			reservationPickupUntil: reservations.pickupUntil
@@ -154,7 +156,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		).size
 	};
 
-	return { requests, gifts, stats };
+	return { requests, gifts, stats, serverNow: Date.now() };
 };
 
 export const actions: Actions = {
