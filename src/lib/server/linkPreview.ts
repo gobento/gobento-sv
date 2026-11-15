@@ -12,7 +12,9 @@ import { priceWithMargin } from '#lib/server/payments/currency.js';
 import { inviteCard } from '#lib/server/og/invite.js';
 
 const PREVIEW_BOTS =
-	/facebookexternalhit|facebot|twitterbot|telegrambot|whatsapp|slackbot|discordbot|linkedinbot|skypeuripreview|pinterest|redditbot|embedly|mastodon|bluesky|applebot|googlebot|bingbot|signal|iframely|vkshare|snapchat/i;
+	// Crawler names only: in-app browsers (Pinterest, Snapchat, ...) carry their app's
+	// name in the user agent too, and must get the real app.
+	/facebookexternalhit|facebot|twitterbot|telegrambot|whatsapp|slackbot|discordbot|linkedinbot|skypeuripreview|pinterestbot|redditbot|embedly|mastodon|bluesky|applebot|googlebot|bingbot|signal|iframely|vkshare|snap url preview/i;
 
 export function isPreviewBot(userAgent: string | null): boolean {
 	return !!userAgent && PREVIEW_BOTS.test(userAgent);
@@ -183,8 +185,12 @@ ${ownCard ? '<meta property="og:image:width" content="1200" />\n<meta property="
 	return new Response(html, {
 		headers: {
 			'content-type': 'text/html; charset=utf-8',
-			// Signed image URLs last a week; let previews cache for a day.
-			'cache-control': 'public, max-age=86400'
+			// Same URL as the real page, so no shared cache may keep this: a CDN
+			// would otherwise serve the bare preview page to every browser.
+			'cache-control': 'private, no-store',
+			'cdn-cache-control': 'no-store',
+			'vercel-cdn-cache-control': 'no-store',
+			vary: 'User-Agent'
 		}
 	});
 }
