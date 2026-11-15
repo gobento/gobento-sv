@@ -1,3 +1,4 @@
+import { formatDate } from '#lib/dates.js';
 import type { Component } from 'svelte';
 import IconAll from '~icons/fluent-emoji-flat/bento-box';
 import IconBakery from '~icons/fluent-emoji-flat/croissant';
@@ -67,19 +68,13 @@ export function addDays(date: Date, days: number): Date {
 	return next;
 }
 
-const dayFormat = new Intl.DateTimeFormat('en-GB', {
-	weekday: 'short',
-	day: 'numeric',
-	month: 'short'
-});
-
-/** "Today", "Tomorrow" or "Sat, 15 Nov". */
+/** "Today", "Tomorrow" or "15.11.2026". */
 export function relativeDay(date: Date | string, now: Date = new Date()): string {
 	const target = typeof date === 'string' ? new Date(`${date.slice(0, 10)}T12:00:00`) : date;
 	const iso = isoDate(target);
 	if (iso === isoDate(now)) return 'Today';
 	if (iso === isoDate(addDays(now, 1))) return 'Tomorrow';
-	return dayFormat.format(target);
+	return formatDate(target);
 }
 
 export interface PickupWindow {
@@ -106,8 +101,9 @@ export function pickupWindow(
 	const range = `${hhmm(offer.pickupTimeFrom)}–${hhmm(offer.pickupTimeUntil)}`;
 	const minutesLeft = minutesOf(offer.pickupTimeUntil) - (now.getHours() * 60 + now.getMinutes());
 
-	if (minutesLeft > 0) return { day: 'Today', range, label: `Today ${range}`, ended: false, minutesLeft };
+	if (minutesLeft > 0)
+		return { day: 'Today', range, label: `Today, ${range}`, ended: false, minutesLeft };
 	if (offer.isRecurring)
-		return { day: 'Tomorrow', range, label: `Tomorrow ${range}`, ended: false, minutesLeft: null };
+		return { day: 'Tomorrow', range, label: `Tomorrow, ${range}`, ended: false, minutesLeft: null };
 	return { day: '', range, label: 'Pickup ended', ended: true, minutesLeft: null };
 }

@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/complaints/+page.svelte -->
 <script lang="ts">
+	import { formatDateTime } from '#lib/dates.js';
 	import { enhance } from '$app/forms';
 	import IconWarning from '~icons/fluent/warning-24-regular';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
@@ -12,14 +13,7 @@
 
 	let resolvingId = $state<string | null>(null);
 
-	const formatDate = (value: string | Date) =>
-		new Date(value).toLocaleString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
+	const formatDate = (value: string | Date) => formatDateTime(value);
 
 	const targetHref = (c: (typeof data.complaints)[number]) =>
 		c.targetType === 'offer' && c.offerId

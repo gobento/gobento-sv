@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/admin/accounts/+page.svelte -->
 <script lang="ts">
+	import { formatDate } from '#lib/dates.js';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import IconPeople from '~icons/fluent/people-24-filled';
 	import IconSearch from '~icons/fluent/search-24-regular';
@@ -16,14 +17,6 @@
 		moderator: 'badge-accent',
 		admin: 'badge-error'
 	};
-
-	function formatDate(date: Date | string): string {
-		return new Date(date).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
-	}
 </script>
 
 <BaseLayout

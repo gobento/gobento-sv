@@ -1,5 +1,6 @@
 <!-- src/routes/(authorized)/impact/+page.svelte -->
 <script lang="ts">
+	import { formatDate } from '#lib/dates.js';
 	import type { PageData } from './$types';
 	import IconLeaf from '~icons/fluent/leaf-three-24-regular';
 	import IconMoney from '~icons/fluent/money-24-regular';
@@ -106,7 +107,6 @@
 	]);
 </script>
 
-
 <!-- Header -->
 <div class="space-y-3 text-center">
 	<div
@@ -131,7 +131,10 @@
 					</div>
 					<h3 class="text-sm font-medium opacity-70">{card.title}</h3>
 					<p class="text-lg font-bold">
-						{card.prefix ?? ''}<AnimatedNumber value={card.value} decimals={card.decimals} />{card.suffix ?? ''}
+						{card.prefix ?? ''}<AnimatedNumber
+							value={card.value}
+							decimals={card.decimals}
+						/>{card.suffix ?? ''}
 					</p>
 					<p class="text-xs opacity-60">{card.subtitle}</p>
 				</div>
@@ -229,7 +232,7 @@
 								<p class="font-medium">{activity.name}</p>
 								{#if activity.claimedAt}
 									<p class="text-xs opacity-60">
-										{new Date(activity.claimedAt).toLocaleDateString()}
+										{formatDate(activity.claimedAt)}
 									</p>
 								{/if}
 							</div>

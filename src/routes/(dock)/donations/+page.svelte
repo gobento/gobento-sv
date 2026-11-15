@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/donations/+page.svelte -->
 <script lang="ts">
+	import { formatDateTime } from '#lib/dates.js';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
@@ -29,10 +30,7 @@
 
 	function formatDate(value: string | Date | null): string {
 		if (!value) return '';
-		return new Date(value).toLocaleString(undefined, {
-			dateStyle: 'medium',
-			timeStyle: 'short'
-		});
+		return formatDateTime(value);
 	}
 
 	const pending = $derived(data.requests.filter((r) => r.status === 'pending'));

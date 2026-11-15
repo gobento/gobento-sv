@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/admin/payments/+page.svelte -->
 <script lang="ts">
+	import { formatDateTime } from '#lib/dates.js';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import IconReceipt from '~icons/fluent/receipt-24-filled';
 	import type { PageData } from './$types';
@@ -14,16 +15,6 @@
 		cancelled: 'badge-neutral',
 		completed: 'badge-success'
 	};
-
-	function formatDateTime(date: Date | string): string {
-		return new Date(date).toLocaleString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
 
 	function formatAmount(amount: number | null, currency: string | null): string {
 		if (amount == null) return '—';

@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/moderation/+page.svelte -->
 <script lang="ts">
+	import { formatDate } from '#lib/dates.js';
 	import { enhance } from '$app/forms';
 	import IconShield from '~icons/fluent/shield-task-24-regular';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
@@ -16,13 +17,6 @@
 
 	const pendingItems = $derived(data.items.filter((item) => item.status === 'pending'));
 	const reviewedItems = $derived(data.items.filter((item) => item.status !== 'pending'));
-
-	const formatDate = (value: string | Date) =>
-		new Date(value).toLocaleString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		});
 </script>
 
 <svelte:head>
@@ -167,7 +161,6 @@
 	{#if form?.error}
 		<Alert type="error" class="mb-6">{form.error}</Alert>
 	{/if}
-
 
 	{#if data.items.length === 0}
 		<div class="card border border-base-300 bg-base-100">

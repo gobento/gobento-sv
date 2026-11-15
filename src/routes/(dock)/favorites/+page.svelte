@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/favorites/+page.svelte -->
 <script lang="ts">
+	import { formatDate } from '#lib/dates.js';
 	import { enhance } from '$app/forms';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import NotFound from '#lib/components/NotFound.svelte';
@@ -145,10 +146,7 @@
 							<div class="flex items-center gap-1.5 text-base-content/60">
 								<IconCalendar class="size-4" />
 								<span>
-									Added {new Date(favorite.favoritedAt).toLocaleDateString('en-US', {
-										month: 'short',
-										day: 'numeric'
-									})}
+									Added {formatDate(favorite.favoritedAt)}
 								</span>
 							</div>
 						</div>
@@ -169,4 +167,3 @@
 		</div>
 	{/if}
 </BaseLayout>
-

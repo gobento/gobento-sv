@@ -1,5 +1,6 @@
 <!-- /src/routes/(dock)/analytics/+page.svelte -->
 <script lang="ts">
+	import { formatDate, formatDayMonth } from '#lib/dates.js';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { Chart, Svg, Area, Axis, Highlight, Tooltip } from 'layerchart';
@@ -27,18 +28,10 @@
 	);
 
 	// Format date for axis labels (short version)
-	const formatDateShort = (date: Date) => {
-		return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-	};
+	const formatDateShort = (date: Date) => formatDayMonth(date);
 
 	// Format date for tooltip header
-	const formatDateLong = (date: Date) => {
-		return date.toLocaleDateString('en-US', {
-			weekday: 'short',
-			month: 'long',
-			day: 'numeric'
-		});
-	};
+	const formatDateLong = (date: Date) => formatDate(date);
 
 	// Handle offer click
 	const handleOfferClick = (offerId: string) => {
@@ -501,4 +494,3 @@
 		{/if}
 	</div>
 </BaseLayout>
-

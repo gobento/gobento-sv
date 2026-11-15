@@ -150,11 +150,7 @@
 					<div class="flex items-center gap-2 text-base-content/60">
 						<IconCalendar class="size-5" />
 						<span class="text-sm font-medium">
-							Saving food since {new Date(data.location.createdAt).toLocaleDateString('en-US', {
-								month: 'long',
-								day: 'numeric',
-								year: 'numeric'
-							})}
+							Saving food since {formatDate(data.location.createdAt)}
 						</span>
 					</div>
 				</div>

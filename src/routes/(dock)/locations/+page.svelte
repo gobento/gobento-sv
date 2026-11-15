@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/locations/+page.svelte -->
 <script lang="ts">
+	import { formatDate } from '#lib/dates.js';
 	import IconAdd from '~icons/fluent/add-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconTag from '~icons/fluent/tag-24-regular';
@@ -119,11 +120,7 @@
 							</div>
 							<span>•</span>
 							<span>
-								{new Date(location.createdAt).toLocaleDateString('en-US', {
-									month: 'short',
-									day: 'numeric',
-									year: 'numeric'
-								})}
+								{formatDate(location.createdAt)}
 							</span>
 						</div>
 

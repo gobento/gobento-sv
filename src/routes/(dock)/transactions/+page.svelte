@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/transactions/+page.svelte -->
 <script lang="ts">
+	import { formatDate, formatDateTime, formatMonthYear } from '#lib/dates.js';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
 	import IconClock from '~icons/fluent/clock-24-regular';
@@ -23,8 +24,7 @@
 	}
 
 	function formatMonth(month: string, year: number): string {
-		const date = new Date(year, parseInt(month) - 1);
-		return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+		return formatMonthYear(new Date(year, parseInt(month) - 1));
 	}
 
 	function getStatusBadge(status: string) {
@@ -170,7 +170,7 @@
 									{#if settlement.ibanPaidAt}
 										<div class="mt-2 text-xs text-success">
 											<IconCheckmarkCircle class="inline size-4" />
-											Paid on {new Date(settlement.ibanPaidAt).toLocaleDateString()}
+											Paid on {formatDate(settlement.ibanPaidAt)}
 										</div>
 										{#if settlement.ibanTransactionRef}
 											<div class="text-xs text-base-content/60">
@@ -202,7 +202,7 @@
 									{#if settlement.tetherPaidAt}
 										<div class="mt-2 text-xs text-success">
 											<IconCheckmarkCircle class="inline size-4" />
-											Paid on {new Date(settlement.tetherPaidAt).toLocaleDateString()}
+											Paid on {formatDate(settlement.tetherPaidAt)}
 										</div>
 										{#if settlement.tetherTxHash}
 											<div class="text-xs text-base-content/60">
@@ -270,9 +270,7 @@
 													{formatCurrency(payment.businessAmount, payment.currency)}
 												</td>
 												<td class="text-xs">
-													{payment.completedAt
-														? new Date(payment.completedAt).toLocaleString()
-														: 'N/A'}
+													{payment.completedAt ? formatDateTime(payment.completedAt) : 'N/A'}
 												</td>
 												<td>
 													<span class="badge badge-xs">
@@ -291,4 +289,3 @@
 		{/if}
 	</div>
 </BaseLayout>
-

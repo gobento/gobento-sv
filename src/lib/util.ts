@@ -1,3 +1,4 @@
+import { formatDate as formatDateDdMmYyyy } from '#lib/dates.js';
 export function formatTime(time: Date | string | null) {
 	if (!time) return '';
 
@@ -13,11 +14,7 @@ export function formatTime(time: Date | string | null) {
 
 export function formatDate(date: Date | null | string) {
 	if (!date) return 'No expiry';
-	return new Date(date).toLocaleDateString('en-US', {
-		month: 'short',
-		day: 'numeric',
-		year: 'numeric'
-	});
+	return formatDateDdMmYyyy(date);
 }
 
 // Haversine formula to calculate distance in kilometers

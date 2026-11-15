@@ -1,14 +1,7 @@
 /** Formatting and phase helpers for a reservation's pickup window. */
+import { formatDate, formatTimeOfDay } from '#lib/dates.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-const clock = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-const shortDay = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-const shortDayWithYear = new Intl.DateTimeFormat('en-GB', {
-	day: 'numeric',
-	month: 'short',
-	year: 'numeric'
-});
 
 function startOfDay(date: Date): number {
 	return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
@@ -16,10 +9,10 @@ function startOfDay(date: Date): number {
 
 /** 24h wall-clock time, e.g. "20:00". */
 export function formatClock(date: Date | string): string {
-	return clock.format(new Date(date));
+	return formatTimeOfDay(date);
 }
 
-/** "Today", "Tomorrow", "Yesterday", otherwise "Sat, 15 Nov" (with the year when it differs). */
+/** "Today", "Tomorrow", "Yesterday", otherwise "15.11.2026". */
 export function formatDay(date: Date | string, now: Date | number = Date.now()): string {
 	const value = new Date(date);
 	const today = new Date(now);
@@ -27,23 +20,21 @@ export function formatDay(date: Date | string, now: Date | number = Date.now()):
 	if (days === 0) return 'Today';
 	if (days === 1) return 'Tomorrow';
 	if (days === -1) return 'Yesterday';
-	return value.getFullYear() === today.getFullYear()
-		? shortDay.format(value)
-		: shortDayWithYear.format(value);
+	return formatDate(value);
 }
 
-/** "Today 20:00–22:00" */
+/** "Today, 20:00–22:00" or "15.11.2026, 20:00–22:00" */
 export function formatPickupWindow(
 	from: Date | string,
 	until: Date | string,
 	now: Date | number = Date.now()
 ): string {
-	return `${formatDay(from, now)} ${formatClock(from)}–${formatClock(until)}`;
+	return `${formatDay(from, now)}, ${formatClock(from)}–${formatClock(until)}`;
 }
 
-/** "Sat, 15 Nov at 18:04", relative day wording where it applies. */
+/** "Today, 18:04" or "15.11.2026, 18:04". */
 export function formatMoment(date: Date | string, now: Date | number = Date.now()): string {
-	return `${formatDay(date, now)} at ${formatClock(date)}`;
+	return `${formatDay(date, now)}, ${formatClock(date)}`;
 }
 
 export type PickupPhase = 'upcoming' | 'open' | 'closed';

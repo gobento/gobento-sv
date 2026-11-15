@@ -1,5 +1,6 @@
 <!-- src/routes/(public)/test/+page.svelte -->
 <script lang="ts">
+	import { formatDate } from '#lib/dates.js';
 	import type { ActionData } from './$types';
 	import FileUpload from '#lib/components/FileUpload.svelte';
 	import IconCloudArrowUp from '~icons/fluent/cloud-arrow-up-24-regular';
@@ -177,7 +178,7 @@
 								<div class="card-body p-3">
 									<h3 class="truncate text-sm font-semibold">{item.fileName}</h3>
 									<p class="text-xs text-base-content/60">
-										{new Date(item.timestamp).toLocaleDateString()}
+										{formatDate(item.timestamp)}
 									</p>
 									<div class="mt-2 flex gap-2">
 										<button onclick={() => copyUrl(item.url)} class="btn flex-1 btn-ghost btn-xs">
