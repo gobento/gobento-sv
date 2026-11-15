@@ -8,8 +8,7 @@
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconBag from '~icons/fluent/shopping-bag-24-regular';
 	import IconShield from '~icons/fluent/shield-24-regular';
-
-	const SUPPORT_URL = 'https://t.me/MilitaernewsKontakt';
+	import { supportUrl } from '#lib/support.js';
 
 	const errorId = $derived(page.url.searchParams.get('errorId'));
 
@@ -34,14 +33,14 @@
 
 <Seo title="Contact · GoBento" description="Get in touch with the GoBento team." />
 
-<PublicPage title="Contact us" description="Questions, feedback or a problem? We are happy to help.">
+<PublicPage
+	title="Contact us"
+	description="Questions, feedback or a problem? We are happy to help."
+>
 	<div class="space-y-6">
 		{#if errorId}
 			<Alert type="warn">
 				<p class="font-bold">Reporting an error</p>
-				<p class="mt-0.5">
-					Please include this reference in your message so we can find what went wrong.
-				</p>
 				<CopyField value={errorId} label="Error reference" class="mt-3" />
 			</Alert>
 		{/if}
@@ -49,11 +48,12 @@
 		<section class="surface p-5">
 			<h2 class="text-lg font-extrabold tracking-tight">Message the team</h2>
 			<p class="mt-1 text-sm text-base-content/65">
-				Support runs over Telegram. Tap the button to open a chat with us
-				{errorId ? 'and paste the error reference.' : 'and describe what you need.'}
+				{errorId
+					? 'Opens Telegram with the error reference already in your message.'
+					: 'Opens a Telegram chat with the team.'}
 			</p>
 			<a
-				href={SUPPORT_URL}
+				href={supportUrl(errorId)}
 				target="_blank"
 				rel="noopener noreferrer"
 				class="btn mt-4 btn-block gap-2 font-bold shadow-glow btn-primary"

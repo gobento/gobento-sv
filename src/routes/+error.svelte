@@ -10,6 +10,7 @@
 	import IconMail from '~icons/fluent/mail-24-regular';
 	import IconRetry from '~icons/fluent/arrow-clockwise-24-regular';
 	import Button from '#lib/components/ui/Button.svelte';
+	import { supportUrl } from '#lib/support.js';
 	import CopyField from '#lib/components/account/CopyField.svelte';
 
 	const status = $derived(page.status);
@@ -53,9 +54,8 @@
 
 	const Icon = $derived(config.icon);
 
-	const contactUrl = $derived(
-		errorId ? `/contact?errorId=${encodeURIComponent(errorId)}` : '/contact'
-	);
+	// Straight into the Telegram support chat, hello and error reference prefilled.
+	const contactUrl = $derived(supportUrl(errorId));
 
 	function goBack() {
 		history.back();
@@ -86,21 +86,18 @@
 		</div>
 
 		<h1 class="animate-rise-in text-2xl font-extrabold tracking-tight">{config.title}</h1>
-		<p class="stagger mt-2 animate-rise-in text-base-content/70" style:--i={1}>
+		<p class="mt-2 animate-rise-in text-base-content/70 stagger" style:--i={1}>
 			{config.message}
 		</p>
 
 		{#if errorId}
-			<div class="stagger mt-6 animate-rise-in text-start" style:--i={2}>
+			<div class="mt-6 animate-rise-in text-start stagger" style:--i={2}>
 				<p class="eyebrow mb-1.5 px-1">Error reference</p>
 				<CopyField value={errorId} label="Error reference" />
-				<p class="mt-1.5 px-1 text-xs text-base-content/55">
-					Share this code with support so we can find what went wrong.
-				</p>
 			</div>
 		{/if}
 
-		<div class="stagger mt-7 flex animate-rise-in flex-col gap-2.5" style:--i={3}>
+		<div class="mt-7 flex animate-rise-in flex-col gap-2.5 stagger" style:--i={3}>
 			{#if config.retry}
 				<Button icon={IconRetry} block onclick={retry}>Try again</Button>
 				<Button href="/" variant="ghost" icon={IconHome} block>Go to start</Button>
@@ -109,7 +106,16 @@
 				<Button variant="ghost" icon={IconBack} block onclick={goBack}>Go back</Button>
 			{/if}
 			{#if config.support || errorId}
-				<Button href={contactUrl} variant="ghost" icon={IconMail} block>Contact support</Button>
+				<Button
+					href={contactUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					variant="ghost"
+					icon={IconMail}
+					block
+				>
+					Contact support
+				</Button>
 			{/if}
 		</div>
 	</div>

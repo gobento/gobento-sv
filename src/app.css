@@ -575,3 +575,11 @@
 		animation: none;
 	}
 }
+
+/* daisyUI's neutral sits right next to the dark surfaces, so outlined neutral
+   buttons ("Pass to a friend", "Directions") vanished in dark mode. They take
+   the text colour instead, which is practically the same in light mode.
+   Unlayered on purpose: daisyUI's own button rules live in a cascade layer. */
+.btn-outline.btn-neutral {
+	--btn-color: var(--color-base-content);
+}

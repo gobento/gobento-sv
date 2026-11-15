@@ -77,6 +77,14 @@
 		};
 	});
 
+	// Render at the end of <body>. Inside the page, an ancestor with its own
+	// stacking context (the route's view transition) kept the dialog below the
+	// tab bar, which then covered the bottom of sheets.
+	function portal(node: HTMLElement) {
+		document.body.appendChild(node);
+		return { destroy: () => node.remove() };
+	}
+
 	// The sheet slides up on phones; everything else scales in.
 	function enter(node: Element) {
 		const sheet = position === 'bottom' && window.matchMedia('(max-width: 639px)').matches;
@@ -88,6 +96,7 @@
 
 {#if open}
 	<div
+		use:portal
 		class="fixed inset-0 z-[1003] flex justify-center {position === 'bottom'
 			? 'items-end sm:items-center'
 			: 'items-center p-4'}"
