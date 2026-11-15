@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import { fly, scale, slide } from 'svelte/transition';
-	import { goto } from '$app/navigation';
+	import { fly, slide } from 'svelte/transition';
 	import { superForm } from 'sveltekit-superforms';
 	import { valibot } from 'sveltekit-superforms/adapters';
 	import { renderSVG } from 'uqr';
@@ -13,23 +12,19 @@
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
-	import SuccessCheck from '#lib/components/ui/SuccessCheck.svelte';
 	import { toast } from '#lib/components/ui/toast.svelte.js';
 	import PaymentProgress from '../../PaymentProgress.svelte';
 	import { txHashSchema } from './schema';
 
-	let { data, form } = $props();
+	let { data } = $props();
 
 	const HASH = /^0x[a-fA-F0-9]{64}$/;
 	const POLL_MS = 5000;
-	// Long enough to enjoy the tick, short enough not to feel like waiting.
-	const CELEBRATE_MS = 1700;
 
-	type Phase = 'idle' | 'confirming' | 'done';
+	type Phase = 'idle' | 'confirming';
 
 	let phase = $state<Phase>('idle');
 	let confirmations = $state(0);
-	let reservationId = $state<string | null>(null);
 	let shake = $state(0);
 	let pasteError = $state<string | null>(null);
 	let copied = $state<'address' | 'amount' | null>(null);
@@ -53,25 +48,18 @@
 		resetForm: false,
 		onResult: async ({ result, cancel }) => {
 			clearTimeout(pollTimer);
+			// Confirmed: the server sends us to the pickup ticket, which celebrates.
+			if (result.type === 'redirect') {
+				navigator.vibrate?.([18, 40, 18]);
+				return;
+			}
 			if (result.type !== 'success') {
 				phase = 'idle';
 				if (result.type === 'failure') shake++;
 				return;
 			}
-			const payload = result.data as
-				{ reservationId?: string; pending?: boolean; confirmations?: number } | undefined;
-
-			if (payload?.reservationId) {
-				// Skip the data reload: the load function would redirect to the ticket
-				// right away and swallow the celebration.
-				cancel();
-				reservationId = payload.reservationId;
-				phase = 'done';
-				setTimeout(
-					() => goto(`/reservations/${payload.reservationId}?success=true`, { replace: true }),
-					CELEBRATE_MS
-				);
-			} else if (payload?.pending) {
+			const payload = result.data as { pending?: boolean; confirmations?: number } | undefined;
+			if (payload?.pending) {
 				cancel(); // nothing on the page changes until the transfer is confirmed
 				phase = 'confirming';
 				confirmations = payload.confirmations ?? 0;
@@ -83,12 +71,6 @@
 			shake++;
 		}
 	});
-
-	// Without JavaScript the action's result lands here instead of in onResult.
-	const finishedId = $derived(
-		reservationId ?? (form && 'reservationId' in form ? (form.reservationId as string) : null)
-	);
-	const done = $derived(phase === 'done' || finishedId !== null);
 
 	const amountLabel = $derived(
 		data.payment.amountUsdt.toLocaleString('en-US', {
@@ -188,288 +170,268 @@
 	backLabel="Back to checkout"
 >
 	<div class="space-y-5 pb-24 md:pb-0">
-		<PaymentProgress current={done ? 3 : 2} />
+		<PaymentProgress current={2} />
 
-		{#if done}
-			<!-- The moment it worked -->
-			<section
-				class="surface relative overflow-hidden px-6 py-10 text-center"
-				in:scale={{ start: 0.92, duration: 400 }}
-				aria-live="polite"
-			>
-				<div class="relative mx-auto w-fit">
-					{#each { length: 10 } as _, i (i)}
-						<span class="spark" style:--a="{i * 36}deg" style:--d="{i * 25}ms"></span>
-					{/each}
-					<SuccessCheck />
+		<!-- Step 1: send -->
+		<section class="surface animate-rise-in overflow-hidden" aria-labelledby="send-heading">
+			<div class="flex items-center gap-3 px-5 pt-5">
+				<span class="step-dot" class:step-dot-done={gotAddress}>
+					{#if gotAddress}<IconCheck class="size-4 animate-pop-in" />{:else}1{/if}
+				</span>
+				<h2 id="send-heading" class="flex-1 font-extrabold">Send this payment</h2>
+
+				<div
+					class="flex items-center gap-1.5 rounded-full py-1 ps-1 pe-2.5 text-xs font-bold {expired
+						? 'bg-warning/15 text-warning-content'
+						: holdFraction < 0.2
+							? 'bg-warning/15'
+							: 'bg-base-200'}"
+					title="Your bag is held while you pay"
+				>
+					<svg viewBox="0 0 20 20" class="size-5 -rotate-90" aria-hidden="true">
+						<circle cx="10" cy="10" r="8" fill="none" stroke-width="3" class="stroke-base-300" />
+						<circle
+							cx="10"
+							cy="10"
+							r="8"
+							fill="none"
+							stroke-width="3"
+							stroke-linecap="round"
+							pathLength="100"
+							stroke-dasharray="100"
+							stroke-dashoffset={100 - holdFraction * 100}
+							class="transition-[stroke-dashoffset] duration-1000 ease-linear {holdFraction < 0.2
+								? 'stroke-warning'
+								: 'stroke-primary'}"
+						/>
+					</svg>
+					<span class="tabular">{expired ? 'Hold ended' : `${clock} held`}</span>
 				</div>
-				<h2 class="mt-5 text-2xl font-extrabold tracking-tight">Payment received!</h2>
-				{#if finishedId && phase !== 'done'}
-					<Button href="/reservations/{finishedId}?success=true" class="mt-5">Open ticket</Button>
-				{/if}
-			</section>
-		{:else}
-			<!-- Step 1: send -->
-			<section class="surface animate-rise-in overflow-hidden" aria-labelledby="send-heading">
-				<div class="flex items-center gap-3 px-5 pt-5">
-					<span class="step-dot" class:step-dot-done={gotAddress}>
-						{#if gotAddress}<IconCheck class="size-4 animate-pop-in" />{:else}1{/if}
-					</span>
-					<h2 id="send-heading" class="flex-1 font-extrabold">Send this payment</h2>
+			</div>
 
-					<div
-						class="flex items-center gap-1.5 rounded-full py-1 ps-1 pe-2.5 text-xs font-bold {expired
-							? 'bg-warning/15 text-warning-content'
-							: holdFraction < 0.2
-								? 'bg-warning/15'
-								: 'bg-base-200'}"
-						title="Your bag is held while you pay"
-					>
-						<svg viewBox="0 0 20 20" class="size-5 -rotate-90" aria-hidden="true">
-							<circle cx="10" cy="10" r="8" fill="none" stroke-width="3" class="stroke-base-300" />
-							<circle
-								cx="10"
-								cy="10"
-								r="8"
-								fill="none"
-								stroke-width="3"
-								stroke-linecap="round"
-								pathLength="100"
-								stroke-dasharray="100"
-								stroke-dashoffset={100 - holdFraction * 100}
-								class="transition-[stroke-dashoffset] duration-1000 ease-linear {holdFraction < 0.2
-									? 'stroke-warning'
-									: 'stroke-primary'}"
-							/>
-						</svg>
-						<span class="tabular">{expired ? 'Hold ended' : `${clock} held`}</span>
-					</div>
-				</div>
-
-				<div class="flex flex-col items-center px-5 pt-5 pb-5">
-					<!-- Scanning only works from a second screen, so phones skip the QR code
+			<div class="flex flex-col items-center px-5 pt-5 pb-5">
+				<!-- Scanning only works from a second screen, so phones skip the QR code
 					     and open the wallet app directly instead. -->
-					<div class="mb-4 hidden flex-col items-center md:flex">
-						<div
-							class="qr animate-pop-in rounded-3xl bg-white p-2 shadow-soft"
-							style:animation-delay="120ms"
-							role="img"
-							aria-label="QR code with the payment details for your wallet"
-						>
-							<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated locally from our own payment URI -->
-							{@html qrSvg}
-						</div>
-					</div>
-
-					<button
-						type="button"
-						class="pressable group relative rounded-2xl px-4 py-2"
-						onclick={() => copy(String(data.payment.amountUsdt), 'amount')}
-						aria-label="Copy amount {amountLabel} USDT"
+				<div class="mb-4 hidden flex-col items-center md:flex">
+					<div
+						class="qr animate-pop-in rounded-3xl bg-white p-2 shadow-soft"
+						style:animation-delay="120ms"
+						role="img"
+						aria-label="QR code with the payment details for your wallet"
 					>
-						<span class="tabular text-4xl font-extrabold tracking-tight">{amountLabel}</span>
-						<span class="text-xl font-bold text-base-content/55">USDT</span>
-						<span
-							class="ms-1 inline-flex size-7 items-center justify-center rounded-full align-middle transition-colors {copied ===
-							'amount'
-								? 'bg-success text-success-content'
-								: 'bg-base-200 text-base-content/60 group-hover:bg-base-300'}"
-						>
-							{#if copied === 'amount'}
-								<IconCheck class="size-4 animate-pop-in" />
-							{:else}
-								<IconCopy class="size-4" />
-							{/if}
-						</span>
-						{#if copied === 'amount'}
-							<span class="copied-bubble">Copied!</span>
-						{/if}
-					</button>
-					<span class="mt-1 badge gap-1 border-0 bg-warning/15 font-bold">
-						<IconWarning class="size-3.5 text-warning" /> ERC-20 only
-					</span>
+						<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated locally from our own payment URI -->
+						{@html qrSvg}
+					</div>
+				</div>
 
-					<!-- Prefills token, address and amount in wallets that support payment links. -->
+				<button
+					type="button"
+					class="pressable group relative rounded-2xl px-4 py-2"
+					onclick={() => copy(String(data.payment.amountUsdt), 'amount')}
+					aria-label="Copy amount {amountLabel} USDT"
+				>
+					<span class="tabular text-4xl font-extrabold tracking-tight">{amountLabel}</span>
+					<span class="text-xl font-bold text-base-content/55">USDT</span>
+					<span
+						class="ms-1 inline-flex size-7 items-center justify-center rounded-full align-middle transition-colors {copied ===
+						'amount'
+							? 'bg-success text-success-content'
+							: 'bg-base-200 text-base-content/60 group-hover:bg-base-300'}"
+					>
+						{#if copied === 'amount'}
+							<IconCheck class="size-4 animate-pop-in" />
+						{:else}
+							<IconCopy class="size-4" />
+						{/if}
+					</span>
+					{#if copied === 'amount'}
+						<span class="copied-bubble">Copied!</span>
+					{/if}
+				</button>
+				<span class="mt-1 badge gap-1 border-0 bg-warning/15 font-bold">
+					<IconWarning class="size-3.5 text-warning" /> ERC-20 only
+				</span>
+
+				<!-- Prefills token, address and amount in wallets that support payment links. -->
+				<Button
+					href={data.paymentUri}
+					icon={IconWallet}
+					size="lg"
+					block
+					class="mt-5 md:hidden"
+					onclick={() => (gotAddress = true)}
+				>
+					Open wallet app
+				</Button>
+				{#if touch}
 					<Button
 						href={data.paymentUri}
 						icon={IconWallet}
-						size="lg"
-						block
-						class="mt-5 md:hidden"
+						outline
+						class="mt-4 hidden md:inline-flex"
 						onclick={() => (gotAddress = true)}
 					>
 						Open wallet app
 					</Button>
-					{#if touch}
-						<Button
-							href={data.paymentUri}
-							icon={IconWallet}
-							outline
-							class="mt-4 hidden md:inline-flex"
-							onclick={() => (gotAddress = true)}
-						>
-							Open wallet app
-						</Button>
-					{/if}
-				</div>
-
-				<div class="border-t border-dashed border-base-300 bg-base-200/60 px-5 py-4">
-					<p class="text-xs font-bold text-base-content/55">To this address</p>
-					<div class="mt-1.5 flex items-center gap-3">
-						<p
-							class="min-w-0 flex-1 font-mono text-sm break-all select-all"
-							dir="ltr"
-							title={address}
-						>
-							<span class="sm:hidden">{shortAddress}</span>
-							<span class="hidden sm:inline">{address}</span>
-						</p>
-						<Button
-							size="sm"
-							variant={copied === 'address' ? 'success' : 'neutral'}
-							outline={copied !== 'address'}
-							icon={copied === 'address' ? IconCheck : IconCopy}
-							onclick={() => copy(address, 'address')}
-							class="shrink-0 {copied === 'address' ? 'animate-heart' : ''}"
-						>
-							{copied === 'address' ? 'Copied' : 'Copy'}
-						</Button>
-					</div>
-				</div>
-			</section>
-
-			{#if expired}
-				<div transition:slide>
-					<Alert type="warn">
-						<p class="font-bold">Hold time over. Already paid? Paste your hash anyway.</p>
-					</Alert>
-				</div>
-			{/if}
-
-			<!-- Step 2: confirm -->
-			<section
-				class="surface animate-rise-in p-5"
-				style:animation-delay="80ms"
-				aria-labelledby="confirm-heading"
-				aria-live="polite"
-			>
-				<div class="flex items-center gap-3">
-					<span class="step-dot" class:step-dot-done={phase === 'confirming'}>
-						{#if phase === 'confirming'}<IconCheck class="size-4 animate-pop-in" />{:else}2{/if}
-					</span>
-					<h2 id="confirm-heading" class="font-extrabold">
-						{phase === 'confirming' ? 'Transfer found' : 'Paste the transaction hash'}
-					</h2>
-				</div>
-
-				{#if phase === 'confirming'}
-					<div class="mt-5 text-center" in:fly={{ y: 10, duration: 300 }}>
-						<div class="flex items-center justify-center" aria-hidden="true">
-							{#each { length: data.requiredConfirmations } as _, i (i)}
-								{#if i > 0}
-									<span
-										class="h-1 w-6 rounded-full transition-colors duration-500 {i <= confirmations
-											? 'bg-success'
-											: 'bg-base-300'}"
-									></span>
-								{/if}
-								<span
-									class="block-cube {i < confirmations
-										? 'block-cube-done'
-										: i === confirmations
-											? 'block-cube-next'
-											: ''}"
-								>
-									{#if i < confirmations}<IconCheck class="size-5 animate-pop-in" />{/if}
-								</span>
-							{/each}
-						</div>
-						<p class="mt-4 font-bold">
-							{#if confirmations === 0}
-								Waiting for the network to pick it up…
-							{:else}
-								Confirming · {confirmations} of {data.requiredConfirmations}
-							{/if}
-						</p>
-						<button type="button" class="btn mt-3 btn-ghost btn-sm" onclick={useDifferentHash}>
-							Use a different hash
-						</button>
-					</div>
-				{:else}
-					{#if formErrors.length}
-						<div class="mt-3"><Alert type="error">{formErrors.join(' ')}</Alert></div>
-					{/if}
 				{/if}
+			</div>
 
-				<!-- Stays mounted while confirming: the automatic re-checks submit it. -->
-				<form
-					id="tx-form"
-					method="POST"
-					use:enhance
-					class="mt-3"
-					class:hidden={phase === 'confirming'}
-				>
-					{#key shake}
-						<div class="flex gap-2" class:shake={shake > 0}>
-							<label for="txHash" class="sr-only">Transaction hash</label>
-							<input
-								bind:this={hashInput}
-								id="txHash"
-								name="txHash"
-								type="text"
-								dir="ltr"
-								placeholder="0x…"
-								autocomplete="off"
-								autocapitalize="off"
-								spellcheck="false"
-								bind:value={$formData.txHash}
-								oninput={maybeSubmit}
-								readonly={$submitting}
-								aria-invalid={hashError ? 'true' : undefined}
-								aria-describedby={hashError ? 'txHash-error' : undefined}
-								class="input min-w-0 flex-1 font-mono text-sm {hashError ? 'input-error' : ''}"
-								required
-							/>
-							{#if canPaste}
-								<Button
-									variant="neutral"
-									outline
-									icon={IconPaste}
-									onclick={pasteHash}
-									disabled={$submitting}
-									class="shrink-0"
-								>
-									Paste
-								</Button>
-							{/if}
-						</div>
-					{/key}
-					{#if hashError}
-						<p id="txHash-error" class="mt-2 text-sm font-semibold text-error" in:fly={{ y: -4 }}>
-							{hashError}
-						</p>
-					{/if}
-				</form>
-			</section>
-
-			{#if phase === 'idle'}
-				<div
-					class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[1000] border-t border-base-300/70 bg-base-100/90 px-4 py-3 backdrop-blur-xl md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none"
-					out:fly={{ y: 20, duration: 200 }}
-				>
-					<Button
-						type="submit"
-						form="tx-form"
-						block
-						size="lg"
-						icon={IconCheck}
-						loading={checking}
-						loadingLabel="Looking for your transfer…"
+			<div class="border-t border-dashed border-base-300 bg-base-200/60 px-5 py-4">
+				<p class="text-xs font-bold text-base-content/55">To this address</p>
+				<div class="mt-1.5 flex items-center gap-3">
+					<p
+						class="min-w-0 flex-1 font-mono text-sm break-all select-all"
+						dir="ltr"
+						title={address}
 					>
-						I have sent it
+						<span class="sm:hidden">{shortAddress}</span>
+						<span class="hidden sm:inline">{address}</span>
+					</p>
+					<Button
+						size="sm"
+						variant={copied === 'address' ? 'success' : 'neutral'}
+						outline={copied !== 'address'}
+						icon={copied === 'address' ? IconCheck : IconCopy}
+						onclick={() => copy(address, 'address')}
+						class="shrink-0 {copied === 'address' ? 'animate-heart' : ''}"
+					>
+						{copied === 'address' ? 'Copied' : 'Copy'}
 					</Button>
 				</div>
+			</div>
+		</section>
+
+		{#if expired}
+			<div transition:slide>
+				<Alert type="warn">
+					<p class="font-bold">Hold time over. Already paid? Paste your hash anyway.</p>
+				</Alert>
+			</div>
+		{/if}
+
+		<!-- Step 2: confirm -->
+		<section
+			class="surface animate-rise-in p-5"
+			style:animation-delay="80ms"
+			aria-labelledby="confirm-heading"
+			aria-live="polite"
+		>
+			<div class="flex items-center gap-3">
+				<span class="step-dot" class:step-dot-done={phase === 'confirming'}>
+					{#if phase === 'confirming'}<IconCheck class="size-4 animate-pop-in" />{:else}2{/if}
+				</span>
+				<h2 id="confirm-heading" class="font-extrabold">
+					{phase === 'confirming' ? 'Transfer found' : 'Paste the transaction hash'}
+				</h2>
+			</div>
+
+			{#if phase === 'confirming'}
+				<div class="mt-5 text-center" in:fly={{ y: 10, duration: 300 }}>
+					<div class="flex items-center justify-center" aria-hidden="true">
+						{#each { length: data.requiredConfirmations } as _, i (i)}
+							{#if i > 0}
+								<span
+									class="h-1 w-6 rounded-full transition-colors duration-500 {i <= confirmations
+										? 'bg-success'
+										: 'bg-base-300'}"
+								></span>
+							{/if}
+							<span
+								class="block-cube {i < confirmations
+									? 'block-cube-done'
+									: i === confirmations
+										? 'block-cube-next'
+										: ''}"
+							>
+								{#if i < confirmations}<IconCheck class="size-5 animate-pop-in" />{/if}
+							</span>
+						{/each}
+					</div>
+					<p class="mt-4 font-bold">
+						{#if confirmations === 0}
+							Waiting for the network to pick it up…
+						{:else}
+							Confirming · {confirmations} of {data.requiredConfirmations}
+						{/if}
+					</p>
+					<button type="button" class="btn mt-3 btn-ghost btn-sm" onclick={useDifferentHash}>
+						Use a different hash
+					</button>
+				</div>
+			{:else}
+				{#if formErrors.length}
+					<div class="mt-3"><Alert type="error">{formErrors.join(' ')}</Alert></div>
+				{/if}
 			{/if}
+
+			<!-- Stays mounted while confirming: the automatic re-checks submit it. -->
+			<form
+				id="tx-form"
+				method="POST"
+				use:enhance
+				class="mt-3"
+				class:hidden={phase === 'confirming'}
+			>
+				{#key shake}
+					<div class="flex gap-2" class:shake={shake > 0}>
+						<label for="txHash" class="sr-only">Transaction hash</label>
+						<input
+							bind:this={hashInput}
+							id="txHash"
+							name="txHash"
+							type="text"
+							dir="ltr"
+							placeholder="0x…"
+							autocomplete="off"
+							autocapitalize="off"
+							spellcheck="false"
+							bind:value={$formData.txHash}
+							oninput={maybeSubmit}
+							readonly={$submitting}
+							aria-invalid={hashError ? 'true' : undefined}
+							aria-describedby={hashError ? 'txHash-error' : undefined}
+							class="input min-w-0 flex-1 font-mono text-sm {hashError ? 'input-error' : ''}"
+							required
+						/>
+						{#if canPaste}
+							<Button
+								variant="neutral"
+								outline
+								icon={IconPaste}
+								onclick={pasteHash}
+								disabled={$submitting}
+								class="shrink-0"
+							>
+								Paste
+							</Button>
+						{/if}
+					</div>
+				{/key}
+				{#if hashError}
+					<p id="txHash-error" class="mt-2 text-sm font-semibold text-error" in:fly={{ y: -4 }}>
+						{hashError}
+					</p>
+				{/if}
+			</form>
+		</section>
+
+		{#if phase === 'idle'}
+			<div
+				class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[1000] border-t border-base-300/70 bg-base-100/90 px-4 py-3 backdrop-blur-xl md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none"
+				out:fly={{ y: 20, duration: 200 }}
+			>
+				<Button
+					type="submit"
+					form="tx-form"
+					block
+					size="lg"
+					icon={IconCheck}
+					loading={checking}
+					loadingLabel="Looking for your transfer…"
+				>
+					I have sent it
+				</Button>
+			</div>
 		{/if}
 	</div>
 </BaseLayout>
@@ -550,29 +512,6 @@
 		animation: shake 0.42s var(--ease-out-quint);
 	}
 
-	.spark {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 0.5rem;
-		height: 0.5rem;
-		margin: -0.25rem;
-		border-radius: 9999px;
-		background: var(--color-primary);
-		opacity: 0;
-		animation: spark 0.9s var(--ease-out-quint) var(--d) both;
-	}
-
-	.spark:nth-child(3n) {
-		background: var(--color-secondary);
-	}
-
-	.spark:nth-child(3n + 1) {
-		background: var(--color-accent);
-		width: 0.375rem;
-		height: 0.375rem;
-	}
-
 	@keyframes bubble-up {
 		0% {
 			opacity: 0;
@@ -625,17 +564,6 @@
 		}
 		70% {
 			transform: translateX(-3px);
-		}
-	}
-
-	@keyframes spark {
-		0% {
-			opacity: 1;
-			transform: rotate(var(--a)) translateY(0) scale(1);
-		}
-		100% {
-			opacity: 0;
-			transform: rotate(var(--a)) translateY(-4.5rem) scale(0.3);
 		}
 	}
 </style>

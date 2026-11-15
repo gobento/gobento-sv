@@ -92,7 +92,7 @@ export const actions: Actions = {
 		}
 
 		if (payment.status === 'completed' && payment.reservationId) {
-			return { form, reservationId: payment.reservationId };
+			redirect(303, `/reservations/${payment.reservationId}?success=true`);
 		}
 
 		if (payment.status === 'failed') {
@@ -113,8 +113,7 @@ export const actions: Actions = {
 			return setError(form, 'txHash', result.error || 'We could not verify this transfer.');
 		}
 
-		// Returned rather than redirected so the page can celebrate first; it then
-		// moves on to the ticket.
-		return { form, reservationId: result.reservationId };
+		// Straight to the pickup ticket, which celebrates the arrival.
+		redirect(303, `/reservations/${result.reservationId}?success=true`);
 	}
 };

@@ -10,12 +10,15 @@ import nunitoRegularUrl from './fonts/Nunito-Regular.ttf?inline';
 import nunitoBoldUrl from './fonts/Nunito-ExtraBold.ttf?inline';
 import harmattanUrl from './fonts/Harmattan-Regular.ttf?inline';
 import iconUrl from '../../../../static/icon-192.png?inline';
+import { formatDate, formatDateTime, formatTimeOfDay } from '#lib/dates.js';
 
 interface PaymentReceiptOptions {
 	payment: Payment;
 	user: Account;
 	offer: BusinessOffer;
 	businessName: string;
+	businessId: string;
+	location?: { address: string; zipCode: string; city: string; country: string } | null;
 	reservation?: Reservation | null;
 }
 
@@ -51,21 +54,6 @@ function money(amount: number, currency: string): string {
 		.replace(/[  ]/g, ' ');
 }
 
-const dateFormat = new Intl.DateTimeFormat('en-GB', {
-	day: 'numeric',
-	month: 'long',
-	year: 'numeric',
-	hour: '2-digit',
-	minute: '2-digit'
-});
-const timeFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
-const dayFormat = new Intl.DateTimeFormat('en-GB', {
-	weekday: 'short',
-	day: 'numeric',
-	month: 'short',
-	year: 'numeric'
-});
-
 const ARABIC_SCRIPT = /[؀-ۿﭐ-﷿ﹰ-﻿]/;
 
 /** Rounded rectangle; (x, top) is the top-left corner in PDF coordinates. */
@@ -89,6 +77,8 @@ export async function createPaymentReceipt({
 	user,
 	offer,
 	businessName,
+	businessId,
+	location,
 	reservation
 }: PaymentReceiptOptions) {
 	const pdf = await PDFDocument.create();
@@ -99,7 +89,13 @@ export async function createPaymentReceipt({
 	const regular = await pdf.embedFont(fromDataUrl(nunitoRegularUrl), { subset: true });
 	const bold = await pdf.embedFont(fromDataUrl(nunitoBoldUrl), { subset: true });
 	// Persian names (shops, offers) need an Arabic-script font; only embed it then.
-	const needsArabic = [offer.name, businessName].some((t) => ARABIC_SCRIPT.test(t));
+	const needsArabic = [
+		offer.name,
+		offer.description,
+		businessName,
+		location?.address,
+		location?.city
+	].some((t) => !!t && ARABIC_SCRIPT.test(t));
 	const arabic = needsArabic
 		? await pdf.embedFont(fromDataUrl(harmattanUrl), { subset: true })
 		: null;
@@ -145,6 +141,27 @@ export async function createPaymentReceipt({
 		return w;
 	};
 
+	/** Word-wraps into at most `maxLines` lines; the last one gets an ellipsis if cut. */
+	const wrap = (value: string, font: PDFFont, size: number, maxWidth: number, maxLines: number) => {
+		const f = fontFor(value, font);
+		const lines: string[] = [];
+		let line = '';
+		for (const word of value.split(/\s+/).filter(Boolean)) {
+			const next = line ? `${line} ${word}` : word;
+			if (f.widthOfTextAtSize(next, size) <= maxWidth || !line) line = next;
+			else {
+				lines.push(line);
+				line = word;
+			}
+		}
+		if (line) lines.push(line);
+		if (lines.length > maxLines) {
+			lines.length = maxLines;
+			lines[maxLines - 1] += ' …';
+		}
+		return lines;
+	};
+
 	const eyebrow = (value: string, x: number, y: number) =>
 		text(value.toUpperCase(), x, y, 8.5, bold, C.faint, { spacing: 0.9 });
 
@@ -158,7 +175,7 @@ export async function createPaymentReceipt({
 	text('Bento', M + 44 + bold.widthOfTextAtSize('Go', 20), y - 25, 20, bold, C.primary);
 	eyebrow('Receipt', width - M - bold.widthOfTextAtSize('RECEIPT', 8.5) - 0.9 * 7, y - 12);
 	text(
-		dateFormat.format(new Date(payment.completedAt ?? payment.createdAt)),
+		formatDateTime(payment.completedAt ?? payment.createdAt),
 		width - M,
 		y - 28,
 		10,
@@ -182,10 +199,26 @@ export async function createPaymentReceipt({
 	// Order card (mirrors the checkout's order summary)
 	y -= 28;
 	const pickup = reservation
-		? `${dayFormat.format(reservation.pickupFrom)}, ${timeFormat.format(reservation.pickupFrom)}–${timeFormat.format(reservation.pickupUntil)}`
+		? `${formatDate(reservation.pickupFrom)}, ${formatTimeOfDay(reservation.pickupFrom)}–${formatTimeOfDay(reservation.pickupUntil)}`
 		: null;
-	const rows = 1 + (pickup ? 1 : 0);
-	const orderBodyH = P + 12 + 28 + rows * 20 + 10;
+	const labelW = 96;
+	const valueW = CW - P * 2 - labelW;
+	const rows: [string, string[]][] = [
+		['Bought', ['1 × ' + offer.name]],
+		['From', [businessName]],
+		['Business ID', [businessId]]
+	];
+	if (location) {
+		rows.push([
+			'Location',
+			wrap(`${location.address}, ${location.zipCode} ${location.city}`, bold, 11, valueW, 2)
+		]);
+	}
+	if (pickup) rows.push(['Pickup', [pickup]]);
+	const description = offer.description ? wrap(offer.description, regular, 10, CW - P * 2, 3) : [];
+	const rowsH = rows.reduce((h, [, lines]) => h + 20 + (lines.length - 1) * 14, 0);
+	const orderBodyH =
+		P + 12 + 28 + description.length * 14 + (description.length ? 10 : 0) + rowsH + 10;
 	const totalH = 70;
 	const cardTop = y;
 	roundedRect(page, M, cardTop, CW, orderBodyH + totalH, 18, {
@@ -198,14 +231,19 @@ export async function createPaymentReceipt({
 	eyebrow('Your order', M + P, cy);
 	cy -= 28;
 	text(offer.name, M + P, cy, 18, bold, C.text, { maxWidth: CW - P * 2 });
-	cy -= 26;
-	const row = (label: string, value: string) => {
+	cy -= 20;
+	for (const line of description) {
+		text(line, M + P, cy, 10, regular, C.muted);
+		cy -= 14;
+	}
+	cy -= description.length ? 10 : 6;
+	for (const [label, lines] of rows) {
 		text(label, M + P, cy, 10, regular, C.muted);
-		text(value, M + P + 90, cy, 11, bold, C.text, { maxWidth: CW - P * 2 - 90 });
-		cy -= 20;
-	};
-	row('From', businessName);
-	if (pickup) row('Pickup', pickup);
+		lines.forEach((line, i) =>
+			text(line, M + P + labelW, cy - i * 14, 11, bold, C.text, { maxWidth: valueW })
+		);
+		cy -= 20 + (lines.length - 1) * 14;
+	}
 
 	// Total band: dashed rule, tinted footer, big amount on the right
 	const bandTop = cardTop - orderBodyH;

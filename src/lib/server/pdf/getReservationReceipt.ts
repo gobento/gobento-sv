@@ -5,7 +5,8 @@ import {
 	payments,
 	businessOffers,
 	accounts,
-	businessProfiles
+	businessProfiles,
+	businessLocations
 } from '#lib/server/schema.js';
 import { and, desc, eq } from 'drizzle-orm';
 import { createPaymentReceipt } from './createPaymentReceipt';
@@ -70,6 +71,18 @@ export async function getReservationReceipt(
 		.from(businessProfiles)
 		.where(eq(businessProfiles.accountId, payment.businessAccountId));
 
+	const [location] = offer?.locationId
+		? await db
+				.select({
+					address: businessLocations.address,
+					zipCode: businessLocations.zipCode,
+					city: businessLocations.city,
+					country: businessLocations.country
+				})
+				.from(businessLocations)
+				.where(eq(businessLocations.id, offer.locationId))
+		: [];
+
 	if (!offer || !user || !business) {
 		return { ok: false, status: 404, message: 'Receipt data is incomplete' };
 	}
@@ -79,6 +92,8 @@ export async function getReservationReceipt(
 		user,
 		offer,
 		businessName: business.name,
+		businessId: payment.businessAccountId,
+		location,
 		reservation
 	});
 

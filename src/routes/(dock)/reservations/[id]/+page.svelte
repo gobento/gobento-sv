@@ -26,6 +26,7 @@
 	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';
 	import SuccessCheck from '#lib/components/ui/SuccessCheck.svelte';
 	import Confetti from '#lib/components/motion/Confetti.svelte';
+	import PaidBurst from '#lib/components/motion/PaidBurst.svelte';
 	import { toast } from '#lib/components/ui/toast.svelte.js';
 	import BusinessLogo from '#lib/components/reservations/BusinessLogo.svelte';
 	import {
@@ -62,7 +63,9 @@
 
 	const reservation = $derived(data.reservation);
 	const isActive = $derived(reservation.status === 'active');
-	const isCollected = $derived(reservation.status === 'claimed' || reservation.status === 'completed');
+	const isCollected = $derived(
+		reservation.status === 'claimed' || reservation.status === 'completed'
+	);
 	const phase = $derived(pickupPhase(reservation.pickupFrom, reservation.pickupUntil, now));
 	const countdown = $derived(
 		countdownTo(phase === 'upcoming' ? reservation.pickupFrom : reservation.pickupUntil, now)
@@ -165,7 +168,10 @@
 		cancelPickupNotifications(reservation.id).catch(() => {});
 	}
 
-	function reportFailure(result: { type: string; data?: Record<string, unknown> }, fallback: string) {
+	function reportFailure(
+		result: { type: string; data?: Record<string, unknown> },
+		fallback: string
+	) {
 		if (result.type === 'failure' || result.type === 'error') {
 			const message = result.data?.error;
 			toast.error(typeof message === 'string' ? message : fallback);
@@ -187,7 +193,9 @@
 				<span class="pt-2.5 text-2xl font-extrabold opacity-30" aria-hidden="true">:</span>
 			{/if}
 			<div class="w-16">
-				<div class="rounded-2xl bg-base-100 py-2.5 text-3xl leading-none font-extrabold shadow-soft">
+				<div
+					class="rounded-2xl bg-base-100 py-2.5 text-3xl leading-none font-extrabold shadow-soft"
+				>
 					{cell.value}
 				</div>
 				<div class="mt-1.5 text-[11px] font-bold tracking-wider text-base-content/50 uppercase">
@@ -208,13 +216,15 @@
 	</a>
 
 	{#if justPaid}
-		<div class="surface flex animate-rise-in items-center gap-4 p-4" role="status">
-			<SuccessCheck size="md" />
+		<!-- Arrival straight from the payment: sparks, a bouncing headline, confetti. -->
+		<div
+			class="surface paid-banner flex items-center gap-5 overflow-visible px-5 py-4"
+			role="status"
+		>
+			<PaidBurst size="md" />
 			<div class="min-w-0">
-				<p class="font-extrabold">Payment complete</p>
-				<p class="text-sm text-base-content/70">
-					Your bag is reserved. This page is your pickup ticket.
-				</p>
+				<p class="paid-title text-2xl font-extrabold tracking-tight">Paid!</p>
+				<p class="text-sm font-semibold text-base-content/70">Enjoy your food.</p>
 			</div>
 		</div>
 	{/if}
@@ -302,7 +312,14 @@
 						This bag was not collected in time and can no longer be handed out.
 					</p>
 				</div>
-				<Button href="/discover" variant="neutral" outline size="sm" icon={IconSearch} class="min-h-11">
+				<Button
+					href="/discover"
+					variant="neutral"
+					outline
+					size="sm"
+					icon={IconSearch}
+					class="min-h-11"
+				>
 					Find another bag
 				</Button>
 			</div>
@@ -310,7 +327,8 @@
 			<div class="bg-success/10 px-5 py-6 text-center">
 				<p class="inline-flex items-center gap-2 text-sm font-extrabold text-success">
 					<span class="relative flex size-2.5">
-						<span class="absolute inline-flex size-full animate-ping rounded-full bg-success/60"></span>
+						<span class="absolute inline-flex size-full animate-ping rounded-full bg-success/60"
+						></span>
 						<span class="relative inline-flex size-2.5 rounded-full bg-success"></span>
 					</span>
 					Pickup is open
@@ -324,7 +342,9 @@
 					</span>
 				</p>
 				{#if handedToFriend}
-					<p class="mt-3 text-sm font-bold text-base-content/70">Your friend is collecting this bag.</p>
+					<p class="mt-3 text-sm font-bold text-base-content/70">
+						Your friend is collecting this bag.
+					</p>
 				{/if}
 			</div>
 		{:else}
@@ -465,7 +485,10 @@
 					</Button>
 				</div>
 				{#if showMap}
-					<div class="h-64 overflow-hidden rounded-2xl bg-base-200" transition:slide={{ duration: 250 }}>
+					<div
+						class="h-64 overflow-hidden rounded-2xl bg-base-200"
+						transition:slide={{ duration: 250 }}
+					>
 						{#await import('#lib/components/maps/MarkedMap.svelte')}
 							<div class="skeleton-shimmer size-full"></div>
 						{:then { default: MarkedMap }}
@@ -613,3 +636,44 @@
 		oncollected={onCollected}
 	/>
 {/if}
+
+<style>
+	.paid-title {
+		display: inline-block;
+		color: var(--color-success);
+		transform-origin: left center;
+		animation: paid-pop 0.75s var(--ease-spring) 0.2s both;
+	}
+
+	.paid-banner {
+		animation:
+			var(--animate-pop-in),
+			paid-glow 1.8s ease-out 0.2s both;
+	}
+
+	@keyframes paid-pop {
+		0% {
+			opacity: 0;
+			transform: scale(0.4) rotate(-8deg);
+		}
+		55% {
+			opacity: 1;
+			transform: scale(1.18) rotate(3deg);
+		}
+		75% {
+			transform: scale(0.96) rotate(-1deg);
+		}
+		100% {
+			transform: none;
+		}
+	}
+
+	@keyframes paid-glow {
+		0% {
+			box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-success) 45%, transparent);
+		}
+		100% {
+			box-shadow: 0 0 0 18px color-mix(in oklab, var(--color-success) 0%, transparent);
+		}
+	}
+</style>
