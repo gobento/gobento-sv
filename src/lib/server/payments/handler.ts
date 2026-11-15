@@ -2,7 +2,7 @@
 import { db } from '#lib/server/db.js';
 import { payments, businessWallets, reservations, paymentAttempts } from '#lib/server/schema.js';
 import { eq, and } from 'drizzle-orm';
-import { TetherService } from './tether';
+import { TetherService, platformWalletAddress } from './tether';
 import { ZarinpalService } from './zarinpal';
 import { CurrencyService } from './currency';
 import { SettlementService } from './settlement';
@@ -15,20 +15,24 @@ export class PaymentHandler {
 	 * Record a single payment attempt in the full payment-attempt log.
 	 * Best-effort only: logging must never break the payment flow.
 	 */
-	private static async logAttempt(attempt: {
-		paymentId?: string | null;
-		offerId?: string | null;
-		userAccountId?: string | null;
-		businessAccountId?: string | null;
-		paymentMethod: 'iban' | 'tether';
-		amount?: number | null;
-		currency?: string | null;
-		outcome: 'initiated' | 'redirected' | 'switched' | 'failed' | 'cancelled' | 'completed';
-		reason?: string | null;
-		isMock?: boolean;
-	}): Promise<void> {
+	private static async logAttempt(
+		attempt: {
+			paymentId?: string | null;
+			offerId?: string | null;
+			userAccountId?: string | null;
+			businessAccountId?: string | null;
+			paymentMethod: 'iban' | 'tether';
+			amount?: number | null;
+			currency?: string | null;
+			outcome: 'initiated' | 'redirected' | 'switched' | 'failed' | 'cancelled' | 'completed';
+			reason?: string | null;
+			isMock?: boolean;
+		},
+		/** Pass the open transaction when it holds a lock on the payment row. */
+		executor: Pick<typeof db, 'insert'> = db
+	): Promise<void> {
 		try {
-			await db.insert(paymentAttempts).values({
+			await executor.insert(paymentAttempts).values({
 				id: crypto.randomUUID(),
 				paymentId: attempt.paymentId ?? null,
 				offerId: attempt.offerId ?? null,
@@ -351,7 +355,7 @@ export class PaymentHandler {
 				return {
 					success: true,
 					paymentId: payment.id,
-					tetherAddress: process.env.TETHER_PLATFORM_ADDRESS,
+					tetherAddress: platformWalletAddress(),
 					amountUsdt: conversion.amountUsdt,
 					conversionRate: conversion.rate
 				};
@@ -373,17 +377,33 @@ export class PaymentHandler {
 	/**
 	 * Create reservation after payment is completed
 	 */
-	private static async createReservation(params: {
-		paymentId: string;
-		offerId: string;
-		userAccountId: string;
-		pickupDate: Date;
-	}): Promise<{ success: boolean; reservationId?: string; error?: string }> {
+	private static async addToSettlement(paymentId: string): Promise<void> {
+		// Queued for the business' month-end payout; a failure must not undo the payment.
+		try {
+			await SettlementService.addPaymentToSettlement(paymentId);
+		} catch (error) {
+			console.error('Failed to add payment to settlement:', error);
+		}
+	}
+
+	/**
+	 * Runs on the caller's transaction: that transaction holds a row lock on the
+	 * payment, so updating it through another connection would wait forever.
+	 */
+	private static async createReservation(
+		executor: Pick<typeof db, 'insert' | 'update'>,
+		params: {
+			paymentId: string;
+			offerId: string;
+			userAccountId: string;
+			pickupDate: Date;
+		}
+	): Promise<{ success: boolean; reservationId?: string; error?: string }> {
 		try {
 			const pickupFrom = params.pickupDate;
 			const pickupUntil = new Date(pickupFrom.getTime() + 3600000); // +1 hour
 
-			const [reservation] = await db
+			const [reservation] = await executor
 				.insert(reservations)
 				.values({
 					id: crypto.randomUUID(),
@@ -397,7 +417,7 @@ export class PaymentHandler {
 				.returning();
 
 			// Link payment to reservation
-			await db
+			await executor
 				.update(payments)
 				.set({
 					reservationId: reservation.id
@@ -431,7 +451,7 @@ export class PaymentHandler {
 	}> {
 		try {
 			// Use transaction with row locking to prevent race conditions
-			return await db.transaction(async (tx) => {
+			const result = await db.transaction(async (tx) => {
 				// Get payment record with row lock
 				const [payment] = await tx
 					.select()
@@ -458,17 +478,20 @@ export class PaymentHandler {
 						})
 						.where(eq(payments.id, params.paymentId));
 
-					await this.logAttempt({
-						paymentId: payment.id,
-						offerId: payment.offerId,
-						userAccountId: payment.userAccountId,
-						businessAccountId: payment.businessAccountId,
-						paymentMethod: payment.paymentMethod,
-						amount: payment.amount,
-						currency: payment.currency,
-						outcome: 'cancelled',
-						reason: 'Payment cancelled by user'
-					});
+					await this.logAttempt(
+						{
+							paymentId: payment.id,
+							offerId: payment.offerId,
+							userAccountId: payment.userAccountId,
+							businessAccountId: payment.businessAccountId,
+							paymentMethod: payment.paymentMethod,
+							amount: payment.amount,
+							currency: payment.currency,
+							outcome: 'cancelled',
+							reason: 'Payment cancelled by user'
+						},
+						tx
+					);
 
 					return {
 						success: false,
@@ -491,17 +514,20 @@ export class PaymentHandler {
 						})
 						.where(eq(payments.id, params.paymentId));
 
-					await this.logAttempt({
-						paymentId: payment.id,
-						offerId: payment.offerId,
-						userAccountId: payment.userAccountId,
-						businessAccountId: payment.businessAccountId,
-						paymentMethod: payment.paymentMethod,
-						amount: payment.amount,
-						currency: payment.currency,
-						outcome: 'failed',
-						reason: verifyResult.error
-					});
+					await this.logAttempt(
+						{
+							paymentId: payment.id,
+							offerId: payment.offerId,
+							userAccountId: payment.userAccountId,
+							businessAccountId: payment.businessAccountId,
+							paymentMethod: payment.paymentMethod,
+							amount: payment.amount,
+							currency: payment.currency,
+							outcome: 'failed',
+							reason: verifyResult.error
+						},
+						tx
+					);
 
 					return {
 						success: false,
@@ -520,22 +546,25 @@ export class PaymentHandler {
 					})
 					.where(eq(payments.id, params.paymentId));
 
-				await this.logAttempt({
-					paymentId: payment.id,
-					offerId: payment.offerId,
-					userAccountId: payment.userAccountId,
-					businessAccountId: payment.businessAccountId,
-					paymentMethod: payment.paymentMethod,
-					amount: payment.amount,
-					currency: payment.currency,
-					outcome: 'completed'
-				});
+				await this.logAttempt(
+					{
+						paymentId: payment.id,
+						offerId: payment.offerId,
+						userAccountId: payment.userAccountId,
+						businessAccountId: payment.businessAccountId,
+						paymentMethod: payment.paymentMethod,
+						amount: payment.amount,
+						currency: payment.currency,
+						outcome: 'completed'
+					},
+					tx
+				);
 
 				// Create reservation
 				const metadata = payment.metadata ? JSON.parse(payment.metadata) : {};
 				const pickupDate = metadata.pickupDate ? new Date(metadata.pickupDate) : new Date();
 
-				const reservationResult = await this.createReservation({
+				const reservationResult = await this.createReservation(tx, {
 					paymentId: payment.id,
 					offerId: payment.offerId,
 					userAccountId: payment.userAccountId,
@@ -547,20 +576,15 @@ export class PaymentHandler {
 					console.error('Failed to create reservation:', reservationResult.error);
 				}
 
-				// Add payment to monthly settlement
-				// This queues it for batch payout at end of month
-				try {
-					await SettlementService.addPaymentToSettlement(payment.id);
-				} catch (error) {
-					console.error('Failed to add payment to settlement:', error);
-					// Don't fail the payment, just log it
-				}
-
 				return {
 					success: true,
 					reservationId: reservationResult.reservationId
 				};
 			});
+
+			// After commit, so the settlement sees the payment as completed.
+			if (result.success) await this.addToSettlement(params.paymentId);
+			return result;
 		} catch (error) {
 			console.error('Zarinpal completion error:', error);
 			return {
@@ -575,6 +599,9 @@ export class PaymentHandler {
 	 */
 	static async verifyTetherPayment(params: { paymentId: string; txHash: string }): Promise<{
 		success: boolean;
+		/** Transfer found but not confirmed yet; the payment stays open, ask again later. */
+		pending?: boolean;
+		confirmations?: number;
 		reservationId?: string;
 		error?: string;
 	}> {
@@ -594,7 +621,7 @@ export class PaymentHandler {
 			}
 
 			// Use transaction with row locking
-			return await db.transaction(async (tx) => {
+			const result = await db.transaction(async (tx) => {
 				// Get payment record with lock
 				const [payment] = await tx
 					.select()
@@ -615,30 +642,35 @@ export class PaymentHandler {
 				const verifyResult = await this.tetherService.verifyPayment({
 					txHash: params.txHash,
 					expectedAmount: payment.amountUsdt!, // Use stored USDT amount
-					recipientAddress: process.env.TETHER_PLATFORM_ADDRESS!
+					recipientAddress: platformWalletAddress()
 				});
 
+				if (verifyResult.pending) {
+					return { success: false, pending: true, confirmations: verifyResult.confirmations ?? 0 };
+				}
+
 				if (!verifyResult.success) {
+					// Usually a mistyped or wrong hash. Keep the payment open so the
+					// customer can paste the right one instead of starting over.
 					await tx
 						.update(payments)
-						.set({
-							status: 'failed',
-							errorMessage: verifyResult.error,
-							tetherTxHash: params.txHash
-						})
+						.set({ errorMessage: verifyResult.error })
 						.where(eq(payments.id, params.paymentId));
 
-					await this.logAttempt({
-						paymentId: payment.id,
-						offerId: payment.offerId,
-						userAccountId: payment.userAccountId,
-						businessAccountId: payment.businessAccountId,
-						paymentMethod: payment.paymentMethod,
-						amount: payment.amount,
-						currency: payment.currency,
-						outcome: 'failed',
-						reason: verifyResult.error
-					});
+					await this.logAttempt(
+						{
+							paymentId: payment.id,
+							offerId: payment.offerId,
+							userAccountId: payment.userAccountId,
+							businessAccountId: payment.businessAccountId,
+							paymentMethod: payment.paymentMethod,
+							amount: payment.amount,
+							currency: payment.currency,
+							outcome: 'failed',
+							reason: verifyResult.error
+						},
+						tx
+					);
 
 					return {
 						success: false,
@@ -658,22 +690,25 @@ export class PaymentHandler {
 					})
 					.where(eq(payments.id, params.paymentId));
 
-				await this.logAttempt({
-					paymentId: payment.id,
-					offerId: payment.offerId,
-					userAccountId: payment.userAccountId,
-					businessAccountId: payment.businessAccountId,
-					paymentMethod: payment.paymentMethod,
-					amount: payment.amount,
-					currency: payment.currency,
-					outcome: 'completed'
-				});
+				await this.logAttempt(
+					{
+						paymentId: payment.id,
+						offerId: payment.offerId,
+						userAccountId: payment.userAccountId,
+						businessAccountId: payment.businessAccountId,
+						paymentMethod: payment.paymentMethod,
+						amount: payment.amount,
+						currency: payment.currency,
+						outcome: 'completed'
+					},
+					tx
+				);
 
 				// Create reservation
 				const metadata = payment.metadata ? JSON.parse(payment.metadata) : {};
 				const pickupDate = metadata.pickupDate ? new Date(metadata.pickupDate) : new Date();
 
-				const reservationResult = await this.createReservation({
+				const reservationResult = await this.createReservation(tx, {
 					paymentId: payment.id,
 					offerId: payment.offerId,
 					userAccountId: payment.userAccountId,
@@ -684,19 +719,15 @@ export class PaymentHandler {
 					console.error('Failed to create reservation:', reservationResult.error);
 				}
 
-				// Add payment to monthly settlement
-				// Business will receive payout at end of month
-				try {
-					await SettlementService.addPaymentToSettlement(payment.id);
-				} catch (error) {
-					console.error('Failed to add payment to settlement:', error);
-				}
-
 				return {
 					success: true,
 					reservationId: reservationResult.reservationId
 				};
 			});
+
+			// After commit, so the settlement sees the payment as completed.
+			if (result.success) await this.addToSettlement(params.paymentId);
+			return result;
 		} catch (error) {
 			console.error('Tether verification error:', error);
 			return {

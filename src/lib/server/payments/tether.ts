@@ -14,6 +14,33 @@ const USDT_ABI = [
 	'event Transfer(address indexed from, address indexed to, uint256 value)'
 ] as const;
 
+/** Blocks a transfer must be buried under before we accept it. */
+export const REQUIRED_CONFIRMATIONS = 3;
+
+/**
+ * The wallet customers send USDT to. Shown on the payment page and checked during
+ * verification, so both always agree.
+ */
+export function platformWalletAddress(): string {
+	const address = process.env.TETHER_PLATFORM_ADDRESS || TETHER_CONTRACT_ADDRESS;
+	// Demo mode without configured wallets still needs something to show and scan.
+	if (!address && isMockEnabled()) return MOCK_WALLET;
+	return address;
+}
+
+const MOCK_WALLET = '0x5afe00000000000000000000000000000000d3a0';
+
+/**
+ * EIP-681 payment link: wallets that scan or open it prefill the token, the
+ * recipient and the exact amount.
+ */
+export function usdtPaymentUri(amountUsdt: number): string {
+	const amount = ethers.parseUnits(amountUsdt.toFixed(6), 6);
+	return `ethereum:${TETHER_CONTRACT_ADDRESS || MOCK_WALLET}/transfer?address=${platformWalletAddress()}&uint256=${amount}`;
+}
+
+const mockFirstSeen = new Map<string, number>();
+
 export class TetherService {
 	private provider: JsonRpcProvider | null = null;
 	private contract: Contract | null = null;
@@ -111,6 +138,8 @@ export class TetherService {
 		recipientAddress: string; // Should be platform wallet
 	}): Promise<{
 		success: boolean;
+		/** The transfer looks right but is not mined or confirmed yet; ask again later. */
+		pending?: boolean;
 		amount?: number;
 		from?: string;
 		confirmations?: number;
@@ -119,6 +148,14 @@ export class TetherService {
 		console.log('TetherService.verifyPayment:', params);
 
 		if (this.isMockMode) {
+			// Behave like a real chain: a fresh hash gains a confirmation every few
+			// seconds, so demo mode shows the confirming step too.
+			const firstSeen = mockFirstSeen.get(params.txHash) ?? Date.now();
+			mockFirstSeen.set(params.txHash, firstSeen);
+			const confirmations = Math.floor((Date.now() - firstSeen) / 4000);
+			if (confirmations < REQUIRED_CONFIRMATIONS) {
+				return { success: false, pending: true, confirmations };
+			}
 			return {
 				success: true,
 				amount: params.expectedAmount,
@@ -136,9 +173,15 @@ export class TetherService {
 			const receipt = await this.provider.getTransactionReceipt(params.txHash);
 
 			if (!receipt) {
+				// Either still in the mempool or not broadcast yet. Seen it is not
+				// failed: the caller keeps asking until it shows up.
+				const pendingTx = await this.provider.getTransaction(params.txHash);
+				if (pendingTx) {
+					return { success: false, pending: true, confirmations: 0 };
+				}
 				return {
 					success: false,
-					error: 'Transaction not found or pending'
+					error: 'We could not find this transaction. Check that you copied the full hash.'
 				};
 			}
 
@@ -146,22 +189,27 @@ export class TetherService {
 			if (receipt.status !== 1) {
 				return {
 					success: false,
-					error: 'Transaction failed on blockchain'
+					error: 'This transaction failed on the blockchain. Your wallet should have refunded it.'
 				};
 			}
 
-			// Parse transfer event from logs
+			// Find the USDT transfer to our wallet. A transaction can carry several
+			// Transfer events (other tokens, other recipients), so match on both.
 			const iface = new ethers.Interface(USDT_ABI);
 			let transferEvent = null;
 
 			for (const log of receipt.logs) {
+				if (log.address.toLowerCase() !== TETHER_CONTRACT_ADDRESS.toLowerCase()) continue;
 				try {
 					const parsed = iface.parseLog({
 						topics: [...log.topics],
 						data: log.data
 					});
 
-					if (parsed?.name === 'Transfer') {
+					if (
+						parsed?.name === 'Transfer' &&
+						String(parsed.args[1]).toLowerCase() === params.recipientAddress.toLowerCase()
+					) {
 						transferEvent = parsed;
 						break;
 					}
@@ -173,7 +221,7 @@ export class TetherService {
 			if (!transferEvent) {
 				return {
 					success: false,
-					error: 'No USDT transfer found in transaction'
+					error: 'This transaction does not send USDT to our wallet address.'
 				};
 			}
 
@@ -194,7 +242,7 @@ export class TetherService {
 			if (Math.abs(amount - params.expectedAmount) > 0.01) {
 				return {
 					success: false,
-					error: `Amount mismatch. Expected: ${params.expectedAmount}, Got: ${amount}`
+					error: `This transfer sent ${amount} USDT, but ${params.expectedAmount} USDT were expected.`
 				};
 			}
 
@@ -202,12 +250,10 @@ export class TetherService {
 			const currentBlock = await this.provider.getBlockNumber();
 			const confirmations = receipt.blockNumber ? currentBlock - receipt.blockNumber : 0;
 
-			// Require minimum confirmations for security
-			if (confirmations < 3) {
-				return {
-					success: false,
-					error: `Insufficient confirmations. Current: ${confirmations}, Required: 3`
-				};
+			// Require minimum confirmations for security. The transfer is valid,
+			// it just needs a few more blocks.
+			if (confirmations < REQUIRED_CONFIRMATIONS) {
+				return { success: false, pending: true, confirmations };
 			}
 
 			return {

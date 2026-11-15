@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { fly } from 'svelte/transition';
+	import { fly, slide } from 'svelte/transition';
 	import { superForm } from 'sveltekit-superforms';
 	import { valibot } from 'sveltekit-superforms/adapters';
 	import IconWallet from '~icons/fluent/wallet-24-regular';
@@ -9,8 +9,6 @@
 	import IconCalendar from '~icons/fluent/calendar-clock-24-regular';
 	import IconStore from '~icons/fluent/building-shop-24-regular';
 	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
-	import IconShield from '~icons/fluent/shield-checkmark-24-regular';
-	import IconArrowRight from '~icons/fluent/arrow-right-24-filled';
 	import IconLock from '~icons/fluent/lock-closed-24-filled';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import Alert from '#lib/components/Alert.svelte';
@@ -24,20 +22,23 @@
 
 	let { data } = $props();
 
-	let step = $state<1 | 2>(1);
 	// Stays true after a successful submit so the button cannot be pressed again
 	// while the browser is on its way to the payment provider.
 	let leaving = $state(false);
+	// The method picker stays folded away: most people pay with their standard method.
+	let choosing = $state(false);
 
 	// svelte-ignore state_referenced_locally
-	const { form: formData, errors, enhance, submitting } = superForm(data.form, {
+	const {
+		form: formData,
+		errors,
+		enhance,
+		submitting
+	} = superForm(data.form, {
 		validators: valibot(initPaymentSchema),
 		resetForm: false,
 		onResult: async ({ result }) => {
-			if (result.type !== 'success') {
-				if (result.type === 'failure') step = 1;
-				return;
-			}
+			if (result.type !== 'success') return;
 			const payload = result.data;
 			if (!payload?.success) return;
 
@@ -49,21 +50,16 @@
 				leaving = true;
 				await goto(`/offers/${data.offer.id}/payment/tether/${payload.paymentId}`);
 			}
-		},
-		onError: () => {
-			step = 1;
 		}
 	});
 
-	const METHODS: Record<Method, { label: string; description: string; icon: typeof IconBank }> = {
+	const METHODS: Record<Method, { label: string; icon: typeof IconBank }> = {
 		iban: {
 			label: 'Card or bank payment',
-			description: 'Pay through our secure payment gateway',
 			icon: IconBank
 		},
 		tether: {
 			label: 'Tether (USDT)',
-			description: 'Transfer from your crypto wallet',
 			icon: IconWallet
 		}
 	};
@@ -95,7 +91,6 @@
 	});
 
 	const selected = $derived(METHODS[$formData.paymentMethod]);
-	const SelectedIcon = $derived(selected.icon);
 	const total = $derived(formatPrice(data.offer.price, data.offer.currency));
 	const savings = $derived(data.offer.originalValue - data.offer.price);
 	const formErrors = $derived([
@@ -121,15 +116,9 @@
 	<title>Checkout · {data.offer.name}</title>
 </svelte:head>
 
-<BaseLayout
-	title="Checkout"
-	description="Reserve your bag in three quick steps"
-	width="narrow"
-	backHref={offerHref}
-	backLabel="Back to offer"
->
+<BaseLayout title="Checkout" width="narrow" backHref={offerHref} backLabel="Back to offer">
 	<div class="space-y-5 pb-24 md:pb-0">
-		<PaymentProgress current={step} />
+		<PaymentProgress current={1} />
 
 		{#if formErrors.length}
 			<Alert type="error">
@@ -153,7 +142,8 @@
 					<li class="flex items-center gap-3">
 						<IconStore class="size-5 shrink-0 text-base-content/45" />
 						<span class="min-w-0 truncate font-semibold">
-							{data.offer.businessName}{#if data.offer.locationName && data.offer.locationName !== data.offer.businessName}
+							{data.offer
+								.businessName}{#if data.offer.locationName && data.offer.locationName !== data.offer.businessName}
 								<span class="font-normal text-base-content/60"> · {data.offer.locationName}</span>
 							{/if}
 						</span>
@@ -164,20 +154,6 @@
 							Pickup {formatPickupWindow(data.pickup.from, data.pickup.until)}
 						</span>
 					</li>
-					{#if step === 2}
-						<li class="flex items-center gap-3" in:fly={{ y: 8, duration: 250 }}>
-							<SelectedIcon class="size-5 shrink-0 text-base-content/45" />
-							<span class="min-w-0 flex-1 truncate font-semibold">{selected.label}</span>
-							<button
-								type="button"
-								class="btn -my-2 btn-ghost btn-sm text-primary"
-								onclick={() => (step = 1)}
-								disabled={busy}
-							>
-								Change
-							</button>
-						</li>
-					{/if}
 				</ul>
 			</div>
 
@@ -202,98 +178,99 @@
 				<p class="mt-0.5">Someone else was a little faster. There is plenty more to rescue.</p>
 			</Alert>
 			<Button href="/discover" block size="lg">Browse other offers</Button>
-		{:else if step === 1}
+		{:else}
 			<section class="space-y-3" aria-labelledby="method-heading">
-				<h2 id="method-heading" class="text-lg font-extrabold tracking-tight">
-					How would you like to pay?
-				</h2>
-
-				<div role="radiogroup" aria-labelledby="method-heading" class="space-y-3">
-					{#each availableMethods as method, i (method)}
-						{@const meta = METHODS[method]}
-						{@const active = $formData.paymentMethod === method}
+				<!-- The standard method from the settings, ready to go. -->
+				<div class="surface flex items-center gap-4 p-4">
+					{#key $formData.paymentMethod}
+						<div
+							class="flex size-12 shrink-0 animate-pop-in items-center justify-center rounded-2xl bg-primary text-primary-content"
+						>
+							<selected.icon class="size-6" />
+						</div>
+						<div class="min-w-0 flex-1" in:fly={{ x: 12, duration: 250 }}>
+							<p id="method-heading" class="text-xs font-bold text-base-content/55">Paying with</p>
+							<p class="font-bold">{selected.label}</p>
+						</div>
+					{/key}
+					{#if availableMethods.length > 1}
 						<button
 							type="button"
-							role="radio"
-							aria-checked={active}
-							onclick={() => ($formData.paymentMethod = method)}
-							style:--i={i}
-							class="surface pressable stagger flex min-h-[4.5rem] w-full animate-rise-in items-center gap-4 p-4 text-start
-							{active ? 'border-primary bg-primary/5 ring-1 ring-primary' : ''}"
+							class="btn shrink-0 btn-ghost text-primary btn-sm"
+							aria-expanded={choosing}
+							aria-controls="method-options"
+							onclick={() => (choosing = !choosing)}
+							disabled={busy}
 						>
-							<div
-								class="flex size-12 shrink-0 items-center justify-center rounded-2xl transition-colors {active
-									? 'bg-primary text-primary-content'
-									: 'bg-base-200 text-base-content/60'}"
-							>
-								<meta.icon class="size-6" />
-							</div>
-							<div class="min-w-0 flex-1">
-								<p class="font-bold">{meta.label}</p>
-								<p class="text-sm text-base-content/60">{meta.description}</p>
-							</div>
-							{#if active}
-								<IconCheckmarkCircle class="size-6 shrink-0 animate-pop-in text-primary" />
-							{:else}
-								<span class="size-6 shrink-0 rounded-full border-2 border-base-300"></span>
-							{/if}
+							{choosing ? 'Done' : 'Change'}
 						</button>
-					{/each}
-				</div>
-			</section>
-		{:else}
-			<section class="surface p-5 text-sm" in:fly={{ y: 12, duration: 280 }}>
-				<h2 class="text-lg font-extrabold tracking-tight">Almost there</h2>
-				<p class="mt-1 text-base-content/70">
-					{#if $formData.paymentMethod === 'iban'}
-						You will be taken to the payment gateway to complete your purchase, then straight back
-						to your pickup ticket.
-					{:else}
-						On the next screen you will get the wallet address and the exact USDT amount to send.
 					{/if}
-				</p>
-				<p class="mt-3 text-base-content/70">
-					Collect your bag during the pickup window. Bags that are not collected in time cannot be
-					handed out later.
-				</p>
+				</div>
+
+				{#if choosing}
+					<div
+						id="method-options"
+						role="radiogroup"
+						aria-labelledby="method-heading"
+						class="space-y-2"
+						transition:slide={{ duration: 220 }}
+					>
+						{#each availableMethods as method (method)}
+							{@const meta = METHODS[method]}
+							{@const active = $formData.paymentMethod === method}
+							<button
+								type="button"
+								role="radio"
+								aria-checked={active}
+								onclick={() => {
+									$formData.paymentMethod = method;
+									choosing = false;
+								}}
+								class="surface pressable flex w-full items-center gap-3 px-4 py-3 text-start
+								{active ? 'border-primary bg-primary/5 ring-1 ring-primary' : ''}"
+							>
+								<meta.icon
+									class="size-5 shrink-0 {active ? 'text-primary' : 'text-base-content/55'}"
+								/>
+								<div class="min-w-0 flex-1">
+									<p class="text-sm font-bold">{meta.label}</p>
+								</div>
+								{#if active}
+									<IconCheckmarkCircle class="size-5 shrink-0 animate-pop-in text-primary" />
+								{/if}
+							</button>
+						{/each}
+						<a href="/profile/edit" class="block px-1 pt-1 text-xs font-semibold text-primary">
+							Set your standard method
+						</a>
+					</div>
+				{/if}
 			</section>
 		{/if}
-
-		<p class="flex items-center justify-center gap-2 text-xs text-base-content/55">
-			<IconShield class="size-4 shrink-0" />
-			Payments are encrypted and processed securely
-		</p>
 
 		{#if !data.soldOut}
 			<div
 				class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[1000] border-t border-base-300/70 bg-base-100/90 px-4 py-3 backdrop-blur-xl md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none"
 			>
-				{#if step === 1}
+				<form method="POST" action="?/initPayment" use:enhance>
+					<input type="hidden" name="pickupDate" value={$formData.pickupDate} />
+					<input type="hidden" name="paymentMethod" value={$formData.paymentMethod} />
 					<Button
+						type="submit"
 						block
 						size="lg"
-						iconRight={IconArrowRight}
+						icon={IconLock}
 						disabled={availableMethods.length === 0}
-						onclick={() => (step = 2)}
+						loading={busy}
+						loadingLabel={leaving ? 'Opening payment…' : 'Starting payment…'}
 					>
-						Continue to review
+						{#key $formData.paymentMethod}
+							<span in:fly={{ y: 8, duration: 220 }}
+								>Pay {total}{$formData.paymentMethod === 'tether' ? ' with USDT' : ''}</span
+							>
+						{/key}
 					</Button>
-				{:else}
-					<form method="POST" action="?/initPayment" use:enhance>
-						<input type="hidden" name="pickupDate" value={$formData.pickupDate} />
-						<input type="hidden" name="paymentMethod" value={$formData.paymentMethod} />
-						<Button
-							type="submit"
-							block
-							size="lg"
-							icon={IconLock}
-							loading={busy}
-							loadingLabel={leaving ? 'Opening payment…' : 'Starting payment…'}
-						>
-							Pay {total}
-						</Button>
-					</form>
-				{/if}
+				</form>
 			</div>
 		{/if}
 	</div>

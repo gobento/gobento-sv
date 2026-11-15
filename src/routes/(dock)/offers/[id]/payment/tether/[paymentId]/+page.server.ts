@@ -4,9 +4,13 @@ import { db } from '#lib/server/db.js';
 import { payments, businessOffers } from '#lib/server/schema.js';
 import { eq } from 'drizzle-orm';
 import { PaymentHandler } from '#lib/server/payments/handler.js';
+import {
+	REQUIRED_CONFIRMATIONS,
+	platformWalletAddress,
+	usdtPaymentUri
+} from '#lib/server/payments/tether.js';
 import { superValidate, setError } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
-import { TETHER_CONTRACT_ADDRESS } from '$app/env/private';
 import { txHashSchema } from './schema';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -15,7 +19,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw error(403, 'Only user accounts can make payments');
 	}
 
-	// Get payment with offer details in one query
 	const [payment] = await db
 		.select({
 			payment: payments,
@@ -30,34 +33,37 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw error(404, 'Payment not found');
 	}
 
-	// Verify ownership
 	if (payment.payment.userAccountId !== account.id) {
 		throw error(403, 'Unauthorized');
 	}
 
-	// Check if already completed - redirect to reservation
 	if (payment.payment.status === 'completed' && payment.payment.reservationId) {
 		throw redirect(303, `/reservations/${payment.payment.reservationId}`);
 	}
 
-	// Check if failed
 	if (payment.payment.status === 'failed') {
 		throw redirect(303, `/offers/${payment.payment.offerId}/payment?error=payment_failed`);
 	}
 
+	const amountUsdt = payment.payment.amountUsdt ?? 0;
 	const form = await superValidate(valibot(txHashSchema));
 
 	return {
 		payment: {
 			id: payment.payment.id,
-			amountUsdt: payment.payment.amountUsdt,
-			expiresAt: payment.payment.expiresAt
+			amountUsdt,
+			// Payments get a 30-minute hold when they start; older rows may lack it.
+			expiresAt:
+				payment.payment.expiresAt ?? new Date(payment.payment.createdAt.getTime() + 30 * 60 * 1000),
+			createdAt: payment.payment.createdAt
 		},
 		offer: {
 			id: payment.payment.offerId,
 			name: payment.offer?.name ?? 'Your order'
 		},
-		platformWalletAddress: TETHER_CONTRACT_ADDRESS,
+		platformWalletAddress: platformWalletAddress(),
+		paymentUri: usdtPaymentUri(amountUsdt),
+		requiredConfirmations: REQUIRED_CONFIRMATIONS,
 		form
 	};
 };
@@ -71,7 +77,6 @@ export const actions: Actions = {
 			return fail(400, { form });
 		}
 
-		// Get payment
 		const [payment] = await db
 			.select()
 			.from(payments)
@@ -82,31 +87,34 @@ export const actions: Actions = {
 			return setError(form, '', 'Payment not found');
 		}
 
-		// Verify ownership
 		if (payment.userAccountId !== account.id) {
 			return setError(form, '', 'This payment belongs to another account.');
 		}
 
-		// Check status
-		if (payment.status === 'completed') {
-			redirect(303, `/reservations/${payment.reservationId}`);
+		if (payment.status === 'completed' && payment.reservationId) {
+			return { form, reservationId: payment.reservationId };
 		}
 
 		if (payment.status === 'failed') {
 			return setError(form, '', 'This payment has failed. Please start a new one from the offer.');
 		}
 
-		// Verify Tether payment
 		const result = await PaymentHandler.verifyTetherPayment({
 			paymentId: payment.id,
 			txHash: form.data.txHash
 		});
 
-		if (!result.success) {
-			return setError(form, 'txHash', result.error || 'Verification failed');
+		// Found on chain but not confirmed yet: the page keeps checking by itself.
+		if (result.pending) {
+			return { form, pending: true, confirmations: result.confirmations ?? 0 };
 		}
 
-		// Redirect to reservation
-		redirect(303, `/reservations/${result.reservationId}?success=true`);
+		if (!result.success || !result.reservationId) {
+			return setError(form, 'txHash', result.error || 'We could not verify this transfer.');
+		}
+
+		// Returned rather than redirected so the page can celebrate first; it then
+		// moves on to the ticket.
+		return { form, reservationId: result.reservationId };
 	}
 };

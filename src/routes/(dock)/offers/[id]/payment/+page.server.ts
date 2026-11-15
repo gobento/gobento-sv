@@ -6,11 +6,12 @@ import {
 	businessOffers,
 	businessProfiles,
 	businessWallets,
-	reservations
+	reservations,
+	userProfiles
 } from '#lib/server/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { PaymentHandler } from '#lib/server/payments/handler.js';
-import { TETHER_CONTRACT_ADDRESS } from '$app/env/private';
+import { platformWalletAddress } from '#lib/server/payments/tether.js';
 import { superValidate, setError } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { initPaymentSchema } from './schema';
@@ -57,7 +58,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		throw redirect(303, `/offers/${params.id}`);
 	}
 
-	const [activeReservations, [wallet]] = await Promise.all([
+	const [activeReservations, [wallet], [profile]] = await Promise.all([
 		db
 			.select({ id: reservations.id })
 			.from(reservations)
@@ -70,6 +71,11 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			})
 			.from(businessWallets)
 			.where(eq(businessWallets.accountId, offer.businessAccountId))
+			.limit(1),
+		db
+			.select({ preferredPaymentMethod: userProfiles.preferredPaymentMethod })
+			.from(userProfiles)
+			.where(eq(userProfiles.accountId, account.id))
 			.limit(1)
 	]);
 
@@ -84,7 +90,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			: new Date().toISOString().slice(0, 10);
 
 	const form = await superValidate(
-		{ paymentMethod: wallet.preferredPaymentMethod, pickupDate },
+		// The customer's standard method from their settings; the page falls back to
+		// what the business accepts if that one is not available here.
+		{ paymentMethod: profile?.preferredPaymentMethod ?? wallet.preferredPaymentMethod, pickupDate },
 		valibot(initPaymentSchema)
 	);
 
@@ -203,7 +211,11 @@ export const actions: Actions = {
 		});
 
 		if (!paymentResult.success) {
-			return setError(form, '', paymentResult.error || 'We could not start the payment. Please try again.');
+			return setError(
+				form,
+				'',
+				paymentResult.error || 'We could not start the payment. Please try again.'
+			);
 		}
 
 		// Return payment details
@@ -226,7 +238,7 @@ export const actions: Actions = {
 				success: true,
 				paymentId: paymentResult.paymentId,
 				paymentMethod: 'tether',
-				platformWalletAddress: TETHER_CONTRACT_ADDRESS,
+				platformWalletAddress: platformWalletAddress(),
 				amountUsdt: paymentResult.amountUsdt,
 				pickupDate: pickupDateStr,
 				offerName: offer.name

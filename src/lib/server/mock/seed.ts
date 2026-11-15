@@ -211,6 +211,9 @@ export async function seedMockDatabase(db: Database, now = new Date()): Promise<
 			ibanNumber: DEMO_IBAN,
 			ibanEnabled: true,
 			ibanConfirmed: true,
+			// USDT too, so demo mode can walk through the crypto checkout.
+			tetherAddress: '0x' + '7'.repeat(40),
+			tetherEnabled: true,
 			preferredPaymentMethod: 'iban' as const
 		}))
 	);

@@ -8,7 +8,7 @@
 		steps?: string[];
 	}
 
-	let { current, steps = ['Method', 'Review', 'Pay'] }: Props = $props();
+	let { current, steps = ['Choose', 'Pay', 'Done'] }: Props = $props();
 </script>
 
 <ol class="flex items-start" aria-label="Checkout progress">
