@@ -49,8 +49,8 @@
 			<h2 class="text-lg font-extrabold tracking-tight">Message the team</h2>
 			<p class="mt-1 text-sm text-base-content/65">
 				{errorId
-					? 'Opens Telegram with the error reference already in your message.'
-					: 'Opens a Telegram chat with the team.'}
+					? 'Opens our support bot on Telegram with the error reference attached.'
+					: 'Opens our support bot on Telegram.'}
 			</p>
 			<a
 				href={supportUrl(errorId)}
