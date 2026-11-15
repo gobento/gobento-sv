@@ -9,6 +9,7 @@ import { db } from '#lib/server/db.js';
 import { businessLocations, businessOffers, businessProfiles, files } from '#lib/server/schema.js';
 import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 import { priceWithMargin } from '#lib/server/payments/currency.js';
+import { inviteCard } from '#lib/server/og/invite.js';
 
 const PREVIEW_BOTS =
 	/facebookexternalhit|facebot|twitterbot|telegrambot|whatsapp|slackbot|discordbot|linkedinbot|skypeuripreview|pinterest|redditbot|embedly|mastodon|bluesky|applebot|googlebot|bingbot|signal|iframely|vkshare|snapchat/i;
@@ -112,7 +113,20 @@ const escape = (value: string) => value.replace(/[&<>"']/g, (c) => `&#${c.charCo
 /** A crawler-only page for /, /offers/:id and /locations/:id, or null for anything else. */
 export async function linkPreviewResponse(url: URL): Promise<Response | null> {
 	let preview: Preview | null;
-	if (url.pathname === '/') {
+	const invite = url.searchParams.get('invite');
+	const reservationPath = /^\/reservations\/[^/]+\/?$/.test(url.pathname);
+	if (reservationPath && invite) {
+		// A pickup invite: the card shows what to collect, where and when.
+		const card = await inviteCard(invite);
+		if (!card) return null;
+		preview = {
+			title: `Can you pick up ${card.offerName} for me?`,
+			description: `Pickup ${card.pickup} at ${card.businessName}${card.place ? `, ${card.place}` : ''}. It's already paid.`,
+			image: `${url.origin}/api/og/invite/${encodeURIComponent(invite)}`,
+			imageAlt: `Pickup invite: ${card.offerName}, ${card.pickup}`,
+			type: 'website'
+		};
+	} else if (url.pathname === '/') {
 		// `/` only redirects (to the sign-in when signed out); share the brand card.
 		preview = {
 			title: 'Rescue surplus food near you',
@@ -131,11 +145,16 @@ export async function linkPreviewResponse(url: URL): Promise<Response | null> {
 	}
 	if (!preview) return null;
 
-	const canonical = url.origin + url.pathname;
+	// Invite links keep their token, so the preview's link still opens the invite.
+	const canonical =
+		url.origin + url.pathname + (preview.type === 'website' && invite ? url.search : '');
 	const title = escape(`${preview.title} · GoBento`);
 	const description = escape(preview.description);
 	const image = escape(new URL(preview.image, url.origin).href);
 	const alt = escape(preview.imageAlt);
+	// Our own cards are 1200x630; saying so lets chat apps pick the large layout.
+	const ownCard =
+		preview.image.startsWith(`${url.origin}/api/og/`) || preview.image.endsWith('/og.png');
 
 	const html = `<!doctype html>
 <html lang="en">
@@ -150,7 +169,7 @@ export async function linkPreviewResponse(url: URL): Promise<Response | null> {
 <meta property="og:description" content="${description}" />
 <meta property="og:url" content="${escape(canonical)}" />
 <meta property="og:image" content="${image}" />
-<meta property="og:image:alt" content="${alt}" />
+${ownCard ? '<meta property="og:image:width" content="1200" />\n<meta property="og:image:height" content="630" />\n' : ''}<meta property="og:image:alt" content="${alt}" />
 <meta property="og:locale" content="en_US" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${title}" />
