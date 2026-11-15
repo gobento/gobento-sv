@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/profile/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { Component } from 'svelte';
 	import type { PageData } from './$types';
 	import IconUser from '~icons/fluent/person-24-regular';
@@ -173,7 +174,7 @@
 						<p class="text-sm text-base-content/60">Not configured</p>
 					{/if}
 				</div>
-				<a href="/profile/edit" class="btn gap-1.5 btn-ghost btn-sm">
+				<a href={resolve('/(dock)/profile/edit')} class="btn gap-1.5 btn-ghost btn-sm">
 					<IconEdit class="size-4" />
 					Edit
 				</a>
@@ -189,7 +190,7 @@
 
 				<!-- Your Impact -->
 				<a
-					href="/impact"
+					href={resolve('/(dock)/impact')}
 					class="group card overflow-hidden bg-linear-to-br from-success to-accent text-white shadow-sm transition hover:shadow-md"
 				>
 					<div class="card-body gap-4 p-5">
@@ -229,7 +230,7 @@
 
 				<!-- Receipts & Orders -->
 				<a
-					href="/reservations"
+					href={resolve('/(dock)/reservations')}
 					class="group card border border-base-300 bg-base-100 shadow-sm transition hover:bg-base-200/50"
 				>
 					<div class="card-body flex-row items-center gap-4 p-5">
@@ -266,7 +267,7 @@
 				More
 			</h2>
 			<a
-				href="/about"
+				href={resolve('/(public)/about')}
 				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
 			>
 				<IconInfo class="size-5" />
@@ -274,7 +275,7 @@
 				<IconChevronRight class="size-4 text-base-content/40" />
 			</a>
 			<a
-				href="/contact"
+				href={resolve('/(public)/contact')}
 				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
 			>
 				<IconMail class="size-5" />
@@ -285,7 +286,7 @@
 			<div class="my-1 border-t border-base-200"></div>
 
 			<a
-				href="/auth/logout"
+				href={resolve('/(public)/auth/logout')}
 				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-error/80 transition-colors hover:bg-error/10 hover:text-error"
 			>
 				<IconSignOut class="size-5" />
@@ -350,7 +351,7 @@
 			<div class="relative h-28 bg-linear-to-br from-primary via-primary to-accent sm:h-32">
 				{#if canEdit}
 					<a
-						href="/profile/edit"
+						href={resolve('/(dock)/profile/edit')}
 						class="absolute top-4 right-4 flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/25"
 						aria-label={hasProfile ? 'Edit profile' : 'Complete profile'}
 					>
@@ -372,7 +373,7 @@
 					{#if (isBusiness || isCharity) && data.profilePictureUrl}
 						<OptimizedLogoImage
 							src={data.profilePictureUrl}
-							alt={'Profile'}
+							alt="Profile"
 							size="lg"
 							shape="square"
 							priority={true}
@@ -476,7 +477,7 @@
 
 		<!-- Primary Call To Action -->
 		{#if canEdit && !hasProfile && (isBusiness || isCharity)}
-			<a href="/profile/edit" class="btn w-full gap-2 btn-primary">
+			<a href={resolve('/(dock)/profile/edit')} class="btn w-full gap-2 btn-primary">
 				<IconEdit class="size-5" />
 				Complete Profile
 			</a>
@@ -485,7 +486,7 @@
 		<!-- Footer Links -->
 		<div class="flex flex-col gap-1 pt-2">
 			<a
-				href="/about"
+				href={resolve('/(public)/about')}
 				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
 			>
 				<IconInfo class="size-5" />
@@ -493,7 +494,7 @@
 				<IconChevronRight class="size-4 text-base-content/40" />
 			</a>
 			<a
-				href="/contact"
+				href={resolve('/(public)/contact')}
 				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-base-content/70 transition-colors hover:bg-base-200"
 			>
 				<IconMail class="size-5" />
@@ -504,7 +505,7 @@
 			<div class="my-1 border-t border-base-200"></div>
 
 			<a
-				href="/auth/logout"
+				href={resolve('/(public)/auth/logout')}
 				class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-error/80 transition-colors hover:bg-error/10 hover:text-error"
 			>
 				<IconSignOut class="size-5" />
@@ -514,4 +515,3 @@
 		</div>
 	</div>
 {/if}
-

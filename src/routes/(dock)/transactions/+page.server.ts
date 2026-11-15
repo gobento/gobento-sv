@@ -6,7 +6,7 @@ import {
 	payments,
 	businessWallets
 } from '#lib/server/schema.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 

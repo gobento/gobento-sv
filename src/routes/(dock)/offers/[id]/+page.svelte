@@ -1,6 +1,6 @@
 <!-- src/routes/(dock)/offers/[id]/+page.svelte -->
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import IconStore from '~icons/fluent/building-retail-24-regular';
 	import IconFluentArrowRight24Filled from '~icons/fluent/arrow-right-24-filled';
 
@@ -87,11 +87,6 @@
 
 	// Determine image for OG
 	const ogImage = data.offer.imageUrl || data.location?.imageUrl || data.logo.url;
-
-	// Create location string
-	const locationString = data.location
-		? `${data.location.city}, ${data.location.country}`
-		: 'Multiple locations';
 </script>
 
 <Seo
@@ -139,7 +134,7 @@
 
 <!-- Business Info -->
 <a
-	href="/locations/{data.location?.id ?? data.business.id}"
+	href={resolve('/(dock)/locations/[id]', { id: data.location?.id ?? data.business.id })}
 	class="group flex cursor-pointer items-center gap-4 p-6 transition-colors"
 >
 	<OptimizedLogoImage
@@ -243,7 +238,6 @@
 
 	<ComplaintModal
 		bind:open={complaintOpen}
-		targetType="offer"
 		targetName={data.offer.name}
 		location={data.location}
 		result={complaintResult}

@@ -1,4 +1,8 @@
 <script lang="ts">
+	import type { GeocodeResult } from '#lib/components/maps/userLocation.js';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { withSearch } from '#lib/paths.js';
+	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import IconTimer from '~icons/fluent/timer-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
@@ -25,13 +29,12 @@
 	let currentTime = $state(new Date());
 	let interval: ReturnType<typeof setInterval>;
 	let selectedLocation = $state<{ name: string; lat: number; lon: number } | null>(null);
-	let selectedOffer = $state<any>(null);
+	let selectedOffer = $state<PageData['offers'][number] | null>(null);
 	let showBottomSheet = $state(false);
 
 	// Location search state
 	let searchQuery = $state('');
-	let searchResults = $state<any[]>([]);
-	let isSearching = $state(false);
+	let searchResults = $state<GeocodeResult[]>([]);
 	let showResults = $state(false);
 	let searchTimeout: ReturnType<typeof setTimeout>;
 	let selectedTypes = $state<string[]>(['all']);
@@ -82,7 +85,6 @@
 			return;
 		}
 
-		isSearching = true;
 		clearTimeout(searchTimeout);
 
 		searchTimeout = setTimeout(async () => {
@@ -96,13 +98,11 @@
 			} catch (error) {
 				console.error('Search error:', error);
 				searchResults = [];
-			} finally {
-				isSearching = false;
 			}
 		}, 500);
 	}
 
-	function selectLocation(result: any) {
+	function selectLocation(result: GeocodeResult) {
 		const location = {
 			name: result.display_name,
 			lat: parseFloat(result.lat),
@@ -158,7 +158,7 @@
 	}
 
 	function updateUrl() {
-		const params = new URLSearchParams(page.url.search);
+		const params = new SvelteURLSearchParams(page.url.search);
 
 		if (selectedLocation) {
 			params.set('lat', selectedLocation.lat.toString());
@@ -175,7 +175,7 @@
 			params.delete('types');
 		}
 
-		goto(`?${params.toString()}`, { replaceState: true, reset: true });
+		goto(withSearch(resolve('/(dock)/map'), params), { replaceState: true, reset: true });
 	}
 
 	function handleTypeToggle(type: string) {
@@ -201,7 +201,7 @@
 		selectedOffer = null;
 	}
 
-	function openBottomSheet(offer: any) {
+	function openBottomSheet(offer: PageData['offers'][number]) {
 		selectedOffer = offer;
 		showBottomSheet = true;
 	}
@@ -288,7 +288,7 @@
 						<div
 							class="absolute z-[1001] mt-2 w-full overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-xl"
 						>
-							{#each searchResults as result}
+							{#each searchResults as result (result.place_id)}
 								<button
 									type="button"
 									class="w-full border-b border-base-300 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-base-200"
@@ -339,7 +339,7 @@
 				>
 					<div class="mb-2 font-semibold text-base-content">Filter by Type</div>
 					<div class="flex flex-wrap gap-2">
-						{#each businessTypes as type}
+						{#each businessTypes as type (type.value)}
 							<button
 								type="button"
 								class="btn btn-sm {selectedTypes.includes(type.value)
@@ -377,7 +377,7 @@
 				>
 					<TileLayer
 						url={'https://tile.openstreetmap.org/{z}/{x}/{y}.png'}
-						attribution={"&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}
+						attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
 					/>
 
 					<!-- User location marker -->
@@ -469,9 +469,9 @@
 						<div class="flex items-center gap-3 text-base-content/80">
 							<IconLocation class="size-5 text-primary" />
 							<div class="flex-1">
-								<div class="font-medium">{selectedOffer.location.city}</div>
+								<div class="font-medium">{selectedOffer.location?.city}</div>
 								<div class="text-sm text-base-content/60">
-									{selectedOffer.location.address}
+									{selectedOffer.location?.address}
 								</div>
 							</div>
 							{#if selectedOffer.distance !== null}
@@ -515,7 +515,7 @@
 
 					<!-- Action Button -->
 					<a
-						href="/offers/{selectedOffer.id}"
+						href={resolve('/(dock)/offers/[id]', { id: selectedOffer.id })}
 						class="btn w-full gap-2 btn-lg btn-primary"
 						onclick={closeBottomSheet}
 					>
@@ -542,6 +542,3 @@
 		animation: slide-up 0.3s ease-out;
 	}
 </style>
-
-
-

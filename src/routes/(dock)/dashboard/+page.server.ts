@@ -12,7 +12,7 @@ import {
 } from '#lib/server/schema.js';
 import { eq, and, gte, sql, desc, inArray } from 'drizzle-orm';
 import { materializeDueGifts } from '#lib/server/recurringGifts.js';
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const account = locals.account!;

@@ -82,8 +82,7 @@ export type RedeemResult =
 	| { ok: false; error: string };
 
 export type RedeemInput =
-	| { kind: 'qr'; payload: string }
-	| { kind: 'digits'; reservationId: string; digits: string };
+	{ kind: 'qr'; payload: string } | { kind: 'digits'; reservationId: string; digits: string };
 
 /**
  * Verifies a pickup code for `locationId` and marks the order as collected.

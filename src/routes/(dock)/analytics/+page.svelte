@@ -343,7 +343,7 @@
 			<h2 class="mb-4 text-sm font-semibold sm:mb-5 sm:text-base">Top Performing Offers</h2>
 			{#if data.offerPerformanceData.length > 0}
 				<div class="max-h-48 space-y-2 overflow-y-auto sm:max-h-56 lg:max-h-64">
-					{#each data.offerPerformanceData as offer, i}
+					{#each data.offerPerformanceData as offer, i (offer.id)}
 						<button
 							type="button"
 							onclick={() => handleOfferClick(offer.id)}
@@ -438,7 +438,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.locationPerformanceData as location}
+							{#each data.locationPerformanceData as location (location.id)}
 								<tr
 									class="cursor-pointer border-base-300 transition-colors hover:bg-base-300/50"
 									onclick={() => handleLocationClick(location.id)}

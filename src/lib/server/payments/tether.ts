@@ -313,7 +313,7 @@ export class TetherService {
 				};
 			}
 
-			const contractWithSigner = this.contract.connect(this.platformWallet) as any;
+			const contractWithSigner = this.contract.connect(this.platformWallet) as Contract;
 
 			// Check platform wallet balance
 			const balance = await this.contract.balanceOf(this.platformWallet.address);

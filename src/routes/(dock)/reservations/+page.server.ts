@@ -57,9 +57,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Many orders share a business, so sign each logo only once.
 	const logoKeys = [...new Set(rows.map((row) => row.logoKey).filter((key) => key !== null))];
 	const logoUrls = new Map(
-		await Promise.all(
-			logoKeys.map(async (key) => [key, await getSignedDownloadUrl(key)] as const)
-		)
+		await Promise.all(logoKeys.map(async (key) => [key, await getSignedDownloadUrl(key)] as const))
 	);
 
 	const isCharity = account.accountType === 'charity';

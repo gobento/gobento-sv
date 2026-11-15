@@ -184,7 +184,8 @@ export const actions: Actions = {
 		if (staff.employerType !== 'business') return fail(403, { action: { error: 'Not allowed' } });
 		const { location } = await locationFor(staff, url.searchParams.get('location'));
 		const id = (await request.formData()).get('pickupId');
-		if (!location || typeof id !== 'string') return fail(400, { action: { error: 'Pickup not found' } });
+		if (!location || typeof id !== 'string')
+			return fail(400, { action: { error: 'Pickup not found' } });
 
 		const updated = await db
 			.update(pickupRequests)

@@ -108,3 +108,14 @@ export async function locateMe(): Promise<UserLocation> {
 	}
 	return { name, lat, lon };
 }
+
+/** One result from Nominatim's `/search` endpoint (only the fields we read). */
+export interface GeocodeResult {
+	place_id: number;
+	display_name: string;
+	lat: string;
+	lon: string;
+	address?: Partial<
+		Record<'city' | 'town' | 'village' | 'state' | 'province' | 'country' | 'postcode', string>
+	>;
+}

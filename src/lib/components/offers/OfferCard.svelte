@@ -1,5 +1,6 @@
 <!-- The one offer card: discover, favourites, location and business pages all use it. -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import IconFire from '~icons/fluent/fire-24-filled';
 	import IconBag from '~icons/fluent/shopping-bag-24-regular';
@@ -68,8 +69,8 @@
 </script>
 
 <a
-	href="/offers/{offer.id}"
-	class="group surface pressable stagger flex animate-rise-in flex-col overflow-hidden hover:border-primary/30 {className}"
+	href={resolve('/(dock)/offers/[id]', { id: offer.id })}
+	class="group surface pressable flex animate-rise-in flex-col overflow-hidden stagger hover:border-primary/30 {className}"
 	style:--i={Math.min(index, 8)}
 	aria-label="{offer.name}{business ? ` from ${business.name}` : ''}"
 >
@@ -145,7 +146,9 @@
 					{business.name}
 				</span>
 				{#if offer.distance != null}
-					<span class="tabular flex shrink-0 items-center gap-0.5 text-xs font-bold text-base-content/60">
+					<span
+						class="tabular flex shrink-0 items-center gap-0.5 text-xs font-bold text-base-content/60"
+					>
 						<IconLocation class="size-3.5" />
 						{formatDistance(offer.distance)}
 					</span>

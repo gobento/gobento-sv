@@ -31,7 +31,8 @@
 			icon: IconLinkDismiss,
 			tone: 'neutral',
 			title: 'This invite was declined',
-			message: 'Someone declined this invite, so the link was closed. Ask your friend for a new link.'
+			message:
+				'Someone declined this invite, so the link was closed. Ask your friend for a new link.'
 		},
 		expired: {
 			icon: IconClock,

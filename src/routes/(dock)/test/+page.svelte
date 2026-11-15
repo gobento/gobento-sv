@@ -131,7 +131,7 @@
 						<a
 							href={form.url}
 							target="_blank"
-							rel="noopener noreferrer"
+							rel="external noopener noreferrer"
 							class="btn flex-1 btn-primary btn-sm sm:flex-none"
 						>
 							<IconOpen class="h-4 w-4" />
@@ -166,7 +166,7 @@
 					</div>
 
 					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-						{#each uploadHistory as item}
+						{#each uploadHistory as item (item.key)}
 							<div class="card bg-base-200 shadow">
 								<figure class="px-3 pt-3">
 									<img
@@ -187,7 +187,7 @@
 										<a
 											href={item.url}
 											target="_blank"
-											rel="noopener noreferrer"
+											rel="external noopener noreferrer"
 											class="btn flex-1 btn-outline btn-xs"
 										>
 											<IconOpen class="h-3 w-3" />

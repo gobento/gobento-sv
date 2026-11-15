@@ -5,7 +5,7 @@ import { sha256 } from '@oslojs/crypto/sha2';
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } from '$app/env/private';
 import { db } from './db';
 import { eq } from 'drizzle-orm';
-import { sessions, accounts, userProfiles } from './schema';
+import { sessions, accounts } from './schema';
 
 export const google = new Google(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI);
 

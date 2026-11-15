@@ -55,7 +55,7 @@
 			<a
 				href={supportUrl(errorId)}
 				target="_blank"
-				rel="noopener noreferrer"
+				rel="external noopener noreferrer"
 				class="btn mt-4 btn-block gap-2 font-bold shadow-glow btn-primary"
 			>
 				<IconSend class="size-5" />

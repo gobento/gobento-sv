@@ -121,7 +121,7 @@
 		{#if results.length > 0}
 			<ul class="flex flex-col gap-1" aria-label="Matching addresses">
 				{#each results as result, index (result.name + index)}
-					<li class="stagger animate-rise-in" style:--i={index}>
+					<li class="animate-rise-in stagger" style:--i={index}>
 						<button
 							type="button"
 							class="flex min-h-12 w-full items-start gap-3 rounded-2xl px-3 py-2.5 text-start transition-colors hover:bg-base-200 active:bg-base-200"

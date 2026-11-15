@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/admin/payments/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { formatDateTime } from '#lib/dates.js';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import IconReceipt from '~icons/fluent/receipt-24-filled';
@@ -64,7 +65,7 @@
 			</select>
 		</label>
 		<button type="submit" class="btn btn-primary">Filter</button>
-		<a href="/admin/payments" class="btn btn-ghost">Reset</a>
+		<a href={resolve('/(dock)/admin/payments')} class="btn btn-ghost">Reset</a>
 	</form>
 
 	{#if data.truncated}

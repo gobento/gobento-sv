@@ -10,3 +10,7 @@ bun.lockb
 
 /drizzle
 /node_modules
+
+# Tool-managed files
+/.prompts/
+/project.inlang/

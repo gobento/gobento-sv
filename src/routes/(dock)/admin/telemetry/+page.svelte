@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/admin/telemetry/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import { formatDateTime, formatTimeOfDay, formatDayMonth } from '#lib/dates.js';
 	import { displayRoute } from '#lib/telemetry.js';
@@ -83,7 +84,7 @@
 		<div class="join">
 			{#each data.ranges as range (range)}
 				<a
-					href="?range={range}"
+					href={resolve(`/(dock)/admin/telemetry?range=${range}`)}
 					class="btn join-item btn-sm {data.range === range ? 'btn-primary' : 'btn-outline'}"
 					data-sveltekit-noscroll>{rangeLabels[range]}</a
 				>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { fly } from 'svelte/transition';
 	import IconBag from '~icons/fluent/shopping-bag-24-regular';
@@ -82,12 +83,9 @@
 						{@const ready =
 							reservation.status === 'active' &&
 							pickupPhase(reservation.pickupFrom, reservation.pickupUntil, now) === 'open'}
-						<li
-							class="surface flex animate-rise-in flex-col stagger"
-							style:--i={Math.min(i, 8)}
-						>
+						<li class="surface flex animate-rise-in flex-col stagger" style:--i={Math.min(i, 8)}>
 							<a
-								href="/reservations/{reservation.id}"
+								href={resolve('/(dock)/reservations/[id]', { id: reservation.id })}
 								class="flex flex-1 items-start gap-3 rounded-t-box p-4 transition-colors hover:bg-base-200/50"
 							>
 								<BusinessLogo src={reservation.logoUrl} priority={i < 4} />
@@ -156,7 +154,7 @@
 										</form>
 									{/if}
 									<Button
-										href="/reservations/{reservation.id}"
+										href={resolve('/(dock)/reservations/[id]', { id: reservation.id })}
 										variant="ghost"
 										size="sm"
 										iconRight={IconChevron}

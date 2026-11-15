@@ -1,5 +1,6 @@
 <!-- Stand-in for the external payment gateway. Only reachable in mock mode. -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import IconBeaker from '~icons/fluent/beaker-24-regular';
 	import IconLock from '~icons/fluent/lock-closed-24-filled';
 	import IconCard from '~icons/fluent/payment-24-regular';
@@ -80,7 +81,11 @@
 							? 'completed'
 							: 'closed'}. Start a new one from the offer.
 					</Alert>
-					<Button href="/offers/{data.payment.offerId}" block size="lg">Back to the offer</Button>
+					<Button
+						href={resolve('/(dock)/offers/[id]', { id: data.payment.offerId })}
+						block
+						size="lg">Back to the offer</Button
+					>
 				{:else}
 					<div class="space-y-2">
 						<Button
@@ -112,8 +117,8 @@
 		</div>
 
 		<p class="mt-5 text-center text-xs text-base-content/55">
-			You see this page because the app runs with demo data. With live payments, customers are
-			sent to the real payment provider instead.
+			You see this page because the app runs with demo data. With live payments, customers are sent
+			to the real payment provider instead.
 		</p>
 	</main>
 </div>

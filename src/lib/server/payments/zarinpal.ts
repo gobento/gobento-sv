@@ -11,7 +11,7 @@ interface ZarinpalRequestResponse {
 		fee_type: string;
 		fee: number;
 	};
-	errors: any[];
+	errors: unknown[];
 }
 
 interface ZarinpalVerifyResponse {
@@ -24,7 +24,7 @@ interface ZarinpalVerifyResponse {
 		fee_type: string;
 		fee: number;
 	};
-	errors: any[];
+	errors: unknown[];
 }
 
 const ZARINPAL_API_URL =
@@ -50,7 +50,7 @@ export class ZarinpalService {
 		mobile?: string;
 		callbackUrl: string;
 
-		metadata?: Record<string, any>;
+		metadata?: Record<string, unknown>;
 	}): Promise<{ success: boolean; authority?: string; paymentUrl?: string; error?: string }> {
 		try {
 			const response = await mockableFetch(`${ZARINPAL_API_URL}/request.json`, {

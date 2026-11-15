@@ -44,7 +44,10 @@ interface Scope {
 export async function materializeDueGifts(scope: Scope = {}, now = new Date()): Promise<number> {
 	const horizon = new Date(now.getTime() + GIFT_LEAD_TIME_MS);
 
-	const filters = [eq(recurringGifts.status, 'active'), lte(recurringGifts.nextOccurrenceAt, horizon)];
+	const filters = [
+		eq(recurringGifts.status, 'active'),
+		lte(recurringGifts.nextOccurrenceAt, horizon)
+	];
 	if (scope.businessAccountId) {
 		filters.push(eq(recurringGifts.businessAccountId, scope.businessAccountId));
 	}

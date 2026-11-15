@@ -818,7 +818,11 @@ export async function seedMockDatabase(db: Database, now = new Date()): Promise<
 			locationId: 'loc-kiez-kreuzberg',
 			name: 'Mia Becker'
 		},
-		{ accountId: DEMO_ACCOUNTS.charityStaff, employerAccountId: DEMO_ACCOUNTS.charity, name: 'Jonas Wolf' }
+		{
+			accountId: DEMO_ACCOUNTS.charityStaff,
+			employerAccountId: DEMO_ACCOUNTS.charity,
+			name: 'Jonas Wolf'
+		}
 	]);
 
 	// --- Regular gifts --------------------------------------------------------
@@ -869,28 +873,30 @@ export async function seedMockDatabase(db: Database, now = new Date()): Promise<
 		createdAt: at(-36 * DAY),
 		respondedAt: status === 'proposed' ? null : at(-35 * DAY)
 	});
-	await db.insert(t.recurringGifts).values([
-		giftRow(
-			'gift-kiez-weekly',
-			B,
-			DEMO_ACCOUNTS.charity,
-			'loc-kiez-kreuzberg',
-			'bakery',
-			'Unsold bread and pastries from the week, usually two to three crates.',
-			weeklyBread,
-			'active'
-		),
-		giftRow(
-			'gift-korb-proposed',
-			'biz-korb',
-			DEMO_ACCOUNTS.charity,
-			'loc-korb',
-			'produce',
-			'Vegetables that are past their best look but perfectly fine to cook with.',
-			biweeklyVeg,
-			'proposed'
-		)
-	]);
+	await db
+		.insert(t.recurringGifts)
+		.values([
+			giftRow(
+				'gift-kiez-weekly',
+				B,
+				DEMO_ACCOUNTS.charity,
+				'loc-kiez-kreuzberg',
+				'bakery',
+				'Unsold bread and pastries from the week, usually two to three crates.',
+				weeklyBread,
+				'active'
+			),
+			giftRow(
+				'gift-korb-proposed',
+				'biz-korb',
+				DEMO_ACCOUNTS.charity,
+				'loc-korb',
+				'produce',
+				'Vegetables that are past their best look but perfectly fine to cook with.',
+				biweeklyVeg,
+				'proposed'
+			)
+		]);
 
 	// Past collections of the weekly gift, for history and stats.
 	const pastFridays: t.PickupRequest[] = [];

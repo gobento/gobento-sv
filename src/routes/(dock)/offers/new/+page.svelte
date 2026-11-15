@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconCheck from '~icons/fluent/checkmark-24-regular';
@@ -458,7 +459,7 @@
 						class:select-error={errorField === 'locationId'}
 					>
 						<option value="">All Locations</option>
-						{#each data.locations as location}
+						{#each data.locations as location (location.id)}
 							<option value={location.id}>
 								{location.name} - {location.city}, {location.province}
 							</option>
@@ -590,7 +591,11 @@
 			class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100/95 p-4 backdrop-blur md:ps-58"
 		>
 			<div class="mx-auto flex max-w-2xl gap-3">
-				<a href="/offers" class="btn flex-1 btn-ghost" class:btn-disabled={isSubmitting}>Cancel</a>
+				<a
+					href={resolve('/(dock)/offers')}
+					class="btn flex-1 btn-ghost"
+					class:btn-disabled={isSubmitting}>Cancel</a
+				>
 				<button
 					type="submit"
 					class="btn flex-[2] gap-2 btn-primary"
@@ -608,4 +613,3 @@
 		</div>
 	</form>
 </BaseLayout>
-

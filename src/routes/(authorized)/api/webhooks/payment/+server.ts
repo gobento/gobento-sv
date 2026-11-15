@@ -106,7 +106,10 @@ async function handleTetherWebhook(body: Record<string, unknown>) {
 		return json({ success: true, message: 'Already processed' });
 	}
 
-	const result = await PaymentHandler.verifyTetherPayment({ paymentId: payment_id, txHash: tx_hash });
+	const result = await PaymentHandler.verifyTetherPayment({
+		paymentId: payment_id,
+		txHash: tx_hash
+	});
 
 	return json(result);
 }
@@ -120,4 +123,3 @@ export const GET: RequestHandler = async () => {
 		message: 'Payment webhook endpoint is active'
 	});
 };
-

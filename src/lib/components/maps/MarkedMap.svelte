@@ -43,4 +43,9 @@
 	});
 </script>
 
-<div bind:this={container} class="size-full" role="img" aria-label="Map of the pickup location"></div>
+<div
+	bind:this={container}
+	class="size-full"
+	role="img"
+	aria-label="Map of the pickup location"
+></div>

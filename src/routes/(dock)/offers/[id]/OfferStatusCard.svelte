@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { formatDate } from '#lib/util.js';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
 	import IconLock from '~icons/fluent/lock-closed-24-filled';
@@ -91,7 +92,7 @@
 			<div class="flex-1">
 				<h3 class="text-2xl font-bold text-success">You've Reserved This Surprise Bag!</h3>
 				<a
-					href="/reservations/{userReservation.id}"
+					href={resolve('/(dock)/reservations/[id]', { id: userReservation.id })}
 					class="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-success hover:underline"
 				>
 					View your reservation details
@@ -187,7 +188,7 @@
 			<a
 				type="button"
 				class="btn w-full transition-all btn-primary"
-				href="/offers/{offer.id}/payment?pickupDate={pickupDate}"
+				href={resolve(`/(dock)/offers/[id]/payment?pickupDate=${pickupDate}`, { id: offer.id })}
 			>
 				<IconShoppingBag class="size-5" />
 				Buy this surprise bag

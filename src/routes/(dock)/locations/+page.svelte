@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/locations/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { formatDate } from '#lib/dates.js';
 	import IconAdd from '~icons/fluent/add-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
@@ -49,7 +50,7 @@
 			</div>
 
 			<!-- Add Button -->
-			<a href="/locations/new" class="btn gap-2 btn-primary">
+			<a href={resolve('/(dock)/locations/new')} class="btn gap-2 btn-primary">
 				<IconAdd class="size-5" />
 				<span>Add Location</span>
 			</a>
@@ -76,11 +77,11 @@
 	{:else}
 		<!-- Locations Grid -->
 		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-			{#each filteredLocations as location}
+			{#each filteredLocations as location (location.id)}
 				<div
 					class="card overflow-hidden border border-base-300 bg-base-100 transition-colors hover:border-primary"
 				>
-					<a href="/locations/{location.id}">
+					<a href={resolve('/(dock)/locations/[id]', { id: location.id })}>
 						<!-- Image Header -->
 						<div class="relative h-32 bg-linear-to-br from-primary/20 via-primary/10 to-base-200">
 							<OptimizedImage
@@ -125,7 +126,10 @@
 						</div>
 
 						<!-- Action Button -->
-						<a href="/offers/new?locationId={location.id}" class="btn btn-block gap-2 btn-success">
+						<a
+							href={resolve(`/(dock)/offers/new?locationId=${location.id}`)}
+							class="btn btn-block gap-2 btn-success"
+						>
 							<IconAdd class="size-4" />
 							Create Offer
 						</a>
@@ -150,7 +154,7 @@
 							</p>
 						</div>
 					</div>
-					<a href="/offers" class="btn btn-block gap-2 btn-ghost">
+					<a href={resolve('/(dock)/offers')} class="btn btn-block gap-2 btn-ghost">
 						View All Offers
 						<span>→</span>
 					</a>

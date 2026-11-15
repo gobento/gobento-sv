@@ -86,7 +86,7 @@
 			<a
 				href={directionsUrl(latitude, longitude)}
 				target="_blank"
-				rel="noopener noreferrer"
+				rel="external noopener noreferrer"
 				class="flex min-h-12 items-center justify-center gap-2 bg-base-200/60 text-sm font-bold transition-colors hover:bg-base-200 hover:text-primary"
 			>
 				<IconDirections class="size-5" />

@@ -87,7 +87,7 @@ export class PaymentHandler {
 		currency: string;
 		paymentMethod: 'iban' | 'tether';
 		pickupDate: Date;
-		metadata?: Record<string, any>;
+		metadata?: { email?: string } & Record<string, unknown>;
 	}): Promise<{
 		success: boolean;
 		paymentId?: string;

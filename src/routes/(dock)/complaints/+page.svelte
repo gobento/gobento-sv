@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/complaints/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { formatDateTime } from '#lib/dates.js';
 	import { enhance } from '$app/forms';
 	import IconWarning from '~icons/fluent/warning-24-regular';
@@ -17,9 +18,9 @@
 
 	const targetHref = (c: (typeof data.complaints)[number]) =>
 		c.targetType === 'offer' && c.offerId
-			? `/offers/${c.offerId}`
+			? resolve('/(dock)/offers/[id]', { id: c.offerId })
 			: c.locationId
-				? `/locations/${c.locationId}`
+				? resolve('/(dock)/locations/[id]', { id: c.locationId })
 				: null;
 </script>
 

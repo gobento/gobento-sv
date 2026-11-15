@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import Seo from '#lib/components/Seo.svelte';
 	import BentoBox from '~icons/fluent-emoji-flat/bento-box';
@@ -15,7 +16,9 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const googleHref = $derived(`/auth/login/google?next=${encodeURIComponent(data.next)}`);
+	const googleHref = $derived(
+		resolve(`/(public)/auth/login/google?next=${encodeURIComponent(data.next)}`)
+	);
 
 	const valueProps = [
 		{ icon: IconTag, label: 'Great food for less', tone: 'bg-secondary/15 text-secondary' },
@@ -51,14 +54,14 @@
 	</div>
 
 	<h1 class="mt-6 animate-rise-in text-4xl font-extrabold tracking-tight">GoBento</h1>
-	<p class="stagger mt-2 animate-rise-in text-lg text-base-content/70" style:--i={1}>
+	<p class="mt-2 animate-rise-in text-lg text-base-content/70 stagger" style:--i={1}>
 		Rescue delicious surplus food near you, one bento at a time.
 	</p>
 
 	<ul class="mt-7 grid w-full grid-cols-3 gap-2">
 		{#each valueProps as prop, i (prop.label)}
 			{@const Icon = prop.icon}
-			<li class="stagger flex animate-rise-in flex-col items-center gap-2" style:--i={i + 2}>
+			<li class="flex animate-rise-in flex-col items-center gap-2 stagger" style:--i={i + 2}>
 				<span class="flex size-11 items-center justify-center rounded-2xl {prop.tone}">
 					<Icon class="size-5" />
 				</span>
@@ -67,12 +70,12 @@
 		{/each}
 	</ul>
 
-	<div class="stagger mt-8 w-full animate-rise-in" style:--i={5}>
+	<div class="mt-8 w-full animate-rise-in stagger" style:--i={5}>
 		<a
 			href={googleHref}
 			data-sveltekit-reload
 			onclick={() => (leaving = true)}
-			class="btn btn-block h-14 gap-3 rounded-2xl border-base-300 bg-base-100 text-base font-bold text-base-content shadow-soft transition-[transform,box-shadow] duration-200 ease-spring hover:shadow-lift active:scale-[0.97]"
+			class="btn h-14 btn-block gap-3 rounded-2xl border-base-300 bg-base-100 text-base font-bold text-base-content shadow-soft transition-[transform,box-shadow] duration-200 ease-spring hover:shadow-lift active:scale-[0.97]"
 		>
 			{#if leaving}
 				<Spinner size="sm" />
@@ -84,19 +87,21 @@
 
 		<p class="mt-4 text-xs text-base-content/60">
 			By continuing you agree to our
-			<a class="link font-semibold link-hover text-base-content/80" href="/terms-of-service"
-				>terms of service</a
+			<a
+				class="link font-semibold text-base-content/80 link-hover"
+				href={resolve('/(public)/terms-of-service')}>terms of service</a
 			>
 			and
-			<a class="link font-semibold link-hover text-base-content/80" href="/privacy-policy"
-				>privacy policy</a
+			<a
+				class="link font-semibold text-base-content/80 link-hover"
+				href={resolve('/(public)/privacy-policy')}>privacy policy</a
 			>.
 		</p>
 	</div>
 
 	{#if data.demoAccounts}
 		<section
-			class="stagger surface mt-8 w-full animate-rise-in p-4 text-start"
+			class="surface mt-8 w-full animate-rise-in p-4 text-start stagger"
 			style:--i={6}
 			aria-labelledby="demo-heading"
 		>
@@ -112,7 +117,9 @@
 					{@const Icon = demo.icon}
 					<li class="last:odd:col-span-full">
 						<a
-							href="/auth/login/demo?as={demo.role}&next={encodeURIComponent(data.next)}"
+							href={resolve(
+								`/(public)/auth/login/demo?as=${demo.role}&next=${encodeURIComponent(data.next)}`
+							)}
 							data-sveltekit-reload
 							class="pressable flex min-h-14 items-center gap-3 rounded-2xl bg-base-200/60 px-3 py-2 hover:bg-primary/10"
 						>
@@ -133,7 +140,7 @@
 	{/if}
 
 	<nav class="mt-8 flex gap-5 text-sm font-semibold text-base-content/60" aria-label="More">
-		<a class="hover:text-base-content" href="/about">About</a>
-		<a class="hover:text-base-content" href="/contact">Contact</a>
+		<a class="hover:text-base-content" href={resolve('/(public)/about')}>About</a>
+		<a class="hover:text-base-content" href={resolve('/(public)/contact')}>Contact</a>
 	</nav>
 </div>

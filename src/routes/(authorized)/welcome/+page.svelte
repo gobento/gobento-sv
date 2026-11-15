@@ -1,5 +1,6 @@
 <!-- src/routes/welcome/+page.svelte -->
 <script lang="ts">
+	import type { Component } from 'svelte';
 	import type { PageData } from './$types';
 	import { superForm } from 'sveltekit-superforms';
 	import { valibotClient } from 'sveltekit-superforms/adapters';
@@ -41,14 +42,14 @@
 		id: 'user' | 'business' | 'charity';
 		title: string;
 		description: string;
-		icon: any;
-		iconFilled: any;
+		icon: Component;
+		iconFilled: Component;
 	}
 
 	interface Country {
 		code: string;
 		name: string;
-		flag: any;
+		flag: Component;
 	}
 
 	interface BusinessType {
@@ -392,7 +393,7 @@
 				{/each}
 			</div>
 
-			<button type="button" class="btn gap-2 btn-block btn-primary" onclick={handleGetStarted}>
+			<button type="button" class="btn btn-block gap-2 btn-primary" onclick={handleGetStarted}>
 				Get Started
 				<IconArrowRight class="size-5" />
 			</button>
@@ -540,13 +541,13 @@
 										value={getFormValue('businessType')}
 										onchange={(e) => {
 											if ('businessType' in $form) {
-												$form.businessType = e.currentTarget.value as any;
+												$form.businessType = e.currentTarget.value as typeof $form.businessType;
 											}
 										}}
 										disabled={$submitting}
 									>
 										<option value="" disabled selected>Select your business type</option>
-										{#each businessTypes as type}
+										{#each businessTypes as type (type.value)}
 											<option value={type.value}>{type.label}</option>
 										{/each}
 									</select>
@@ -619,7 +620,7 @@
 									disabled={$submitting}
 								>
 									<option value="" disabled selected>Select your country</option>
-									{#each countries as country}
+									{#each countries as country (country.code)}
 										<option value={country.code}>{country.name}</option>
 									{/each}
 								</select>
@@ -832,7 +833,7 @@
 								value={getFormValue('paymentMethod')}
 								onchange={(e) => {
 									if ('paymentMethod' in $form) {
-										$form.paymentMethod = e.currentTarget.value as any;
+										$form.paymentMethod = e.currentTarget.value as typeof $form.paymentMethod;
 									}
 									if ('ibanNumber' in $form) {
 										$form.ibanNumber = undefined;
@@ -982,4 +983,3 @@
 		</div>
 	{/if}
 </div>
-

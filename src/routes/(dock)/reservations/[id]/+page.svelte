@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { withSearch } from '#lib/paths.js';
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { invalidateAll, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
@@ -20,7 +22,6 @@
 	import IconSearch from '~icons/fluent/search-24-regular';
 	import IconNote from '~icons/fluent/note-24-regular';
 
-	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import IconTile from '#lib/components/ui/IconTile.svelte';
 	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';
@@ -106,8 +107,11 @@
 			justPaid = true;
 			celebrate();
 			// Drop the flag so a reload or shared link does not celebrate again.
-			const url = new URL(page.url.href);
-			url.searchParams.delete('success');
+			const { success: _, ...search } = Object.fromEntries(page.url.searchParams);
+			const url = withSearch(
+				resolve('/(dock)/reservations/[id]', { id: data.reservation.id }),
+				search
+			);
 			tick().then(() => {
 				try {
 					replaceState(url, page.state);
@@ -208,7 +212,7 @@
 
 <div class="page-narrow space-y-4 {canCollectNow ? 'pb-28 md:pb-10' : ''}">
 	<a
-		href="/reservations"
+		href={resolve('/(dock)/reservations')}
 		class="-ms-2 inline-flex items-center gap-0.5 rounded-full py-1 ps-1 pe-3 text-sm font-bold text-base-content/60 transition-colors hover:bg-base-300/50 hover:text-base-content"
 	>
 		<IconBack class="size-5 rtl:rotate-180" />
@@ -235,8 +239,8 @@
 			<h1 class="mt-4 text-2xl font-extrabold tracking-tight">This is your own invite link</h1>
 			<p class="mt-1 text-base-content/70">
 				{#if data.ownLinkOpened.accepted}
-					A friend accepted it, so they hold the pickup code right now. Take the bag back to
-					collect it yourself — their access ends immediately.
+					A friend accepted it, so they hold the pickup code right now. Take the bag back to collect
+					it yourself — their access ends immediately.
 				{:else}
 					Nobody has accepted it yet. Send it to a friend, or take it back to keep the bag.
 				{/if}
@@ -255,7 +259,12 @@
 					};
 				}}
 			>
-				<Button type="submit" block loading={invitePending === 'cancel'} disabled={invitePending !== null}>
+				<Button
+					type="submit"
+					block
+					loading={invitePending === 'cancel'}
+					disabled={invitePending !== null}
+				>
 					Take it back
 				</Button>
 			</form>
@@ -346,7 +355,7 @@
 					</p>
 				</div>
 				<Button
-					href="/discover"
+					href={resolve('/(dock)/discover')}
 					variant="neutral"
 					outline
 					size="sm"
@@ -413,7 +422,7 @@
 				<div class="min-w-0 flex-1">
 					<h1 class="text-xl leading-tight font-extrabold tracking-tight">{data.offer.name}</h1>
 					<a
-						href="/businesses/{data.business.accountId}"
+						href={resolve('/(dock)/business/[id]', { id: data.business.accountId })}
 						class="mt-0.5 inline-flex max-w-full items-center gap-0.5 text-sm font-bold text-base-content/60 hover:text-primary"
 					>
 						<span class="truncate">{data.business.name}</span>

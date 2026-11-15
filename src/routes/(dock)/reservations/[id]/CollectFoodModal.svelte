@@ -93,8 +93,8 @@
 <Modal bind:open title="Collect your food" position="bottom" size="small" dismissible={!submitting}>
 	<div class="space-y-5">
 		<p class="text-sm text-base-content/70">
-			Show this code to the staff at <strong class="text-base-content">{businessName}</strong>.
-			They scan it and hand you <strong class="text-base-content">{offerName}</strong>.
+			Show this code to the staff at <strong class="text-base-content">{businessName}</strong>. They
+			scan it and hand you <strong class="text-base-content">{offerName}</strong>.
 		</p>
 
 		<div class="rounded-2xl border border-dashed border-base-300 bg-base-200/60 p-4">

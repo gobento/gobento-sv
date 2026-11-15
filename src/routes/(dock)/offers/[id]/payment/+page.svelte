@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { fly, slide } from 'svelte/transition';
@@ -48,7 +49,12 @@
 				window.location.assign(payload.zarinpalPaymentUrl);
 			} else if (payload.paymentMethod === 'tether' && payload.paymentId) {
 				leaving = true;
-				await goto(`/offers/${data.offer.id}/payment/tether/${payload.paymentId}`);
+				await goto(
+					resolve('/(dock)/offers/[id]/payment/tether/[paymentId]', {
+						id: data.offer.id,
+						paymentId: payload.paymentId
+					})
+				);
 			}
 		}
 	});
@@ -109,7 +115,7 @@
 		);
 	});
 	const busy = $derived($submitting || leaving);
-	const offerHref = $derived(`/offers/${data.offer.id}`);
+	const offerHref = $derived(resolve('/(dock)/offers/[id]', { id: data.offer.id }));
 </script>
 
 <svelte:head>
@@ -177,7 +183,7 @@
 				<p class="font-bold">This offer has just sold out</p>
 				<p class="mt-0.5">Someone else was a little faster. There is plenty more to rescue.</p>
 			</Alert>
-			<Button href="/discover" block size="lg">Browse other offers</Button>
+			<Button href={resolve('/(dock)/discover')} block size="lg">Browse other offers</Button>
 		{:else}
 			<section class="space-y-3" aria-labelledby="method-heading">
 				<!-- The standard method from the settings, ready to go. -->
@@ -240,7 +246,10 @@
 								{/if}
 							</button>
 						{/each}
-						<a href="/profile/edit" class="block px-1 pt-1 text-xs font-semibold text-primary">
+						<a
+							href={resolve('/(dock)/profile/edit')}
+							class="block px-1 pt-1 text-xs font-semibold text-primary"
+						>
 							Set your standard method
 						</a>
 					</div>

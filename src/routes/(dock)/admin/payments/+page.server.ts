@@ -6,7 +6,14 @@ import { paymentAttempts, accounts, businessOffers } from '#lib/server/schema.js
 import { alias } from 'drizzle-orm/pg-core';
 import { and, desc, eq, ilike, or, type SQL } from 'drizzle-orm';
 
-const OUTCOMES = ['initiated', 'redirected', 'switched', 'failed', 'cancelled', 'completed'] as const;
+const OUTCOMES = [
+	'initiated',
+	'redirected',
+	'switched',
+	'failed',
+	'cancelled',
+	'completed'
+] as const;
 type Outcome = (typeof OUTCOMES)[number];
 const METHODS = ['iban', 'tether'];
 
@@ -65,4 +72,3 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		truncated: rows.length === 300
 	};
 };
-

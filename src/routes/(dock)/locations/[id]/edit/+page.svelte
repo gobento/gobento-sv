@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/locations/[id]/edit/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import IconArrowLeft from '~icons/fluent/arrow-left-24-regular';
@@ -90,15 +91,6 @@
 		}
 	}
 
-	function markImageForRemoval() {
-		shouldRemoveImage = true;
-		selectedImage = null;
-		if (imagePreviewUrl) {
-			URL.revokeObjectURL(imagePreviewUrl);
-			imagePreviewUrl = null;
-		}
-	}
-
 	function undoRemoval() {
 		shouldRemoveImage = false;
 	}
@@ -116,7 +108,10 @@
 <!-- Header -->
 <div class="mb-12 flex items-center justify-between">
 	<div class="flex items-center gap-5">
-		<a href="/locations/{data.location.id}" class="btn btn-circle btn-ghost">
+		<a
+			href={resolve('/(dock)/locations/[id]', { id: data.location.id })}
+			class="btn btn-circle btn-ghost"
+		>
 			<IconArrowLeft class="h-6 w-6" />
 		</a>
 		<div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
@@ -140,7 +135,7 @@
 			isSaving = false;
 			await update();
 			if (result.type === 'success') {
-				goto(`/locations/${data.location.id}`);
+				goto(resolve('/(dock)/locations/[id]', { id: data.location.id }));
 			}
 		};
 	}}
@@ -366,7 +361,9 @@
 
 		<!-- Actions -->
 		<div class="mt-10 flex justify-end gap-3">
-			<a href="/locations/{data.location.id}" class="btn btn-ghost">Cancel</a>
+			<a href={resolve('/(dock)/locations/[id]', { id: data.location.id })} class="btn btn-ghost"
+				>Cancel</a
+			>
 			<button type="submit" disabled={isSaving} class="btn gap-2.5 btn-primary">
 				{#if isSaving}
 					<span class="loading loading-md loading-spinner"></span>

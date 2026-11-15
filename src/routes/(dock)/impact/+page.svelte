@@ -1,5 +1,6 @@
 <!-- src/routes/(authorized)/impact/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { formatDate } from '#lib/dates.js';
 	import type { PageData } from './$types';
 	import IconLeaf from '~icons/fluent/leaf-three-24-regular';
@@ -120,7 +121,7 @@
 
 <!-- Main Impact Cards -->
 <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-	{#each impactCards as card, i}
+	{#each impactCards as card, i (card.title)}
 		<Reveal delay={i * 90}>
 			<div
 				class="card bg-base-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
@@ -151,7 +152,7 @@
 			Additional Impact
 		</h2>
 		<div class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-3">
-			{#each additionalMetrics as metric}
+			{#each additionalMetrics as metric (metric.label)}
 				<div class="flex items-start gap-4">
 					<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent/10">
 						<metric.icon class="size-6 text-accent" />
@@ -201,7 +202,7 @@
 			Achievements Unlocked
 		</h2>
 		<div class="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-			{#each achievements as badge}
+			{#each achievements as badge (badge.name)}
 				<div
 					class="rounded-xl p-4 text-center transition-all {badge.unlocked
 						? 'border-2 border-warning bg-warning/10'
@@ -224,7 +225,7 @@
 				Recent Rescues
 			</h2>
 			<div class="mt-4 space-y-3">
-				{#each data.recentActivity as activity}
+				{#each data.recentActivity as activity, i (i)}
 					<div class="flex items-center justify-between rounded-lg bg-base-200 p-3">
 						<div class="flex items-center gap-3">
 							<IconFood class="size-5 text-primary" />
@@ -250,7 +251,7 @@
 <!-- Call to Action -->
 <div class="py-8 text-center">
 	<p class="mb-4 opacity-70">Keep up the amazing work!</p>
-	<a href="/offers" class="btn btn-primary">
+	<a href={resolve('/(dock)/offers')} class="btn btn-primary">
 		<IconFood class="size-5" />
 		Find More Offers
 	</a>

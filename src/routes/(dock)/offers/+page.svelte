@@ -1,5 +1,8 @@
 <!-- src/routes/(dock)/offers/+page.svelte -->
 <script lang="ts">
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { withSearch } from '#lib/paths.js';
+	import { resolve } from '$app/paths';
 	import IconTag from '~icons/fluent/tag-24-regular';
 	import IconAdd from '~icons/fluent/add-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
@@ -51,17 +54,17 @@
 
 	// Update a single filter and reflect it in the URL (server re-runs the query)
 	function updateFilter(key: string, value: string) {
-		const params = new URLSearchParams(page.url.search);
+		const params = new SvelteURLSearchParams(page.url.search);
 		if (value === '' || value === 'all' || (key === 'sort' && value === 'newest')) {
 			params.delete(key);
 		} else {
 			params.set(key, value);
 		}
-		goto(`?${params.toString()}`, { replace: true, reset: false });
+		goto(withSearch(resolve('/(dock)/offers'), params), { replace: true, reset: false });
 	}
 
 	function clearFilters() {
-		goto('?', { replace: true, reset: false });
+		goto(resolve('/(dock)/offers'), { replace: true, reset: false });
 	}
 
 	// Delete modal state
@@ -146,7 +149,7 @@
 			<!-- Location -->
 			{#if offer.locationId !== null}
 				<a
-					href="/locations/{offer.locationId}"
+					href={resolve('/(dock)/locations/[id]', { id: offer.locationId })}
 					class="mt-4 flex items-start gap-2 rounded-lg border border-info/20 bg-info/5 px-3 py-2 transition-colors hover:bg-info/10"
 				>
 					<IconLocation class="mt-0.5 size-4 shrink-0 text-info" />
@@ -185,7 +188,10 @@
 
 			<!-- Actions -->
 			<div class="mt-5 flex items-center gap-2 border-t border-base-200 pt-4">
-				<a href="/offers/{offer.id}" class="btn flex-1 gap-1 btn-outline btn-primary btn-sm">
+				<a
+					href={resolve('/(dock)/offers/[id]', { id: offer.id })}
+					class="btn flex-1 gap-1 btn-outline btn-primary btn-sm"
+				>
 					View details
 					<IconArrowRight class="size-4" />
 				</a>
@@ -247,7 +253,7 @@
 				</div>
 			</div>
 			{#if isVerified}
-				<a href="/offers/new" class="btn gap-2 btn-primary">
+				<a href={resolve('/(dock)/offers/new')} class="btn gap-2 btn-primary">
 					<IconAdd class="size-5" />
 					Create Offer
 				</a>
@@ -437,6 +443,3 @@
 		</div>
 	</Modal>
 {/if}
-
-
-

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { onMount, tick } from 'svelte';
 	import { fly, slide } from 'svelte/transition';
 	import { superForm } from 'sveltekit-superforms';
@@ -166,7 +167,7 @@
 	title="Send your payment"
 	description={data.offer.name}
 	width="narrow"
-	backHref="/offers/{data.offer.id}/payment"
+	backHref={resolve('/(dock)/offers/[id]/payment', { id: data.offer.id })}
 	backLabel="Back to checkout"
 >
 	<div class="space-y-5 pb-24 md:pb-0">

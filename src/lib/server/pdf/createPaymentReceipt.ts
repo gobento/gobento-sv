@@ -51,10 +51,10 @@ function money(amount: number, currency: string): string {
 	if (currency === 'IRR') return `${new Intl.NumberFormat('en-US').format(amount)} Toman`;
 	return new Intl.NumberFormat('de-DE', { style: 'currency', currency })
 		.format(amount)
-		.replace(/[  ]/g, ' ');
+		.replace(/[\u00a0\u202f]/g, ' ');
 }
 
-const ARABIC_SCRIPT = /[؀-ۿﭐ-﷿ﹰ-﻿]/;
+const ARABIC_SCRIPT = /[\u0600-\u06ff\ufb50-\ufdff\ufe70-\ufeff]/;
 
 /** Rounded rectangle; (x, top) is the top-left corner in PDF coordinates. */
 function roundedRect(

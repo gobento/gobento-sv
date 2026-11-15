@@ -339,16 +339,19 @@ sw.addEventListener('install', () => {
 // Clean up old caches on activation and control open pages immediately
 sw.addEventListener('activate', (event) => {
 	event.waitUntil(
-		sw.clients.claim().then(() => caches.keys()).then((cacheNames) => {
-			return Promise.all(
-				cacheNames.map((cacheName) => {
-					// Keep current image cache, delete old versions
-					if (cacheName.startsWith('image-cache-') && cacheName !== IMAGE_CACHE_NAME) {
-						return caches.delete(cacheName);
-					}
-				})
-			);
-		})
+		sw.clients
+			.claim()
+			.then(() => caches.keys())
+			.then((cacheNames) => {
+				return Promise.all(
+					cacheNames.map((cacheName) => {
+						// Keep current image cache, delete old versions
+						if (cacheName.startsWith('image-cache-') && cacheName !== IMAGE_CACHE_NAME) {
+							return caches.delete(cacheName);
+						}
+					})
+				);
+			})
 	);
 });
 

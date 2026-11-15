@@ -27,7 +27,9 @@ async function ownGift(charityAccountId: string, giftId: FormDataEntryValue | nu
 	const [gift] = await db
 		.select()
 		.from(recurringGifts)
-		.where(and(eq(recurringGifts.id, giftId), eq(recurringGifts.charityAccountId, charityAccountId)))
+		.where(
+			and(eq(recurringGifts.id, giftId), eq(recurringGifts.charityAccountId, charityAccountId))
+		)
 		.limit(1);
 	return gift ?? null;
 }
@@ -38,7 +40,9 @@ async function ownPickup(charityAccountId: string, requestId: FormDataEntryValue
 	const [pickup] = await db
 		.select()
 		.from(pickupRequests)
-		.where(and(eq(pickupRequests.id, requestId), eq(pickupRequests.charityAccountId, charityAccountId)))
+		.where(
+			and(eq(pickupRequests.id, requestId), eq(pickupRequests.charityAccountId, charityAccountId))
+		)
 		.limit(1);
 	return pickup ?? null;
 }
@@ -152,7 +156,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		regularDonors: new Set(gifts.filter((g) => g.status === 'active').map((g) => g.businessName))
 			.size,
 		businesses: new Set(
-			requests.filter((r) => r.status === 'accepted' || r.status === 'completed').map((r) => r.businessName)
+			requests
+				.filter((r) => r.status === 'accepted' || r.status === 'completed')
+				.map((r) => r.businessName)
 		).size
 	};
 
@@ -170,7 +176,11 @@ export const actions: Actions = {
 		}
 		await db
 			.update(recurringGifts)
-			.set({ status: 'active', respondedAt: new Date(), nextOccurrenceAt: firstOccurrenceFrom(gift) })
+			.set({
+				status: 'active',
+				respondedAt: new Date(),
+				nextOccurrenceAt: firstOccurrenceFrom(gift)
+			})
 			.where(eq(recurringGifts.id, gift.id));
 		await materializeDueGifts({ charityAccountId: account.id });
 

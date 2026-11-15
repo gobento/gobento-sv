@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/locations/[id]/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import IconEdit from '~icons/fluent/edit-24-regular';
 	import IconTag from '~icons/fluent/tag-24-regular';
@@ -84,7 +85,7 @@
 		<div class="absolute top-4 right-4 flex items-center gap-3">
 			{#if data.isOwner}
 				<a
-					href="/locations/{data.location.id}/edit"
+					href={resolve('/(dock)/locations/[id]/edit', { id: data.location.id })}
 					class="btn btn-circle border-0 bg-base-100/90 hover:bg-base-100"
 				>
 					<IconEdit class="size-6" />
@@ -159,7 +160,10 @@
 			<!-- Action Buttons -->
 			{#if data.isOwner}
 				<div class="flex shrink-0 items-center gap-3">
-					<a href="/offers/new?locationId={data.location.id}" class="btn gap-2.5 btn-primary">
+					<a
+						href={resolve(`/(dock)/offers/new?locationId=${data.location.id}`)}
+						class="btn gap-2.5 btn-primary"
+					>
 						<IconAdd class="size-5" />
 						Create Offer
 					</a>
@@ -207,7 +211,10 @@
 					{/if}
 				</p>
 				{#if data.isOwner}
-					<a href="/offers/new?locationId={data.location.id}" class="btn gap-2.5 btn-primary">
+					<a
+						href={resolve(`/(dock)/offers/new?locationId=${data.location.id}`)}
+						class="btn gap-2.5 btn-primary"
+					>
 						<IconAdd class="size-5" />
 						Create First Offer
 					</a>
@@ -226,7 +233,7 @@
 
 {#snippet offerCard(offer: (typeof data.offers)[number])}
 	<a
-		href="/offers/{offer.id}"
+		href={resolve('/(dock)/offers/[id]', { id: offer.id })}
 		class="group flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg {offer.isActive
 			? ''
 			: 'opacity-70'}"
@@ -316,7 +323,6 @@
 {#if data.isUser}
 	<ComplaintModal
 		bind:open={complaintOpen}
-		targetType="location"
 		targetName={data.location.name}
 		location={data.location}
 		result={complaintResult}

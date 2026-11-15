@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import EmojiNotFound from '~icons/fluent-emoji-flat/face-with-monocle';
 	import EmojiForbidden from '~icons/fluent-emoji-flat/locked';
@@ -107,9 +108,9 @@
 		<div class="mt-7 flex animate-rise-in flex-col gap-2.5 stagger" style:--i={3}>
 			{#if config.retry}
 				<Button icon={IconRetry} block onclick={retry}>Try again</Button>
-				<Button href="/" variant="ghost" icon={IconHome} block>Go to start</Button>
+				<Button href={resolve('/(dock)')} variant="ghost" icon={IconHome} block>Go to start</Button>
 			{:else}
-				<Button href="/" icon={IconHome} block>Go to start</Button>
+				<Button href={resolve('/(dock)')} icon={IconHome} block>Go to start</Button>
 				<Button variant="ghost" icon={IconBack} block onclick={goBack}>Go back</Button>
 			{/if}
 			{#if config.support || errorId}

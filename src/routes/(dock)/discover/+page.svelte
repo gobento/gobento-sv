@@ -1,5 +1,7 @@
 <!-- src/routes/(dock)/discover/+page.svelte -->
 <script lang="ts">
+	import { withSearch } from '#lib/paths.js';
+	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
@@ -83,21 +85,23 @@
 		return () => clearInterval(clock);
 	});
 
-	function locationParams(location: UserLocation | null): string {
-		const params = new URLSearchParams();
+	function locationParams(location: UserLocation | null): Record<string, string> {
+		const params: Record<string, string> = {};
 		if (location) {
-			params.set('lat', String(location.lat));
-			params.set('lon', String(location.lon));
+			params.lat = String(location.lat);
+			params.lon = String(location.lon);
 		}
-		const text = params.toString();
-		return text ? `?${text}` : '';
+		return params;
 	}
 
 	function applyLocation(location: UserLocation | null) {
 		userLocation = location;
 		saveLocation(location);
 		// Only the distance ranking needs the server; the page stays put meanwhile.
-		goto(`/discover${locationParams(location)}`, { replace: true, reset: false });
+		goto(withSearch(resolve('/(dock)/discover'), locationParams(location)), {
+			replace: true,
+			reset: false
+		});
 	}
 
 	function toggleType(type: string) {
@@ -179,6 +183,7 @@
 	});
 
 	const places = $derived.by(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local lookup, rebuilt on every run
 		const byId = new Map<
 			string,
 			{
@@ -211,8 +216,7 @@
 		return [...byId.values()];
 	});
 
-	const isFavorite = (id: string) =>
-		favoriteOverrides[id] ?? data.favoriteLocationIds.includes(id);
+	const isFavorite = (id: string) => favoriteOverrides[id] ?? data.favoriteLocationIds.includes(id);
 </script>
 
 <svelte:head>
@@ -228,7 +232,7 @@
 			</h1>
 		</div>
 		<Button
-			href="/map{locationParams(userLocation)}"
+			href={withSearch(resolve('/(dock)/map'), locationParams(userLocation))}
 			variant="plain"
 			shape="circle"
 			class="surface shrink-0 text-primary"
@@ -279,7 +283,9 @@
 		<div class="rail mt-3 gap-2" role="group" aria-label="Filter by category">
 			{#each typeOptions as type (type.value)}
 				{@const active =
-					type.value === ALL_TYPES ? selectedTypes.length === 0 : selectedTypes.includes(type.value)}
+					type.value === ALL_TYPES
+						? selectedTypes.length === 0
+						: selectedTypes.includes(type.value)}
 				<button
 					type="button"
 					aria-pressed={active}
@@ -340,11 +346,11 @@
 				<div class="rail">
 					{#each places as place, index (place.id)}
 						<div
-							class="surface pressable stagger relative w-44 animate-rise-in overflow-hidden hover:border-primary/30"
+							class="surface pressable relative w-44 animate-rise-in overflow-hidden stagger hover:border-primary/30"
 							style:--i={Math.min(index, 8)}
 							animate:flip={{ duration: 300 }}
 						>
-							<a href="/locations/{place.id}" class="block">
+							<a href={resolve('/(dock)/locations/[id]', { id: place.id })} class="block">
 								<div class="aspect-[4/3] bg-base-200">
 									{#if place.imageUrl}
 										<img
@@ -363,7 +369,7 @@
 											alt=""
 											loading="lazy"
 											decoding="async"
-											class="absolute -top-5 start-3 size-9 rounded-xl border-2 border-base-100 bg-base-100 object-cover shadow-soft"
+											class="absolute start-3 -top-5 size-9 rounded-xl border-2 border-base-100 bg-base-100 object-cover shadow-soft"
 										/>
 									{/if}
 									<p class="truncate text-sm font-extrabold">{place.businessName}</p>

@@ -90,8 +90,9 @@
 	<p class="rounded-xl bg-base-200 p-4 text-sm text-base-content/70">{problem}</p>
 {:else}
 	<div class="relative aspect-square w-full overflow-hidden rounded-2xl bg-black">
-		<!-- svelte-ignore a11y_media_has_caption -->
 		<video bind:this={video} class="h-full w-full object-cover" playsinline muted></video>
-		<div class="pointer-events-none absolute inset-[15%] rounded-2xl border-4 border-white/80"></div>
+		<div
+			class="pointer-events-none absolute inset-[15%] rounded-2xl border-4 border-white/80"
+		></div>
 	</div>
 {/if}

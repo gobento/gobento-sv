@@ -32,7 +32,7 @@ export async function sendNotification(topic: string, payload: NotificationPaylo
 
 		if (payload.actions && payload.actions.length > 0) {
 			// Format actions as per ntfy spec: "action=view, label=View, url=..."
-			payload.actions.forEach((action, index) => {
+			payload.actions.forEach((action) => {
 				const actionParts = [`action=${action.action}`, `label=${action.label}`];
 				if (action.url) {
 					actionParts.push(`url=${action.url}`);

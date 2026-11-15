@@ -1,5 +1,8 @@
 <!-- src/routes/(dock)/charities/+page.svelte -->
 <script lang="ts">
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { withSearch } from '#lib/paths.js';
+	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -42,10 +45,10 @@
 	let formError = $state<string | null>(null);
 
 	function applyFilters() {
-		const params = new URLSearchParams();
+		const params = new SvelteURLSearchParams();
 		if (foodType) params.set('foodType', foodType);
 		if (country) params.set('country', country);
-		goto(`/charities${params.toString() ? `?${params.toString()}` : ''}`, { reset: false });
+		goto(withSearch(resolve('/(dock)/charities'), params), { reset: false });
 	}
 
 	function openRequest(charity: PageData['charities'][number]) {
@@ -88,7 +91,9 @@
 	}
 
 	const openGifts = $derived(
-		data.gifts.filter((g) => g.status === 'proposed' || g.status === 'active' || g.status === 'paused')
+		data.gifts.filter(
+			(g) => g.status === 'proposed' || g.status === 'active' || g.status === 'paused'
+		)
 	);
 	const pastGifts = $derived(
 		data.gifts.filter((g) => g.status === 'declined' || g.status === 'ended')
@@ -114,7 +119,7 @@
 			<label class="mb-1 block text-sm font-medium" for="foodType">Food type</label>
 			<select id="foodType" class="select-bordered select" bind:value={foodType}>
 				<option value="">Any food type</option>
-				{#each FOOD_TYPES as type}
+				{#each FOOD_TYPES as type (type)}
 					<option value={type}>{FOOD_TYPE_LABELS[type]}</option>
 				{/each}
 			</select>
@@ -124,7 +129,7 @@
 			<label class="mb-1 block text-sm font-medium" for="country">Country</label>
 			<select id="country" class="select-bordered select" bind:value={country}>
 				<option value="">Any country</option>
-				{#each data.countries as c}
+				{#each data.countries as c (c)}
 					<option value={c}>{c}</option>
 				{/each}
 			</select>
@@ -165,8 +170,11 @@
 		{/if}
 
 		{#if openGifts.length === 0}
-			<div class="rounded-2xl border border-dashed border-base-300 bg-base-100 p-6 text-sm text-base-content/70">
-				You don't give regularly yet. Pick a charity below and choose <strong>Give regularly</strong>
+			<div
+				class="rounded-2xl border border-dashed border-base-300 bg-base-100 p-6 text-sm text-base-content/70"
+			>
+				You don't give regularly yet. Pick a charity below and choose <strong>Give regularly</strong
+				>
 				— for example every Friday after closing.
 			</div>
 		{:else}
@@ -195,7 +203,7 @@
 								<span>{gift.pickups} {gift.pickups === 1 ? 'pickup' : 'pickups'} so far</span>
 							</div>
 							<div class="card-actions justify-end">
-								{#each giftActions(gift.status) as action}
+								{#each giftActions(gift.status) as action (action)}
 									<form
 										method="POST"
 										action="?/{action}"
@@ -220,7 +228,9 @@
 									>
 										<input type="hidden" name="giftId" value={gift.id} />
 										<button
-											class="btn gap-1.5 btn-sm {action === 'endGift' ? 'btn-ghost' : 'btn-outline'}"
+											class="btn gap-1.5 btn-sm {action === 'endGift'
+												? 'btn-ghost'
+												: 'btn-outline'}"
 											disabled={giftActionId === gift.id}
 										>
 											{#if action === 'pauseGift'}
@@ -297,7 +307,7 @@
 
 						{#if charity.foodTypes.length > 0}
 							<div class="flex flex-wrap gap-1.5">
-								{#each charity.foodTypes as type}
+								{#each charity.foodTypes as type (type)}
 									<span class="badge badge-outline badge-sm">{FOOD_TYPE_LABELS[type]}</span>
 								{/each}
 							</div>
@@ -320,7 +330,7 @@
 							{/if}
 							<div class="flex flex-wrap justify-end gap-2">
 								{#if charity.giftStatus}
-									<span class="badge gap-1 badge-sm badge-primary badge-outline">
+									<span class="badge gap-1 badge-outline badge-sm badge-primary">
 										<IconRepeat class="size-3" />
 										{charity.giftStatus === 'proposed' ? 'Regular gift proposed' : 'Regular gift'}
 									</span>
@@ -394,7 +404,7 @@
 							disabled={sending}
 						>
 							<option value="">Unspecified</option>
-							{#each FOOD_TYPES as type}
+							{#each FOOD_TYPES as type (type)}
 								<option value={type}>{FOOD_TYPE_LABELS[type]}</option>
 							{/each}
 						</select>
@@ -410,7 +420,7 @@
 							disabled={sending}
 						>
 							<option value="">No specific location</option>
-							{#each data.locations as loc}
+							{#each data.locations as loc (loc.id)}
 								<option value={loc.id}>{loc.name} — {loc.city}</option>
 							{/each}
 						</select>
@@ -422,7 +432,7 @@
 						<label class="mb-1 block text-sm font-medium" for="req-offer">Offer (optional)</label>
 						<select id="req-offer" name="offerId" class="select-bordered select" disabled={sending}>
 							<option value="">No specific offer</option>
-							{#each availableOffers as offer}
+							{#each availableOffers as offer (offer.id)}
 								<option value={offer.id}>{offer.name}</option>
 							{/each}
 						</select>
@@ -514,7 +524,7 @@
 				<div class="form-control">
 					<span class="mb-1 block text-sm font-medium">How often</span>
 					<div class="join w-full">
-						{#each GIFT_FREQUENCIES as freq}
+						{#each GIFT_FREQUENCIES as freq (freq)}
 							<input
 								class="btn join-item flex-1 btn-sm"
 								type="radio"
@@ -532,8 +542,13 @@
 					{#if giftFrequency === 'monthly'}
 						<div class="form-control">
 							<label class="mb-1 block text-sm font-medium" for="gift-day">Day of month</label>
-							<select id="gift-day" name="dayOfMonth" class="select-bordered select" disabled={giftSending}>
-								{#each Array.from({ length: MAX_DAY_OF_MONTH }, (_, i) => i + 1) as d}
+							<select
+								id="gift-day"
+								name="dayOfMonth"
+								class="select-bordered select"
+								disabled={giftSending}
+							>
+								{#each Array.from({ length: MAX_DAY_OF_MONTH }, (_, i) => i + 1) as d (d)}
 									<option value={d}>{ordinal(d)}</option>
 								{/each}
 							</select>
@@ -548,7 +563,7 @@
 								value={String(new Date().getDay())}
 								disabled={giftSending}
 							>
-								{#each WEEKDAYS as day, i}
+								{#each WEEKDAYS as day, i (day)}
 									<option value={String(i)}>{day}</option>
 								{/each}
 							</select>
@@ -583,19 +598,31 @@
 				<div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
 					<div class="form-control">
 						<label class="mb-1 block text-sm font-medium" for="gift-location">Location</label>
-						<select id="gift-location" name="locationId" class="select-bordered select" disabled={giftSending}>
+						<select
+							id="gift-location"
+							name="locationId"
+							class="select-bordered select"
+							disabled={giftSending}
+						>
 							{#if data.locations.length !== 1}<option value="">No specific location</option>{/if}
-							{#each data.locations as loc}
+							{#each data.locations as loc (loc.id)}
 								<option value={loc.id}>{loc.name} — {loc.city}</option>
 							{/each}
 						</select>
 					</div>
 					<div class="form-control">
 						<label class="mb-1 block text-sm font-medium" for="gift-food">Food type</label>
-						<select id="gift-food" name="foodType" class="select-bordered select" disabled={giftSending}>
+						<select
+							id="gift-food"
+							name="foodType"
+							class="select-bordered select"
+							disabled={giftSending}
+						>
 							<option value="">Mixed</option>
-							{#each FOOD_TYPES as type}
-								<option value={type} selected={giftCharity.foodTypes.length === 1 && giftCharity.foodTypes[0] === type}
+							{#each FOOD_TYPES as type (type)}
+								<option
+									value={type}
+									selected={giftCharity.foodTypes.length === 1 && giftCharity.foodTypes[0] === type}
 									>{FOOD_TYPE_LABELS[type]}</option
 								>
 							{/each}
@@ -616,7 +643,9 @@
 				</div>
 
 				<div class="form-control">
-					<label class="mb-1 block text-sm font-medium" for="gift-message">What you usually have</label>
+					<label class="mb-1 block text-sm font-medium" for="gift-message"
+						>What you usually have</label
+					>
 					<textarea
 						id="gift-message"
 						name="message"
@@ -634,7 +663,12 @@
 				{/if}
 
 				<div class="modal-action">
-					<button type="button" class="btn btn-ghost" onclick={() => (giftCharity = null)} disabled={giftSending}>
+					<button
+						type="button"
+						class="btn btn-ghost"
+						onclick={() => (giftCharity = null)}
+						disabled={giftSending}
+					>
 						Cancel
 					</button>
 					<button type="submit" class="btn gap-2 btn-primary" disabled={giftSending}>

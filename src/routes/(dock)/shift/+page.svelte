@@ -1,5 +1,7 @@
 <!-- src/routes/(dock)/shift/+page.svelte -->
 <script lang="ts">
+	import { withSearch } from '#lib/paths.js';
+	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import { enhance, deserialize } from '$app/forms';
 	import { invalidateAll, goto } from '$app/navigation';
@@ -32,10 +34,8 @@
 
 	// --- Days (grouped by the device's local calendar day) ------------------
 	const startOfDay = (offset: number) => {
-		const d = new Date();
-		d.setHours(0, 0, 0, 0);
-		d.setDate(d.getDate() + offset);
-		return d.getTime();
+		const now = new Date();
+		return new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset).getTime();
 	};
 	let day = $state<0 | 1>(0);
 	const inDay = (value: Date | string | null, offset: number) => {
@@ -44,7 +44,9 @@
 		return t >= startOfDay(offset) && t < startOfDay(offset + 1);
 	};
 
-	const orders = $derived(data.mode === 'business' ? data.orders.filter((o) => inDay(o.pickupFrom, day)) : []);
+	const orders = $derived(
+		data.mode === 'business' ? data.orders.filter((o) => inDay(o.pickupFrom, day)) : []
+	);
 	const gifts = $derived(
 		data.mode === 'business' ? data.charityPickups.filter((p) => inDay(p.from, day)) : []
 	);
@@ -55,7 +57,11 @@
 
 	/** What to pack: still-open orders grouped by offer. */
 	const packing = $derived.by(() => {
-		const byOffer = new Map<string, { name: string; description: string; count: number; first: Date }>();
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local lookup, rebuilt on every run
+		const byOffer = new Map<
+			string,
+			{ name: string; description: string; count: number; first: Date }
+		>();
 		for (const o of orders) {
 			if (o.status !== 'active') continue;
 			const entry = byOffer.get(o.offerId) ?? {
@@ -98,7 +104,11 @@
 			await invalidateAll();
 		} else {
 			const r = outcome.type === 'failure' ? (outcome.data?.redeem as { error?: string }) : null;
-			result = { ok: false, title: 'Do not hand over', detail: r?.error ?? 'Something went wrong.' };
+			result = {
+				ok: false,
+				title: 'Do not hand over',
+				detail: r?.error ?? 'Something went wrong.'
+			};
 			navigator.vibrate?.([200]);
 		}
 	}
@@ -123,7 +133,9 @@
 {#if data.mode === 'business'}
 	<BaseLayout
 		title={data.location.name}
-		description="{data.location.address}, {data.location.city}{data.staffName ? ` · ${data.staffName}` : ''}"
+		description="{data.location.address}, {data.location.city}{data.staffName
+			? ` · ${data.staffName}`
+			: ''}"
 		icon={IconBag}
 	>
 		{#snippet actions()}
@@ -136,7 +148,10 @@
 			<select
 				class="select-bordered select mb-4 w-full sm:w-auto"
 				value={data.location.id}
-				onchange={(e) => goto(`?location=${e.currentTarget.value}`, { replaceState: true })}
+				onchange={(e) =>
+					goto(withSearch(resolve('/(dock)/shift'), { location: e.currentTarget.value }), {
+						replaceState: true
+					})}
 				aria-label="Location"
 			>
 				{#each data.locations as loc (loc.id)}
@@ -147,7 +162,9 @@
 
 		{#if result && !scanning}
 			<div class="mb-4 alert {result.ok ? 'alert-success' : 'alert-error'}">
-				{#if result.ok}<IconCheck class="size-6 shrink-0" />{:else}<IconDismiss class="size-6 shrink-0" />{/if}
+				{#if result.ok}<IconCheck class="size-6 shrink-0" />{:else}<IconDismiss
+						class="size-6 shrink-0"
+					/>{/if}
 				<div>
 					<p class="font-bold">{result.title}</p>
 					{#if result.detail}<p class="text-sm">{result.detail}</p>{/if}
@@ -156,8 +173,8 @@
 			</div>
 		{/if}
 
-		<div role="tablist" class="tabs-box mb-6 tabs w-full sm:w-auto">
-			{#each [0, 1] as const as offset}
+		<div role="tablist" class="tabs tabs-box mb-6 w-full sm:w-auto">
+			{#each [0, 1] as const as offset (offset)}
 				<button
 					role="tab"
 					class="tab flex-1 gap-2 {day === offset ? 'tab-active' : ''}"
@@ -175,14 +192,20 @@
 					<IconBox class="size-5 text-primary" /> To pack
 				</h2>
 				{#if packing.length === 0 && gifts.filter((g) => g.status === 'accepted').length === 0}
-					<p class="rounded-2xl border border-dashed border-base-300 p-5 text-sm text-base-content/60">
+					<p
+						class="rounded-2xl border border-dashed border-base-300 p-5 text-sm text-base-content/60"
+					>
 						Nothing to pack {day === 0 ? 'today' : 'tomorrow'} so far.
 					</p>
 				{:else}
 					<ul class="space-y-2">
 						{#each packing as item (item.name)}
-							<li class="flex items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-3">
-								<span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-2xl font-extrabold text-primary tabular-nums">
+							<li
+								class="flex items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-3"
+							>
+								<span
+									class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-2xl font-extrabold text-primary tabular-nums"
+								>
 									{item.count}
 								</span>
 								<div class="min-w-0">
@@ -193,8 +216,12 @@
 							</li>
 						{/each}
 						{#each gifts.filter((g) => g.status === 'accepted') as gift (gift.id)}
-							<li class="flex items-center gap-3 rounded-2xl border border-secondary/40 bg-base-100 p-3">
-								<span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+							<li
+								class="flex items-center gap-3 rounded-2xl border border-secondary/40 bg-base-100 p-3"
+							>
+								<span
+									class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary"
+								>
 									<IconHeart class="size-6" />
 								</span>
 								<div class="min-w-0">
@@ -202,9 +229,13 @@
 										Donation for {gift.charityName}
 									</p>
 									<p class="line-clamp-2 text-xs text-base-content/60">
-										{gift.foodType && isFoodType(gift.foodType) ? `${FOOD_TYPE_LABELS[gift.foodType]} · ` : ''}{gift.message}
+										{gift.foodType && isFoodType(gift.foodType)
+											? `${FOOD_TYPE_LABELS[gift.foodType]} · `
+											: ''}{gift.message}
 									</p>
-									{#if gift.from}<p class="text-xs text-base-content/60">collected {formatClock(gift.from)}</p>{/if}
+									{#if gift.from}<p class="text-xs text-base-content/60">
+											collected {formatClock(gift.from)}
+										</p>{/if}
 								</div>
 							</li>
 						{/each}
@@ -215,7 +246,9 @@
 			<section class="lg:col-span-3">
 				<h2 class="mb-3 text-lg font-semibold">Orders</h2>
 				{#if orders.length === 0}
-					<p class="rounded-2xl border border-dashed border-base-300 p-5 text-sm text-base-content/60">
+					<p
+						class="rounded-2xl border border-dashed border-base-300 p-5 text-sm text-base-content/60"
+					>
 						No orders {day === 0 ? 'today' : 'tomorrow'} yet.
 					</p>
 				{:else}
@@ -235,7 +268,11 @@
 									{#if order.status === 'active'}
 										<button
 											class="btn gap-1 btn-ghost btn-sm"
-											onclick={() => ((digitsFor = digitsFor === order.id ? null : order.id), (digits = ''), (result = null))}
+											onclick={() => (
+												(digitsFor = digitsFor === order.id ? null : order.id),
+												(digits = ''),
+												(result = null)
+											)}
 										>
 											<IconKeyboard class="size-4" /> Code
 										</button>
@@ -259,7 +296,9 @@
 											placeholder="6 digits from their app"
 											bind:value={digits}
 										/>
-										<button class="btn btn-primary" disabled={digits.length !== 6 || verifying}>Check</button>
+										<button class="btn btn-primary" disabled={digits.length !== 6 || verifying}
+											>Check</button
+										>
 									</form>
 								{/if}
 							</li>
@@ -271,9 +310,13 @@
 					<h2 class="mt-6 mb-3 text-lg font-semibold">Charity pickups</h2>
 					<ul class="space-y-2">
 						{#each gifts as gift (gift.id)}
-							<li class="flex items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-3">
+							<li
+								class="flex items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-3"
+							>
 								<div class="w-24 shrink-0 text-sm font-semibold tabular-nums">
-									{#if gift.from && gift.until}{formatClock(gift.from)}–{formatClock(gift.until)}{/if}
+									{#if gift.from && gift.until}{formatClock(gift.from)}–{formatClock(
+											gift.until
+										)}{/if}
 								</div>
 								<div class="min-w-0 flex-1">
 									<p class="flex items-center gap-1 truncate font-medium">
@@ -283,9 +326,15 @@
 									<p class="truncate text-xs text-base-content/60">{gift.message}</p>
 								</div>
 								{#if gift.status === 'accepted'}
-									<form method="POST" action="?/handOver{page.url.search.replace(/^\?/, '&')}" use:enhance={busy(gift.id)}>
+									<form
+										method="POST"
+										action="?/handOver{page.url.search.replace(/^\?/, '&')}"
+										use:enhance={busy(gift.id)}
+									>
 										<input type="hidden" name="pickupId" value={gift.id} />
-										<button class="btn btn-outline btn-sm" disabled={processingId === gift.id}>Handed over</button>
+										<button class="btn btn-outline btn-sm" disabled={processingId === gift.id}
+											>Handed over</button
+										>
 									</form>
 								{:else}
 									<StatusBadge map={PICKUP_STATUS} status={gift.status} />
@@ -306,8 +355,14 @@
 					<span class="loading loading-sm loading-spinner"></span> Checking…
 				</p>
 			{:else if result}
-				<div class="rounded-2xl p-4 text-center {result.ok ? 'bg-success text-success-content' : 'bg-error text-error-content'}">
-					{#if result.ok}<IconCheck class="mx-auto size-10" />{:else}<IconDismiss class="mx-auto size-10" />{/if}
+				<div
+					class="rounded-2xl p-4 text-center {result.ok
+						? 'bg-success text-success-content'
+						: 'bg-error text-error-content'}"
+				>
+					{#if result.ok}<IconCheck class="mx-auto size-10" />{:else}<IconDismiss
+							class="mx-auto size-10"
+						/>{/if}
 					<p class="mt-1 text-lg font-extrabold">{result.title}</p>
 					{#if result.detail}<p class="text-sm">{result.detail}</p>{/if}
 				</div>
@@ -322,7 +377,9 @@
 {:else}
 	<BaseLayout
 		title="Pickups"
-		description="{data.organisation}{data.staffName ? ` · ${data.staffName}` : ''} — food to collect this week"
+		description="{data.organisation}{data.staffName
+			? ` · ${data.staffName}`
+			: ''} — food to collect this week"
 		icon={IconHeart}
 	>
 		{#if data.pickups.length === 0}
@@ -337,7 +394,9 @@
 							<div class="flex items-start justify-between gap-3">
 								<div class="min-w-0">
 									<p class="font-semibold">
-										{pickup.from && pickup.until ? formatPickupWindow(pickup.from, pickup.until) : 'Time to be agreed'}
+										{pickup.from && pickup.until
+											? formatPickupWindow(pickup.from, pickup.until)
+											: 'Time to be agreed'}
 									</p>
 									<p class="flex items-center gap-1 text-sm text-base-content/70">
 										{#if pickup.recurring}<IconRepeat class="size-4 text-primary" />{/if}
@@ -346,14 +405,17 @@
 								</div>
 								<form method="POST" action="?/markCollected" use:enhance={busy(pickup.id)}>
 									<input type="hidden" name="pickupId" value={pickup.id} />
-									<button class="btn gap-1 btn-success btn-sm" disabled={processingId === pickup.id}>
+									<button
+										class="btn gap-1 btn-sm btn-success"
+										disabled={processingId === pickup.id}
+									>
 										<IconCheck class="size-4" /> Collected
 									</button>
 								</form>
 							</div>
 							{#if pickup.address}
 								<a
-									class="flex items-center gap-1.5 text-sm link"
+									class="flex link items-center gap-1.5 text-sm"
 									target="_blank"
 									rel="noopener"
 									href="https://www.openstreetmap.org/?mlat={pickup.latitude}&mlon={pickup.longitude}#map=18/{pickup.latitude}/{pickup.longitude}"
@@ -362,13 +424,19 @@
 								</a>
 							{/if}
 							<p class="text-sm text-base-content/70">
-								{pickup.foodType && isFoodType(pickup.foodType) ? `${FOOD_TYPE_LABELS[pickup.foodType]} · ` : ''}{pickup.message}
+								{pickup.foodType && isFoodType(pickup.foodType)
+									? `${FOOD_TYPE_LABELS[pickup.foodType]} · `
+									: ''}{pickup.message}
 							</p>
 							{#if pickup.reservationId && pickup.claimToken && pickup.reservationStatus === 'active'}
 								<details class="rounded-xl bg-base-200/60 p-3">
 									<summary class="cursor-pointer text-sm font-semibold">Show pickup code</summary>
 									<div class="mt-3">
-										<PickupQr reservationId={pickup.reservationId} claimToken={pickup.claimToken} serverNow={data.serverNow} />
+										<PickupQr
+											reservationId={pickup.reservationId}
+											claimToken={pickup.claimToken}
+											serverNow={data.serverNow}
+										/>
 									</div>
 								</details>
 							{/if}

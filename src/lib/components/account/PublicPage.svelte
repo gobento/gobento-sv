@@ -1,5 +1,6 @@
 <!-- Shared frame for the signed-out pages (about, contact, legal). -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { Snippet } from 'svelte';
 	import BentoBox from '~icons/fluent-emoji-flat/bento-box';
 	import IconBack from '~icons/fluent/chevron-left-24-regular';
@@ -30,14 +31,17 @@
 <div class="flex min-h-[calc(100dvh-3rem)] flex-col sm:min-h-[calc(100dvh-4rem)]">
 	<nav class="flex items-center justify-between gap-3" aria-label="Site">
 		<a
-			href="/"
+			href={resolve('/(dock)')}
 			onclick={goBack}
 			class="-ms-2 inline-flex min-h-11 items-center gap-0.5 rounded-full ps-1 pe-3 text-sm font-bold text-base-content/60 transition-colors hover:bg-base-300/50 hover:text-base-content"
 		>
 			<IconBack class="size-5 rtl:rotate-180" />
 			Back
 		</a>
-		<a href="/" class="inline-flex min-h-11 items-center gap-2 font-extrabold tracking-tight">
+		<a
+			href={resolve('/(dock)')}
+			class="inline-flex min-h-11 items-center gap-2 font-extrabold tracking-tight"
+		>
 			<BentoBox class="size-7" />
 			GoBento
 		</a>
@@ -66,10 +70,10 @@
 	<footer
 		class="mt-10 flex flex-wrap gap-x-5 gap-y-2 border-t border-base-300/70 pt-4 text-sm font-semibold text-base-content/60"
 	>
-		<a class="hover:text-base-content" href="/about">About</a>
-		<a class="hover:text-base-content" href="/contact">Contact</a>
-		<a class="hover:text-base-content" href="/terms-of-service">Terms</a>
-		<a class="hover:text-base-content" href="/privacy-policy">Privacy</a>
+		<a class="hover:text-base-content" href={resolve('/(public)/about')}>About</a>
+		<a class="hover:text-base-content" href={resolve('/(public)/contact')}>Contact</a>
+		<a class="hover:text-base-content" href={resolve('/(public)/terms-of-service')}>Terms</a>
+		<a class="hover:text-base-content" href={resolve('/(public)/privacy-policy')}>Privacy</a>
 	</footer>
 </div>
 

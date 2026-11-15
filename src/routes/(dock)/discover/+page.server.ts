@@ -113,9 +113,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		if (row.locationImageKey) keys.add(row.locationImageKey);
 	}
 	const signed = new Map(
-		await Promise.all(
-			[...keys].map(async (key) => [key, await getSignedDownloadUrl(key)] as const)
-		)
+		await Promise.all([...keys].map(async (key) => [key, await getSignedDownloadUrl(key)] as const))
 	);
 	const urlFor = (key: string | null) => (key ? (signed.get(key) ?? null) : null);
 

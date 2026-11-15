@@ -49,7 +49,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	// The sender can always open their own link (and take the bag back there).
 	if (row.ownerAccountId === account.id) redirect(303, withToken);
 	// Whoever accepted it keeps access through the same link.
-	if (row.status === 'accepted' && row.invitedAccountId === account.id) redirect(303, reservationUrl);
+	if (row.status === 'accepted' && row.invitedAccountId === account.id)
+		redirect(303, reservationUrl);
 
 	const details = {
 		offerName: row.offerName,

@@ -29,10 +29,11 @@
 
 <header class="mb-6 animate-rise-in {className}">
 	{#if backHref}
+		<!-- eslint-disable svelte/no-navigation-without-resolve -- callers pass resolved or external URLs -->
 		<a
 			href={backHref}
 			class="-ms-2 mb-2 inline-flex items-center gap-0.5 rounded-full py-1 ps-1 pe-3 text-sm font-bold text-base-content/60 transition-colors hover:bg-base-300/50 hover:text-base-content"
-		>
+			><!-- eslint-enable svelte/no-navigation-without-resolve -->
 			<IconBack class="size-5 rtl:rotate-180" />
 			{backLabel}
 		</a>

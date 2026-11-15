@@ -319,16 +319,15 @@ export const actions: Actions = {
 		const inviteToken = randomBytes(32).toString('hex');
 		const expiresAt = new Date(reservation.pickupUntil);
 
-		await db.insert(reservationInvites)
-			.values({
-				id: crypto.randomUUID(),
-				reservationId,
-				invitedByAccountId: session.accountId,
-				invitedAccountId: null, // Will be set when someone accepts
-				inviteToken,
-				status: 'pending',
-				expiresAt
-			});
+		await db.insert(reservationInvites).values({
+			id: crypto.randomUUID(),
+			reservationId,
+			invitedByAccountId: session.accountId,
+			invitedAccountId: null, // Will be set when someone accepts
+			inviteToken,
+			status: 'pending',
+			expiresAt
+		});
 
 		const origin = url.origin;
 		const inviteLink = `${origin}/reservations/${reservationId}?invite=${inviteToken}`;

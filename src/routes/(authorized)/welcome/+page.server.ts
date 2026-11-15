@@ -1,5 +1,5 @@
 // src/routes/welcome/+page.server.ts
-import { fail, redirect } from '@sveltejs/kit';
+import { fail, isHttpError, isRedirect, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
@@ -285,7 +285,7 @@ export const actions = {
 			}
 		} catch (error) {
 			// SvelteKit redirects throw an error - we need to re-throw them
-			if (error instanceof Response || (error as any)?.status) {
+			if (error instanceof Response || isRedirect(error) || isHttpError(error)) {
 				throw error;
 			}
 

@@ -107,7 +107,7 @@
 					<p class="mt-0.5 text-sm text-base-content/70">
 						Install it to open GoBento like an app, right from your home screen.
 					</p>
-					<button type="button" class="btn mt-3 btn-sm btn-primary" onclick={install}>
+					<button type="button" class="btn mt-3 btn-primary btn-sm" onclick={install}>
 						<IconDownload class="size-4" />
 						Install
 					</button>

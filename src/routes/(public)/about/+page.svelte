@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import PublicPage from '#lib/components/account/PublicPage.svelte';
 	import Seo from '#lib/components/Seo.svelte';
 	import BentoBox from '~icons/fluent-emoji-flat/bento-box';
@@ -32,9 +33,9 @@
 	];
 
 	const links = [
-		{ href: '/terms-of-service', label: 'Terms of service', icon: IconBook },
-		{ href: '/privacy-policy', label: 'Privacy policy', icon: IconShield },
-		{ href: '/contact', label: 'Contact us', icon: IconMail }
+		{ href: resolve('/(public)/terms-of-service'), label: 'Terms of service', icon: IconBook },
+		{ href: resolve('/(public)/privacy-policy'), label: 'Privacy policy', icon: IconShield },
+		{ href: resolve('/(public)/contact'), label: 'Contact us', icon: IconMail }
 	];
 </script>
 
@@ -59,7 +60,7 @@
 			<ol class="surface divide-y divide-base-300/70">
 				{#each steps as step, i (step.title)}
 					{@const Icon = step.icon}
-					<li class="stagger flex animate-rise-in items-start gap-3.5 p-4" style:--i={i}>
+					<li class="flex animate-rise-in items-start gap-3.5 p-4 stagger" style:--i={i}>
 						<span class="flex size-10 shrink-0 items-center justify-center rounded-xl {step.tone}">
 							<Icon class="size-5" />
 						</span>

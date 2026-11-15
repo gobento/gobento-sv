@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/admin/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import DailyBars from '#lib/components/admin/DailyBars.svelte';
 	import IconLeaf from '~icons/fluent/leaf-two-24-regular';
@@ -106,7 +107,9 @@
 		/>
 	</div>
 	<p class="-mt-4 mb-8 text-sm">
-		<a href="/admin/telemetry" class="link link-primary">Response times, errors and page speed →</a>
+		<a href={resolve('/(dock)/admin/telemetry')} class="link link-primary"
+			>Response times, errors and page speed →</a
+		>
 	</p>
 
 	<!-- Active users -->
@@ -272,7 +275,7 @@
 		<div class="card-body">
 			<p class="text-sm text-base-content/60">
 				{data.attempts.total} logged attempts across every payment option tried.
-				<a href="/admin/payments" class="link link-primary">View full log →</a>
+				<a href={resolve('/(dock)/admin/payments')} class="link link-primary">View full log →</a>
 			</p>
 			<div class="mt-2 flex flex-wrap gap-2">
 				{#each data.attempts.byOutcome as row (row.outcome)}

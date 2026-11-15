@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import PublicPage from '#lib/components/account/PublicPage.svelte';
 	import Seo from '#lib/components/Seo.svelte';
 </script>
@@ -68,8 +69,8 @@
 	<h2>7. Problems and complaints</h2>
 	<p>
 		If something is wrong with an order, report it from the reservation in the app or through our
-		<a href="/contact">contact page</a>. We look into every report and may refund a payment or act
-		against an account where that is justified.
+		<a href={resolve('/(public)/contact')}>contact page</a>. We look into every report and may
+		refund a payment or act against an account where that is justified.
 	</p>
 
 	<h2>8. Liability</h2>
@@ -93,7 +94,9 @@
 
 	<h2>11. Contact</h2>
 	<p>
-		Questions about these terms? Reach us through the <a href="/contact">contact page</a>. How we
-		handle personal data is described in the <a href="/privacy-policy">privacy policy</a>.
+		Questions about these terms? Reach us through the <a href={resolve('/(public)/contact')}
+			>contact page</a
+		>. How we handle personal data is described in the
+		<a href={resolve('/(public)/privacy-policy')}>privacy policy</a>.
 	</p>
 </PublicPage>

@@ -14,24 +14,20 @@
 	description="Effective 19 July 2025 · Last updated 19 July 2025"
 	prose
 >
-	
-
 	<h2>1. Introduction</h2>
 	<p>
 		We at <strong>Militaernews</strong> (“we”, “us”, or “our”) are committed to protecting your
 		privacy. This Privacy Policy explains how we collect, use, and safeguard your personal data when
 		you visit our website
-		<a href="https://gobento-sv.vercel.app/">https://gobento-sv.vercel.app/</a
-		> (the “Site”), in accordance with the General Data Protection Regulation (EU) 2016/679 (“GDPR”).
+		<a href="https://gobento-sv.vercel.app/">https://gobento-sv.vercel.app/</a> (the “Site”), in accordance
+		with the General Data Protection Regulation (EU) 2016/679 (“GDPR”).
 	</p>
 
 	<h2>2. Data Controller</h2>
 	<p>The data controller responsible for your personal data is:</p>
 	<p>
 		<strong>Militaernews</strong><br />
-		<a href="https://t.me/MilitaernewsKontakt"
-			>https://t.me/MilitaernewsKontakt</a
-		>
+		<a href="https://t.me/MilitaernewsKontakt">https://t.me/MilitaernewsKontakt</a>
 	</p>
 
 	<h2>3. What Personal Data We Collect</h2>
@@ -87,9 +83,7 @@
 	</ul>
 	<p>
 		To exercise any of these rights, contact us at:
-		<a href="https://t.me/MilitaernewsKontakt"
-			>https://t.me/MilitaernewsKontakt</a
-		>
+		<a href="https://t.me/MilitaernewsKontakt">https://t.me/MilitaernewsKontakt</a>
 	</p>
 
 	<h2>8. Data Retention</h2>
@@ -117,9 +111,7 @@
 	</p>
 	<p>
 		<strong>Data Protection Officer (DPO)</strong> (if applicable):<br />
-		<a href="https://t.me/MilitaernewsKontakt"
-			>https://t.me/MilitaernewsKontakt</a
-		>
+		<a href="https://t.me/MilitaernewsKontakt">https://t.me/MilitaernewsKontakt</a>
 	</p>
 
 	<h2>12. Complaints</h2>

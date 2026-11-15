@@ -1,3 +1,4 @@
+import { SvelteMap } from 'svelte/reactivity';
 // src/lib/components/ui/toast.svelte.ts
 /**
  * App-wide toast queue. Call `toast.success('Saved')` from anywhere on the
@@ -16,7 +17,7 @@ const MAX_VISIBLE = 3;
 
 let nextId = 1;
 let items = $state<ToastItem[]>([]);
-const timers = new Map<number, ReturnType<typeof setTimeout>>();
+const timers = new SvelteMap<number, ReturnType<typeof setTimeout>>();
 
 function dismiss(id: number) {
 	clearTimeout(timers.get(id));

@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/profile/edit/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -45,32 +46,18 @@
 	let editDescription = $state(orgProfile?.description || '');
 
 	// Payment fields
-	let ibanEnabled = $state(
-		payment?.ibanEnabled || false
-	);
-	let tetherEnabled = $state(
-		payment?.tetherEnabled || false
-	);
-	let ibanNumber = $state(
-		payment?.ibanNumber || ''
-	);
-	let tetherAddress = $state(
-		payment?.tetherAddress || ''
-	);
-	let preferredPaymentMethod = $state<'iban' | 'tether'>(
-		payment?.preferredPaymentMethod || 'iban'
-	);
+	let ibanEnabled = $state(payment?.ibanEnabled || false);
+	let tetherEnabled = $state(payment?.tetherEnabled || false);
+	let ibanNumber = $state(payment?.ibanNumber || '');
+	let tetherAddress = $state(payment?.tetherAddress || '');
+	let preferredPaymentMethod = $state<'iban' | 'tether'>(payment?.preferredPaymentMethod || 'iban');
 
 	// Confirmation state of the currently stored payment methods. A test payment
 	// runs on save whenever an enabled method is unconfirmed or its details change.
-	const initialIbanConfirmed =
-		payment?.ibanConfirmed || false;
-	const initialTetherConfirmed =
-		payment?.tetherConfirmed || false;
-	const initialIbanNumber =
-		payment?.ibanNumber || '';
-	const initialTetherAddress =
-		payment?.tetherAddress || '';
+	const initialIbanConfirmed = payment?.ibanConfirmed || false;
+	const initialTetherConfirmed = payment?.tetherConfirmed || false;
+	const initialIbanNumber = payment?.ibanNumber || '';
+	const initialTetherAddress = payment?.tetherAddress || '';
 
 	const ibanNeedsTest = $derived(
 		ibanEnabled &&
@@ -227,7 +214,7 @@
 				saving = false;
 				if (result.type === 'success') {
 					await update();
-					goto('/profile');
+					goto(resolve('/(dock)/profile'));
 				} else if (result.type === 'failure' && result.data) {
 					const errorData = result.data as { error?: string };
 					formError = errorData.error || 'Failed to update profile';
@@ -386,7 +373,7 @@
 					</div>
 
 					<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-						{#each FOOD_TYPES as type}
+						{#each FOOD_TYPES as type (type)}
 							<label
 								class="flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-colors {selectedFoodTypes.includes(
 									type
@@ -417,7 +404,7 @@
 				</div>
 			</div>
 
-			{#each selectedFoodTypes as type}
+			{#each selectedFoodTypes as type (type)}
 				<input type="hidden" name="foodTypes" value={type} />
 			{/each}
 		{/if}
@@ -667,7 +654,11 @@
 			class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100/95 p-4 backdrop-blur md:ps-58"
 		>
 			<div class="mx-auto flex max-w-2xl gap-3">
-				<a href="/profile" class="btn flex-1 btn-ghost" class:btn-disabled={saving}>Cancel</a>
+				<a
+					href={resolve('/(dock)/profile')}
+					class="btn flex-1 btn-ghost"
+					class:btn-disabled={saving}>Cancel</a
+				>
 				<button
 					type="submit"
 					class="btn flex-[2] gap-2 btn-primary"
@@ -685,4 +676,3 @@
 		</div>
 	</form>
 </BaseLayout>
-

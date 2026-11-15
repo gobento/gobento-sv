@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/transactions/+page.svelte -->
 <script lang="ts">
+	import { SvelteSet } from 'svelte/reactivity';
 	import { formatDate, formatDateTime, formatMonthYear } from '#lib/dates.js';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
@@ -44,16 +45,14 @@
 			: { class: 'badge-accent', text: 'USDT' };
 	}
 
-	let expandedSettlements = $state<Set<string>>(new Set());
+	const expandedSettlements = new SvelteSet<string>();
 
 	function toggleSettlement(id: string) {
-		const newExpanded = new Set(expandedSettlements);
-		if (newExpanded.has(id)) {
-			newExpanded.delete(id);
+		if (expandedSettlements.has(id)) {
+			expandedSettlements.delete(id);
 		} else {
-			newExpanded.add(id);
+			expandedSettlements.add(id);
 		}
-		expandedSettlements = newExpanded;
 	}
 </script>
 
@@ -125,7 +124,7 @@
 				<span>No settlements yet. Settlements are generated monthly for completed payments.</span>
 			</div>
 		{:else}
-			{#each data.settlements as settlement}
+			{#each data.settlements as settlement (settlement.id)}
 				{@const statusBadge = getStatusBadge(settlement.status)}
 				{@const isExpanded = expandedSettlements.has(settlement.id)}
 
@@ -255,7 +254,7 @@
 										</tr>
 									</thead>
 									<tbody>
-										{#each settlement.payments as payment}
+										{#each settlement.payments as payment (payment.id)}
 											{@const methodBadge = getPaymentMethodBadge(payment.paymentMethod)}
 											<tr>
 												<td class="font-mono text-xs">

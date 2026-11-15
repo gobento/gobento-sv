@@ -22,13 +22,11 @@
 
 	let {
 		open = $bindable(false),
-		targetType,
 		targetName,
 		location = null,
 		result = null
 	}: {
 		open: boolean;
-		targetType: 'offer' | 'location';
 		targetName: string;
 		location?: LocationContext | null;
 		result?: { success?: boolean; error?: string } | null;
@@ -101,7 +99,7 @@
 					required
 					class="select-bordered select w-full"
 				>
-					{#each COMPLAINT_CATEGORIES as category}
+					{#each COMPLAINT_CATEGORIES as category (category)}
 						<option value={category}>{COMPLAINT_CATEGORY_LABELS[category]}</option>
 					{/each}
 				</select>

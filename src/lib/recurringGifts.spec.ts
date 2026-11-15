@@ -17,7 +17,8 @@ const base: GiftSchedule = {
 	startsOn: '2026-11-01'
 };
 
-const day = (iso: string) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000;
+const day = (iso: string) =>
+	Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000;
 
 describe('zonedToUtc', () => {
 	it('honours daylight saving time', () => {
@@ -49,7 +50,10 @@ describe('nextOccurrence', () => {
 	});
 
 	it('never starts before startsOn', () => {
-		const next = nextOccurrence({ ...base, startsOn: '2026-12-01' }, new Date('2026-11-15T00:00Z'))!;
+		const next = nextOccurrence(
+			{ ...base, startsOn: '2026-12-01' },
+			new Date('2026-11-15T00:00Z')
+		)!;
 		expect(next.from.toISOString()).toBe('2026-12-01T17:00:00.000Z');
 	});
 
@@ -79,8 +83,8 @@ describe('validateSchedule', () => {
 describe('describeSchedule', () => {
 	it('reads naturally', () => {
 		expect(describeSchedule(base)).toBe('Every Tuesday, 18:00–19:00');
-		expect(describeSchedule({ ...base, frequency: 'monthly', dayOfMonth: 3, timeFrom: '09:00:00' })).toBe(
-			'Monthly on the 3rd, 09:00–19:00'
-		);
+		expect(
+			describeSchedule({ ...base, frequency: 'monthly', dayOfMonth: 3, timeFrom: '09:00:00' })
+		).toBe('Monthly on the 3rd, 09:00–19:00');
 	});
 });

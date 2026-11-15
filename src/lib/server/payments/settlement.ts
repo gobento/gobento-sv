@@ -6,8 +6,10 @@ import {
 	monthlySettlements,
 	settlementPayments
 } from '#lib/server/schema.js';
-import { eq, and, gte, lt, isNull } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { TetherService } from './tether';
+
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 import { ZarinpalService } from './zarinpal';
 
 export class SettlementService {
@@ -49,12 +51,6 @@ export class SettlementService {
 
 			// Create if doesn't exist
 			if (!settlement) {
-				const [wallet] = await tx
-					.select()
-					.from(businessWallets)
-					.where(eq(businessWallets.accountId, payment.businessAccountId))
-					.limit(1);
-
 				[settlement] = await tx
 					.insert(monthlySettlements)
 					.values({
@@ -205,8 +201,8 @@ export class SettlementService {
 
 			let ibanSuccess = true;
 			let tetherSuccess = true;
-			let ibanError: string | null = null;
-			let tetherError: string | null = null;
+			let ibanError: string;
+			let tetherError: string;
 
 			// Process IBAN payout if applicable
 			if (settlement.ibanTotalAmount > 0 && wallet.ibanEnabled && wallet.ibanNumber) {
@@ -326,7 +322,7 @@ export class SettlementService {
 	 * Update payout status for payments in a settlement
 	 */
 	private static async updatePaymentPayoutStatus(
-		tx: any,
+		tx: Transaction,
 		settlementId: string,
 		paymentMethod: 'iban' | 'tether' | null,
 		status: 'paid_out' | 'payout_failed'
@@ -359,28 +355,25 @@ export class SettlementService {
 		businessAccountId: string,
 		month?: string,
 		year?: number
-	): Promise<any> {
-		let query = null;
-
-		if (month && year) {
-			db.select()
-				.from(monthlySettlements)
-				.where(eq(monthlySettlements.businessAccountId, businessAccountId));
-			and(eq(monthlySettlements.month, month), eq(monthlySettlements.year, year));
-		} else {
-			query = db
-				.select()
-				.from(monthlySettlements)
-				.where(eq(monthlySettlements.businessAccountId, businessAccountId));
-		}
-
-		return await query;
+	) {
+		return db
+			.select()
+			.from(monthlySettlements)
+			.where(
+				month && year
+					? and(
+							eq(monthlySettlements.businessAccountId, businessAccountId),
+							eq(monthlySettlements.month, month),
+							eq(monthlySettlements.year, year)
+						)
+					: eq(monthlySettlements.businessAccountId, businessAccountId)
+			);
 	}
 
 	/**
 	 * Get payments in a settlement
 	 */
-	static async getSettlementPayments(settlementId: string): Promise<any> {
+	static async getSettlementPayments(settlementId: string) {
 		return await db
 			.select({
 				payment: payments,

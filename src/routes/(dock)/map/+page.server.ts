@@ -22,7 +22,12 @@ export const load: PageServerLoad = async ({ url }) => {
 
 	const conditions = [eq(businessOffers.isActive, true)];
 	if (selectedTypes.length > 0 && !selectedTypes.includes('all')) {
-		conditions.push(inArray(businessProfiles.businessType, selectedTypes as any[]));
+		conditions.push(
+			inArray(
+				businessProfiles.businessType,
+				selectedTypes as (typeof businessProfiles.businessType.enumValues)[number][]
+			)
+		);
 	}
 
 	const offersData = await db
@@ -109,4 +114,3 @@ export const load: PageServerLoad = async ({ url }) => {
 		feePercentage: parseFloat(FEE_PERCENTAGE)
 	};
 };
-

@@ -50,14 +50,21 @@
 	{#if failed}
 		<p class="text-sm text-error">Couldn't create a pickup code on this device.</p>
 	{:else}
-		<div class="pickup-qr w-52 overflow-hidden rounded-2xl bg-white p-2 shadow-sm" aria-label="Pickup QR code">
+		<div
+			class="pickup-qr w-52 overflow-hidden rounded-2xl bg-white p-2 shadow-sm"
+			aria-label="Pickup QR code"
+		>
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -- SVG generated locally by uqr from our own code -->
 			{@html svg}
 		</div>
 		<p class="font-mono text-2xl font-bold tracking-[0.3em] tabular-nums" dir="ltr">
 			{digits.slice(0, 3)}&nbsp;{digits.slice(3)}
 		</p>
 		<div class="h-1 w-40 overflow-hidden rounded-full bg-base-300" aria-hidden="true">
-			<div class="h-full bg-primary transition-all duration-1000 ease-linear" style="width: {(left / REFRESH_S) * 100}%"></div>
+			<div
+				class="h-full bg-primary transition-all duration-1000 ease-linear"
+				style="width: {(left / REFRESH_S) * 100}%"
+			></div>
 		</div>
 		<p class="text-xs text-base-content/60">Live code — screenshots stop working after a minute.</p>
 	{/if}

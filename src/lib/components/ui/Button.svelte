@@ -120,13 +120,14 @@
 {/snippet}
 
 {#if href}
+	<!-- eslint-disable svelte/no-navigation-without-resolve -- callers pass resolved or external URLs -->
 	<a
 		href={isDisabled ? undefined : href}
 		class={classes}
 		class:btn-disabled={isDisabled}
 		aria-disabled={isDisabled || undefined}
 		{...rest}
-	>
+		><!-- eslint-enable svelte/no-navigation-without-resolve -->
 		{@render content()}
 	</a>
 {:else}

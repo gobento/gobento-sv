@@ -1,7 +1,6 @@
 <!-- src/lib/components/CountrySelect.svelte -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import IconChevronDown from '~icons/fluent/chevron-down-24-regular';
 	import type { Component } from 'svelte';
 
 	interface Country {
@@ -109,7 +108,7 @@
 			class="absolute z-50 mt-2 max-h-60 w-full overflow-auto rounded-box border border-base-300 bg-base-100 shadow-lg"
 		>
 			<ul class="menu p-2">
-				{#each countries as country}
+				{#each countries as country (country.code)}
 					<li>
 						<button
 							type="button"

@@ -1,5 +1,8 @@
 <!-- src/routes/(dock)/favorites/+page.svelte -->
 <script lang="ts">
+	import { SvelteSet } from 'svelte/reactivity';
+	import type { SubmitFunction } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import { formatDate } from '#lib/dates.js';
 	import { enhance } from '$app/forms';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
@@ -19,21 +22,18 @@
 	let { data } = $props();
 
 	// Track which locations are being removed
-	let removingIds = $state(new Set<string>());
+	const removingIds = new SvelteSet<string>();
 
-	const handleRemove = (locationId: string) => {
-		return ({ update, result }: any) => {
+	const handleRemove =
+		(locationId: string): SubmitFunction =>
+		() => {
 			removingIds.add(locationId);
-			return async () => {
+			return async ({ update, result }) => {
 				await update();
-				if (result.type === 'success') {
-					// Keep in removing state - the page will reload
-				} else {
-					removingIds.delete(locationId);
-				}
+				// On success the favorite disappears with the reload; otherwise show it again.
+				if (result.type !== 'success') removingIds.delete(locationId);
 			};
 		};
-	};
 
 	const description = $derived(
 		`${data.favorites.length} ${data.favorites.length === 1 ? 'location' : 'locations'} saved`
@@ -60,7 +60,7 @@
 			{#each data.favorites as favorite (favorite.locationId)}
 				{@const isRemoving = removingIds.has(favorite.locationId)}
 				<a
-					href="/locations/{favorite.locationId}"
+					href={resolve('/(dock)/locations/[id]', { id: favorite.locationId })}
 					class="group hover: card relative overflow-hidden bg-base-100 transition-all duration-200 hover:border-primary/50"
 					class:opacity-50={isRemoving}
 					class:pointer-events-none={isRemoving}

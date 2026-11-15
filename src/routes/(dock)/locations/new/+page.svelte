@@ -1,11 +1,12 @@
 <!-- src/routes/(dock)/locations/new/+page.svelte -->
 <script lang="ts">
+	import type { GeocodeResult } from '#lib/components/maps/userLocation.js';
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconSave from '~icons/fluent/save-24-regular';
 	import IconMap from '~icons/fluent/map-24-regular';
 	import IconSearch from '~icons/fluent/search-24-regular';
-	import IconImage from '~icons/fluent/image-24-regular';
 	import IconCamera from '~icons/fluent/camera-24-regular';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import { page } from '$app/state';
@@ -14,9 +15,9 @@
 	let form = page.form;
 	let isSubmitting = $state(false);
 	let searchQuery = $state('');
-	let searchResults = $state<any[]>([]);
+	let searchResults = $state<GeocodeResult[]>([]);
 	let isSearching = $state(false);
-	let selectedLocation = $state<any>(null);
+	let selectedLocation = $state<GeocodeResult | null>(null);
 
 	// Image upload state
 	let selectedImage = $state<File | null>(null);
@@ -48,7 +49,7 @@
 		}
 	}
 
-	function selectLocation(result: any) {
+	function selectLocation(result: GeocodeResult) {
 		selectedLocation = result;
 
 		const nameInput = document.querySelector<HTMLInputElement>('input[name="name"]');
@@ -239,7 +240,7 @@
 			{#if searchResults.length > 0}
 				<div class="divider my-4"></div>
 				<div class="max-h-80 space-y-3 overflow-y-auto">
-					{#each searchResults as result}
+					{#each searchResults as result (result.place_id)}
 						<button
 							onclick={() => selectLocation(result)}
 							class="w-full rounded-xl border-2 border-base-300 bg-base-100 p-4 text-left transition-all duration-200 hover:border-primary hover:bg-base-200"
@@ -514,7 +515,7 @@
 
 			<!-- Actions -->
 			<div class="mt-10 flex justify-end gap-3">
-				<a href="/locations" class="btn btn-ghost">Cancel</a>
+				<a href={resolve('/(dock)/locations')} class="btn btn-ghost">Cancel</a>
 				<button
 					type="submit"
 					disabled={isSubmitting || !selectedImage}

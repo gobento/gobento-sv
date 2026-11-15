@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw error(404, 'Offer not found');
 	}
 
-	const { offer, location, business, businessAccount, logo } = offerData[0];
+	const { offer, location, business, logo } = offerData[0];
 
 	// Get business payment preferences
 	const [wallet] = await db

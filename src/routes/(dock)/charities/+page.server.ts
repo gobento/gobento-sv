@@ -36,7 +36,9 @@ async function ownGift(businessAccountId: string, giftId: FormDataEntryValue | n
 	const [gift] = await db
 		.select()
 		.from(recurringGifts)
-		.where(and(eq(recurringGifts.id, giftId), eq(recurringGifts.businessAccountId, businessAccountId)))
+		.where(
+			and(eq(recurringGifts.id, giftId), eq(recurringGifts.businessAccountId, businessAccountId))
+		)
 		.limit(1);
 	return gift ?? null;
 }
@@ -307,7 +309,10 @@ export const actions: Actions = {
 			.limit(1);
 		if (open) {
 			return fail(400, {
-				gift: { error: 'You already have a regular gift with this charity. End it first to set up a new one.' }
+				gift: {
+					error:
+						'You already have a regular gift with this charity. End it first to set up a new one.'
+				}
 			});
 		}
 

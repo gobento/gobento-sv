@@ -90,8 +90,19 @@
 			tone="success"
 			hint="{data.stats.collectedThisMonth} in the last 30 days"
 		/>
-		<StatTile label="Regular donors" value={data.stats.regularDonors} icon={IconRepeat} tone="secondary" />
-		<StatTile label="Businesses" value={data.stats.businesses} icon={IconBuilding} tone="accent" hint="that gave to you" />
+		<StatTile
+			label="Regular donors"
+			value={data.stats.regularDonors}
+			icon={IconRepeat}
+			tone="secondary"
+		/>
+		<StatTile
+			label="Businesses"
+			value={data.stats.businesses}
+			icon={IconBuilding}
+			tone="accent"
+			hint="that gave to you"
+		/>
 	</div>
 
 	{#if page.form?.action?.error}
@@ -141,7 +152,11 @@
 							a single pickup or stop the gift at any time.
 						</p>
 						<div class="card-actions justify-end">
-							<form method="POST" action="?/declineGift" use:enhance={busy(gift.id, 'Decline this regular gift?')}>
+							<form
+								method="POST"
+								action="?/declineGift"
+								use:enhance={busy(gift.id, 'Decline this regular gift?')}
+							>
 								<input type="hidden" name="giftId" value={gift.id} />
 								<button class="btn gap-2 btn-ghost btn-sm" disabled={processingId === gift.id}>
 									<IconDismiss class="size-4" /> Decline
@@ -212,14 +227,22 @@
 						<div class="card-actions justify-end">
 							<form method="POST" action="?/declineRequest" use:enhance={busy(req.id)}>
 								<input type="hidden" name="requestId" value={req.id} />
-								<button type="submit" class="btn gap-2 btn-ghost btn-sm" disabled={processingId === req.id}>
+								<button
+									type="submit"
+									class="btn gap-2 btn-ghost btn-sm"
+									disabled={processingId === req.id}
+								>
 									<IconDismiss class="size-4" />
 									Decline
 								</button>
 							</form>
 							<form method="POST" action="?/acceptRequest" use:enhance={busy(req.id)}>
 								<input type="hidden" name="requestId" value={req.id} />
-								<button type="submit" class="btn gap-2 btn-primary btn-sm" disabled={processingId === req.id}>
+								<button
+									type="submit"
+									class="btn gap-2 btn-primary btn-sm"
+									disabled={processingId === req.id}
+								>
 									{#if processingId === req.id}
 										<span class="loading loading-xs loading-spinner"></span>
 									{:else}
@@ -237,7 +260,9 @@
 
 	<h2 class="mb-3 text-lg font-semibold">Upcoming pickups</h2>
 	{#if upcoming.length === 0}
-		<div class="mb-8 rounded-2xl border border-dashed border-base-300 bg-base-100 p-6 text-sm text-base-content/70">
+		<div
+			class="mb-8 rounded-2xl border border-dashed border-base-300 bg-base-100 p-6 text-sm text-base-content/70"
+		>
 			Nothing scheduled. Accepted requests and pickups from regular gifts show up here.
 		</div>
 	{:else}
@@ -265,7 +290,7 @@
 								</p>
 							</div>
 							{#if req.recurringGiftId}
-								<span class="badge gap-1 badge-sm badge-primary badge-outline"
+								<span class="badge gap-1 badge-outline badge-sm badge-primary"
 									><IconRepeat class="size-3" /> Regular</span
 								>
 							{/if}
@@ -290,11 +315,13 @@
 								use:enhance={busy(req.id, 'Call off this pickup? The business will be told.')}
 							>
 								<input type="hidden" name="requestId" value={req.id} />
-								<button class="btn btn-ghost btn-sm" disabled={processingId === req.id}>Can't make it</button>
+								<button class="btn btn-ghost btn-sm" disabled={processingId === req.id}
+									>Can't make it</button
+								>
 							</form>
 							<form method="POST" action="?/markCollected" use:enhance={busy(req.id)}>
 								<input type="hidden" name="requestId" value={req.id} />
-								<button class="btn gap-2 btn-success btn-sm" disabled={processingId === req.id}>
+								<button class="btn gap-2 btn-sm btn-success" disabled={processingId === req.id}>
 									<IconCheck class="size-4" /> Collected
 								</button>
 							</form>
@@ -346,7 +373,9 @@
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-sm font-semibold">{req.businessName}</p>
 						<p class="truncate text-xs text-base-content/60">
-							{req.proposedPickupFrom ? formatDate(req.proposedPickupFrom) : formatDate(req.createdAt)} · {req.message}
+							{req.proposedPickupFrom
+								? formatDate(req.proposedPickupFrom)
+								: formatDate(req.createdAt)} · {req.message}
 						</p>
 						{#if req.status === 'declined' && req.notes}
 							<p class="text-xs text-base-content/60">Note: {req.notes}</p>

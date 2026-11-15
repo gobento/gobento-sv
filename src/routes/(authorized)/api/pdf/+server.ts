@@ -5,7 +5,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 
-export const GET = async ({ url }) => {
+export const GET = async () => {
 	// 1️⃣ Create PDF
 	const pdfDoc = await PDFDocument.create();
 	const page = pdfDoc.addPage([595.28, 841.89]); // A4

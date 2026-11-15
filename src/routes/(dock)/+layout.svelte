@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/+layout.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { Component, Snippet } from 'svelte';
 	import type { LayoutData } from './$types';
 	import { page, navigating } from '$app/state';
@@ -102,7 +103,7 @@
 	aria-label="Main"
 	class="fixed inset-y-0 start-0 z-50 hidden w-60 flex-col border-e border-base-300/70 bg-base-100 p-3 pt-[calc(0.75rem+env(safe-area-inset-top))] md:flex"
 >
-	<a href="/" class="mb-4 flex items-center gap-2.5 rounded-2xl px-3 py-3">
+	<a href={resolve('/(dock)')} class="mb-4 flex items-center gap-2.5 rounded-2xl px-3 py-3">
 		<BentoIcon class="size-8" />
 		<span class="text-xl font-extrabold tracking-tight">GoBento</span>
 	</a>
@@ -110,12 +111,13 @@
 	<div class="flex flex-1 flex-col gap-1 overflow-y-auto">
 		{#each items as item (item.path)}
 			{@const isActive = item.path === active}
+			<!-- eslint-disable svelte/no-navigation-without-resolve -- fixed app paths from navigation.ts -->
 			<a
 				href={item.path}
 				aria-current={isActive ? 'page' : undefined}
 				class="nav-item"
 				class:nav-item-active={isActive}
-			>
+				><!-- eslint-enable svelte/no-navigation-without-resolve -->
 				{@render glyph(item, isActive)}
 				<span>{item.label}</span>
 			</a>
@@ -126,7 +128,7 @@
 		<p class="truncate px-3.5 pb-1 text-xs text-base-content/50" title={data.account.email}>
 			{data.account.email}
 		</p>
-		<a href="/auth/logout" data-sveltekit-reload class="nav-item">
+		<a href={resolve('/(public)/auth/logout')} data-sveltekit-reload class="nav-item">
 			<SignOutIcon class="size-6 rtl:rotate-180" />
 			<span>Sign out</span>
 		</a>
@@ -145,13 +147,14 @@
 <nav aria-label="Main" class="tabbar md:hidden">
 	{#each bar.tabs as item (item.path)}
 		{@const isActive = item.path === active}
+		<!-- eslint-disable svelte/no-navigation-without-resolve -- fixed app paths from navigation.ts -->
 		<a
 			href={item.path}
 			data-sveltekit-preload-data="tap"
 			aria-current={isActive ? 'page' : undefined}
 			class="tabbar-item"
 			class:tabbar-item-active={isActive}
-		>
+			><!-- eslint-enable svelte/no-navigation-without-resolve -->
 			<span class="tabbar-icon">{@render glyph(item, isActive)}</span>
 			<span class="tabbar-label">{item.label}</span>
 		</a>
@@ -183,12 +186,13 @@
 		{#each bar.overflow as item, index (item.path)}
 			{@const isActive = item.path === active}
 			<li class="animate-rise-in stagger" style:--i={index}>
+				<!-- eslint-disable svelte/no-navigation-without-resolve -- fixed app paths from navigation.ts -->
 				<a
 					href={item.path}
 					aria-current={isActive ? 'page' : undefined}
 					class="nav-item py-3"
 					class:nav-item-active={isActive}
-				>
+					><!-- eslint-enable svelte/no-navigation-without-resolve -->
 					{@render glyph(item, isActive)}
 					<span class="flex-1">{item.label}</span>
 					<ChevronIcon class="size-5 opacity-40 rtl:rotate-180" />

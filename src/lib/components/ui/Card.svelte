@@ -48,7 +48,9 @@
 </script>
 
 {#if href}
-	<a {href} class={classes} {...rest}>
+	<!-- eslint-disable svelte/no-navigation-without-resolve -- callers pass resolved or external URLs -->
+	<a {href} class={classes} {...rest}
+		><!-- eslint-enable svelte/no-navigation-without-resolve -->
 		{#if padding === 'none'}
 			{@render children()}
 		{:else}

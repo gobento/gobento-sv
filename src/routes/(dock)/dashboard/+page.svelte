@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/dashboard/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import StatTile from '#lib/components/ui/StatTile.svelte';
@@ -14,7 +15,6 @@
 	import IconChart from '~icons/fluent/data-trending-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconArrow from '~icons/fluent/arrow-right-24-regular';
-	import IconPeople from '~icons/fluent/people-team-24-regular';
 
 	let { data }: { data: PageData } = $props();
 
@@ -22,7 +22,11 @@
 		value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 </script>
 
-<BaseLayout title="Dashboard" description="Today at a glance, your offers and your giving" icon={IconHome}>
+<BaseLayout
+	title="Dashboard"
+	description="Today at a glance, your offers and your giving"
+	icon={IconHome}
+>
 	<div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
 		<StatTile
 			label="To hand over"
@@ -30,7 +34,7 @@
 			icon={IconBag}
 			tone="primary"
 			hint="next 24 hours"
-			href="/offers"
+			href={resolve('/(dock)/offers')}
 		/>
 		<StatTile
 			label="Reservations"
@@ -38,7 +42,7 @@
 			icon={IconChart}
 			tone="info"
 			hint="{data.stats.avgPerDay} per day · 30 days"
-			href="/analytics"
+			href={resolve('/(dock)/analytics')}
 		/>
 		<StatTile
 			label="Revenue"
@@ -48,7 +52,7 @@
 			icon={IconMoney}
 			tone="success"
 			hint="last 30 days"
-			href="/transactions"
+			href={resolve('/(dock)/transactions')}
 		/>
 		<StatTile
 			label="Active offers"
@@ -56,7 +60,7 @@
 			icon={IconTag}
 			tone="accent"
 			hint="{data.stats.completionRate}% picked up"
-			href="/offers"
+			href={resolve('/(dock)/offers')}
 		/>
 	</div>
 
@@ -69,7 +73,9 @@
 			bodyClass="gap-4"
 		>
 			{#snippet actions()}
-				<a href="/charities" class="btn gap-1 btn-ghost btn-sm">Charities <IconArrow class="size-4" /></a>
+				<a href={resolve('/(dock)/charities')} class="btn gap-1 btn-ghost btn-sm"
+					>Charities <IconArrow class="size-4" /></a
+				>
 			{/snippet}
 
 			<div class="grid grid-cols-3 gap-2 text-center">
@@ -89,8 +95,9 @@
 
 			{#if data.giving.proposedGifts > 0}
 				<p class="text-sm text-base-content/70">
-					{data.giving.proposedGifts} regular {data.giving.proposedGifts === 1 ? 'gift is' : 'gifts are'} waiting
-					for the charity to accept.
+					{data.giving.proposedGifts} regular {data.giving.proposedGifts === 1
+						? 'gift is'
+						: 'gifts are'} waiting for the charity to accept.
 				</p>
 			{/if}
 
@@ -108,9 +115,9 @@
 								<div class="min-w-0 flex-1">
 									<p class="truncate font-medium">{pickup.charityName}</p>
 									<p class="truncate text-xs text-base-content/60">
-										{pickup.from && pickup.until ? formatPickupWindow(pickup.from, pickup.until) : 'Time to be agreed'}{pickup.locationName
-											? ` · ${pickup.locationName}`
-											: ''}
+										{pickup.from && pickup.until
+											? formatPickupWindow(pickup.from, pickup.until)
+											: 'Time to be agreed'}{pickup.locationName ? ` · ${pickup.locationName}` : ''}
 									</p>
 								</div>
 							</li>
@@ -118,19 +125,30 @@
 					</ul>
 				</div>
 			{:else if data.giving.activeGifts === 0}
-				<div class="rounded-xl border border-dashed border-base-300 p-4 text-sm text-base-content/70">
+				<div
+					class="rounded-xl border border-dashed border-base-300 p-4 text-sm text-base-content/70"
+				>
 					Have surplus food most days? Set up a <strong>regular gift</strong> and a local charity
 					collects it on a fixed schedule — no need to ask each time.
-					<a href="/charities" class="link mt-2 block font-semibold link-primary">Find a charity</a>
+					<a href={resolve('/(dock)/charities')} class="mt-2 block link font-semibold link-primary"
+						>Find a charity</a
+					>
 				</div>
 			{:else}
 				<p class="text-sm text-base-content/60">No charity pickups in the next 7 days.</p>
 			{/if}
 		</SectionCard>
 
-		<SectionCard title="Top offers" description="Most reserved, last 30 days" icon={IconTag} bodyClass="gap-3">
+		<SectionCard
+			title="Top offers"
+			description="Most reserved, last 30 days"
+			icon={IconTag}
+			bodyClass="gap-3"
+		>
 			{#snippet actions()}
-				<a href="/offers" class="btn gap-1 btn-ghost btn-sm">Offers <IconArrow class="size-4" /></a>
+				<a href={resolve('/(dock)/offers')} class="btn gap-1 btn-ghost btn-sm"
+					>Offers <IconArrow class="size-4" /></a
+				>
 			{/snippet}
 			{#if data.offerPerformanceData.length === 0}
 				<p class="text-sm text-base-content/60">No active offers yet.</p>
@@ -138,7 +156,10 @@
 				<ul class="divide-y divide-base-200">
 					{#each data.offerPerformanceData as offer (offer.id)}
 						<li class="flex items-center justify-between gap-3 py-2 text-sm">
-							<a href="/offers/{offer.id}" class="truncate font-medium hover:underline">{offer.name}</a>
+							<a
+								href={resolve('/(dock)/offers/[id]', { id: offer.id })}
+								class="truncate font-medium hover:underline">{offer.name}</a
+							>
 							<span class="shrink-0 text-base-content/60 tabular-nums">
 								{offer.reservations} · €{euro(offer.revenue)}
 							</span>
@@ -150,20 +171,24 @@
 
 		<SectionCard title="Locations" icon={IconLocation} bodyClass="gap-3" class="lg:col-span-2">
 			{#snippet actions()}
-				<a href="/shift" class="btn gap-1 btn-ghost btn-sm"><IconBag class="size-4" /> Counter</a>
-				<a href="/team" class="btn gap-1 btn-ghost btn-sm"><IconPeople class="size-4" /> Team</a>
-				<a href="/locations" class="btn gap-1 btn-ghost btn-sm">All <IconArrow class="size-4" /></a>
+				<a href={resolve('/(dock)/locations')} class="btn gap-1 btn-ghost btn-sm"
+					>All <IconArrow class="size-4" /></a
+				>
 			{/snippet}
 			{#if data.locationPerformanceData.length === 0}
 				<p class="text-sm text-base-content/60">Add your first location to start selling.</p>
 			{:else}
 				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
 					{#each data.locationPerformanceData as loc (loc.id)}
-						<a href="/locations/{loc.id}" class="rounded-xl border border-base-300 p-3 text-sm hover:bg-base-200/50">
+						<a
+							href={resolve('/(dock)/locations/[id]', { id: loc.id })}
+							class="rounded-xl border border-base-300 p-3 text-sm hover:bg-base-200/50"
+						>
 							<p class="truncate font-semibold">{loc.name}</p>
 							<p class="truncate text-xs text-base-content/60">{loc.address}, {loc.city}</p>
 							<p class="mt-2 text-xs text-base-content/70">
-								{loc.totalReservations} reservations · {loc.completionRate}% picked up · {loc.favoritesCount} ♥
+								{loc.totalReservations} reservations · {loc.completionRate}% picked up · {loc.favoritesCount}
+								♥
 							</p>
 						</a>
 					{/each}

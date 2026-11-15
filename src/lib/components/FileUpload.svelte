@@ -102,7 +102,8 @@
 		if (!candidate) return;
 		if (!matchesAccepted(candidate.type)) return reject('This file type is not supported');
 		if (candidate.size === 0) return reject('This file is empty');
-		if (candidate.size > maxSizeBytes) return reject(`The file must be smaller than ${maxSizeMB} MB`);
+		if (candidate.size > maxSizeBytes)
+			return reject(`The file must be smaller than ${maxSizeMB} MB`);
 
 		localError = null;
 		setFile(candidate);

@@ -84,4 +84,3 @@ export const load: PageServerLoad = async ({ locals }) => {
 		allLocationsOfferCount
 	};
 };
-
