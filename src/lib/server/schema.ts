@@ -606,3 +606,4 @@ export type AdminProfile = typeof adminProfiles.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type PaymentAttempt = typeof paymentAttempts.$inferSelect;
 
+export * from './telemetrySchema';

@@ -6,6 +6,7 @@ import { TokenBucket } from '#lib/server/rate-limit.js';
 import { isPreviewBot, linkPreviewResponse } from '#lib/server/linkPreview.js';
 import { sequence, type HandleServerError, type Handle } from '@sveltejs/kit/hooks';
 import { log } from '#lib/server/logs.js';
+import { recordRequest, recordServerError } from '#lib/server/telemetry.js';
 import '@valibot/i18n/de/schema';
 
 const bucket = new TokenBucket<string>(100, 1);
@@ -14,6 +15,25 @@ const bucket = new TokenBucket<string>(100, 1);
 const timerHandle: Handle = async ({ event, resolve }) => {
 	event.locals.startTimer = Date.now();
 	return resolve(event);
+};
+
+// One telemetry row per request: route id, status and duration.
+const telemetryHandle: Handle = async ({ event, resolve }) => {
+	try {
+		const response = await resolve(event);
+		recordRequest(event, response.status);
+		return response;
+	} catch (thrown) {
+		const status =
+			thrown &&
+			typeof thrown === 'object' &&
+			'status' in thrown &&
+			typeof thrown.status === 'number'
+				? thrown.status
+				: 500;
+		recordRequest(event, status);
+		throw thrown;
+	}
 };
 
 const rateLimitHandle: Handle = async ({ event, resolve }) => {
@@ -90,6 +110,13 @@ export const handleError: HandleServerError = async (input) => {
 		if (cause.stack) console.error(cause.stack);
 	}
 
+	recordServerError(event, {
+		status,
+		message: expected ? message : cause.message || 'Unknown error',
+		stack: expected ? undefined : cause.stack,
+		errorId
+	});
+
 	// Try to persist the error with the custom logger, but never let it throw.
 	try {
 		event.locals.error = expected ? message : cause.message || 'Unknown error';
@@ -121,4 +148,10 @@ const linkPreviewHandle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handle = sequence(timerHandle, rateLimitHandle, authHandle, linkPreviewHandle);
+export const handle = sequence(
+	timerHandle,
+	telemetryHandle,
+	rateLimitHandle,
+	authHandle,
+	linkPreviewHandle
+);

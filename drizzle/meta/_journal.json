@@ -57,6 +57,13 @@
       "when": 1783681184526,
       "tag": "0007_recurring_gifts_and_staff",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783681184527,
+      "tag": "0008_telemetry_events",
+      "breakpoints": true
     }
   ]
 }

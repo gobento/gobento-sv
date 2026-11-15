@@ -312,6 +312,23 @@ CREATE TABLE "settlement_payments" (
 	CONSTRAINT "settlement_payments_payment_id_unique" UNIQUE("payment_id")
 );
 
+CREATE TABLE "telemetry_events" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"kind" text NOT NULL,
+	"route" text,
+	"method" text,
+	"status" integer,
+	"duration_ms" integer,
+	"name" text,
+	"value" real,
+	"message" text,
+	"stack" text,
+	"error_id" text,
+	"account_type" text,
+	"device" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE "user_profiles" (
 	"account_id" text PRIMARY KEY NOT NULL,
 	"iban_number" text,
@@ -386,3 +403,4 @@ ALTER TABLE "settlement_payments" ADD CONSTRAINT "settlement_payments_settlement
 ALTER TABLE "settlement_payments" ADD CONSTRAINT "settlement_payments_payment_id_payments_id_fk" FOREIGN KEY ("payment_id") REFERENCES "public"."payments"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
 CREATE UNIQUE INDEX "pickup_requests_gift_occurrence_idx" ON "pickup_requests" USING btree ("recurring_gift_id","proposed_pickup_from");
+CREATE INDEX "telemetry_events_kind_created_idx" ON "telemetry_events" USING btree ("kind","created_at");

@@ -1,8 +1,10 @@
 <!-- src/routes/+layout.svelte -->
 <script lang="ts">
 	import '../app.css';
-	import { beforeNavigate, onNavigate } from '$app/navigation';
-	import { updated } from '$app/state';
+	import { onMount } from 'svelte';
+	import { afterNavigate, beforeNavigate, onNavigate } from '$app/navigation';
+	import { page, updated } from '$app/state';
+	import { markNavigationEnd, markNavigationStart, startTelemetry } from '#lib/client/telemetry.js';
 	import Toaster from '#lib/components/ui/Toaster.svelte';
 	import InstallPrompt from '#lib/components/InstallPrompt.svelte';
 
@@ -18,7 +20,14 @@
 			.catch(() => {});
 	});
 
+	onMount(() => startTelemetry(() => page.route.id));
+
+	afterNavigate(({ type, to }) => {
+		if (type !== 'enter') markNavigationEnd(to?.route.id ?? null);
+	});
+
 	beforeNavigate(({ to, type, willUnload, cancel }) => {
+		if (!willUnload && type !== 'form') markNavigationStart();
 		if (!updated.current || willUnload || !to?.url || type === 'form') return;
 		cancel();
 		location.href = to.url.href;

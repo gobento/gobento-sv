@@ -57,6 +57,7 @@ const NAVIGATION: Record<AccountType, NavItem[]> = {
 		{ path: '/admin', label: 'Overview', icon: 'home' },
 		{ path: '/admin/accounts', label: 'Accounts', icon: 'person' },
 		{ path: '/admin/payments', label: 'Payments', icon: 'money' },
+		{ path: '/admin/telemetry', label: 'Telemetry', icon: 'chart' },
 		{ path: '/moderation', label: 'Moderation', icon: 'shield' },
 		SETTINGS
 	]
