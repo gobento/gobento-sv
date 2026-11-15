@@ -5,9 +5,13 @@ import {
 	reservations,
 	businessOffers,
 	businessLocations,
-	favoriteLocations
+	favoriteLocations,
+	pickupRequests,
+	recurringGifts,
+	charityProfiles
 } from '#lib/server/schema.js';
-import { eq, and, gte, sql, desc } from 'drizzle-orm';
+import { eq, and, gte, sql, desc, inArray } from 'drizzle-orm';
+import { materializeDueGifts } from '#lib/server/recurringGifts.js';
 import { error, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -124,7 +128,77 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.where(eq(businessLocations.businessAccountId, account.id))
 		.then((rows) => rows[0].count);
 
+	// Giving: upcoming charity pickups and how much has been given so far
+	await materializeDueGifts({ businessAccountId: account.id });
+	const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+	const upcomingDonations = await db
+		.select({
+			id: pickupRequests.id,
+			charityName: charityProfiles.name,
+			locationName: businessLocations.name,
+			from: pickupRequests.proposedPickupFrom,
+			until: pickupRequests.proposedPickupUntil,
+			recurring: sql<boolean>`${pickupRequests.recurringGiftId} is not null`
+		})
+		.from(pickupRequests)
+		.innerJoin(charityProfiles, eq(pickupRequests.charityAccountId, charityProfiles.accountId))
+		.leftJoin(businessLocations, eq(pickupRequests.locationId, businessLocations.id))
+		.where(
+			and(
+				eq(pickupRequests.businessAccountId, account.id),
+				eq(pickupRequests.status, 'accepted'),
+				gte(pickupRequests.proposedPickupUntil, now),
+				sql`${pickupRequests.proposedPickupFrom} <= ${weekAhead}`
+			)
+		)
+		.orderBy(pickupRequests.proposedPickupFrom)
+		.limit(6);
+
+	const [giving] = await db
+		.select({
+			donations: sql<number>`COUNT(CASE WHEN ${pickupRequests.status} IN ('accepted', 'completed') AND ${pickupRequests.proposedPickupFrom} < now() THEN 1 END)::int`,
+			charities: sql<number>`COUNT(DISTINCT CASE WHEN ${pickupRequests.status} IN ('accepted', 'completed') THEN ${pickupRequests.charityAccountId} END)::int`
+		})
+		.from(pickupRequests)
+		.where(eq(pickupRequests.businessAccountId, account.id));
+
+	const giftCounts = await db
+		.select({ status: recurringGifts.status, count: sql<number>`COUNT(*)::int` })
+		.from(recurringGifts)
+		.where(
+			and(
+				eq(recurringGifts.businessAccountId, account.id),
+				inArray(recurringGifts.status, ['proposed', 'active', 'paused'])
+			)
+		)
+		.groupBy(recurringGifts.status);
+	const giftCount = (status: string) => giftCounts.find((g) => g.status === status)?.count ?? 0;
+
+	// Bags still to hand over in the next 24 hours
+	const dayAhead = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+	const [nextDay] = await db
+		.select({ count: sql<number>`COUNT(*)::int` })
+		.from(reservations)
+		.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
+		.where(
+			and(
+				eq(businessOffers.businessAccountId, account.id),
+				eq(reservations.status, 'active'),
+				gte(reservations.pickupUntil, now),
+				sql`${reservations.pickupFrom} <= ${dayAhead}`
+			)
+		);
+
 	return {
+		pickupsNextDay: nextDay?.count ?? 0,
+		giving: {
+			upcoming: upcomingDonations,
+			donations: giving?.donations ?? 0,
+			charities: giving?.charities ?? 0,
+			activeGifts: giftCount('active'),
+			proposedGifts: giftCount('proposed'),
+			pausedGifts: giftCount('paused')
+		},
 		reservationsData: reservationsData.map((row) => ({
 			date: row.date,
 			count: row.count,
