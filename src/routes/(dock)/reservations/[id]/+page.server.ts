@@ -1,4 +1,3 @@
-// src/routes/(dock)/reservations/[id]/+page.server.ts
 import { db } from '#lib/server/db.js';
 import {
 	reservations,
@@ -6,8 +5,6 @@ import {
 	businessLocations,
 	businessProfiles,
 	reservationInvites,
-	reservationClaims,
-	accounts,
 	files
 } from '#lib/server/schema.js';
 import { alias } from 'drizzle-orm/pg-core';
@@ -31,24 +28,48 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const reservationId = params.id;
 	const locationFiles = alias(files, 'locationFiles');
 
-	// Fetch reservation with all related data
 	const [reservation] = await db
 		.select({
-			reservation: reservations,
-			offer: businessOffers,
-			location: businessLocations,
-			business: businessProfiles,
-			businessAccount: accounts,
-			claim: reservationClaims,
+			reservation: {
+				id: reservations.id,
+				userAccountId: reservations.userAccountId,
+				status: reservations.status,
+				pickupFrom: reservations.pickupFrom,
+				pickupUntil: reservations.pickupUntil,
+				reservedAt: reservations.reservedAt,
+				claimedAt: reservations.claimedAt,
+				completedAt: reservations.completedAt,
+				claimedBy: reservations.claimedBy,
+				claimToken: reservations.claimToken,
+				notes: reservations.notes
+			},
+			offer: {
+				id: businessOffers.id,
+				name: businessOffers.name,
+				description: businessOffers.description,
+				price: businessOffers.price,
+				currency: businessOffers.currency
+			},
+			location: {
+				id: businessLocations.id,
+				name: businessLocations.name,
+				address: businessLocations.address,
+				city: businessLocations.city,
+				zipCode: businessLocations.zipCode,
+				latitude: businessLocations.latitude,
+				longitude: businessLocations.longitude
+			},
+			business: {
+				accountId: businessProfiles.accountId,
+				name: businessProfiles.name
+			},
 			businessLogoKey: files.key,
 			locationImageKey: locationFiles.key
 		})
 		.from(reservations)
 		.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
 		.leftJoin(businessLocations, eq(businessOffers.locationId, businessLocations.id))
-		.innerJoin(accounts, eq(businessOffers.businessAccountId, accounts.id))
-		.innerJoin(businessProfiles, eq(accounts.id, businessProfiles.accountId))
-		.leftJoin(reservationClaims, eq(reservations.id, reservationClaims.reservationId))
+		.innerJoin(businessProfiles, eq(businessOffers.businessAccountId, businessProfiles.accountId))
 		.leftJoin(files, eq(businessProfiles.profilePictureId, files.id))
 		.leftJoin(locationFiles, eq(businessLocations.imageId, locationFiles.id))
 		.where(eq(reservations.id, reservationId));
@@ -132,30 +153,42 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		reservation.reservation.status = 'expired';
 	}
 
-	let logoUrl = '';
-	if (reservation.businessLogoKey) {
-		logoUrl = await getSignedDownloadUrl(reservation.businessLogoKey!);
-	}
+	const [logoUrl, imageUrl] = await Promise.all([
+		reservation.businessLogoKey ? getSignedDownloadUrl(reservation.businessLogoKey) : null,
+		reservation.locationImageKey ? getSignedDownloadUrl(reservation.locationImageKey) : null
+	]);
 
-	let imageUrl = '';
-	if (reservation.locationImageKey) {
-		imageUrl = await getSignedDownloadUrl(reservation.locationImageKey!);
-	}
+	const { userAccountId, claimToken, claimedBy, ...details } = reservation.reservation;
+	const canCollect = isOwner || !!userInvite;
+	const isCharity = account.accountType === 'charity';
+
+	// Only the owner manages the invite; everyone else just learns whether one is out.
+	const activeInvite = invites.find((inv) => inv.status === 'accepted' || inv.status === 'pending');
 
 	return {
-		reservation: reservation.reservation,
-		offer: { ...reservation.offer, price: priceWithMargin(reservation.offer.price) },
-		location: { ...reservation.location, imageUrl: imageUrl },
-		business: {
-			...reservation.business,
-			logo: { url: logoUrl }
+		reservation: {
+			...details,
+			// The pickup code is for whoever may collect, not for someone still deciding on an invite.
+			claimToken: canCollect ? claimToken : null,
+			collectedByFriend: isOwner && !!claimedBy && claimedBy !== userAccountId
 		},
-		businessAccount: reservation.businessAccount,
-		claim: reservation.claim,
-		invites,
+		offer: {
+			...reservation.offer,
+			price: isOwner && !isCharity ? priceWithMargin(reservation.offer.price) : null
+		},
+		location: reservation.location ? { ...reservation.location, imageUrl } : null,
+		business: { ...reservation.business, logoUrl },
+		invite:
+			isOwner && activeInvite
+				? {
+						status: activeInvite.status as 'pending' | 'accepted',
+						token: activeInvite.status === 'pending' ? activeInvite.inviteToken : null
+					}
+				: null,
 		isOwner,
-		userInvite,
-		pendingInviteForUser
+		canCollect,
+		canDownloadReceipt: isOwner && !isCharity,
+		hasPendingInvite: !!pendingInviteForUser
 	};
 };
 
@@ -286,8 +319,7 @@ export const actions: Actions = {
 		const inviteToken = randomBytes(32).toString('hex');
 		const expiresAt = new Date(reservation.pickupUntil);
 
-		const [newInvite] = await db
-			.insert(reservationInvites)
+		await db.insert(reservationInvites)
 			.values({
 				id: crypto.randomUUID(),
 				reservationId,
@@ -296,8 +328,7 @@ export const actions: Actions = {
 				inviteToken,
 				status: 'pending',
 				expiresAt
-			})
-			.returning();
+			});
 
 		const origin = url.origin;
 		const inviteLink = `${origin}/reservations/${reservationId}?invite=${inviteToken}`;
@@ -439,6 +470,7 @@ export const actions: Actions = {
 			.set({ status: 'declined' })
 			.where(eq(reservationInvites.id, invite.id));
 
-		return { success: true, message: 'Invite declined', inviteDeclined: true };
+		// The invite no longer grants access to this reservation, so leave the page.
+		redirect(303, '/reservations');
 	}
 };

@@ -1,9 +1,9 @@
-// src/lib/client/notificationScheduler.ts
-
 /**
- * Schedule a notification to be shown at a specific time via Service Worker
+ * Talks to the service worker, which stores scheduled notifications and shows
+ * them at the right time even when the app is closed.
  */
-export async function scheduleNotification(options: {
+
+export interface ScheduledNotificationOptions {
 	id?: string;
 	title: string;
 	body: string;
@@ -14,113 +14,81 @@ export async function scheduleNotification(options: {
 	tag?: string;
 	requireInteraction?: boolean;
 	vibrate?: number[];
-}) {
-	if (!('serviceWorker' in navigator)) {
-		throw new Error('Service Worker not supported');
-	}
+}
 
-	const registration = await navigator.serviceWorker.ready;
+interface WorkerReply {
+	success: boolean;
+	id?: string;
+	notifications?: unknown[];
+}
 
-	// Request notification permission if not granted
-	if (Notification.permission !== 'granted') {
-		const permission = await Notification.requestPermission();
-		if (permission !== 'granted') {
-			throw new Error('Notification permission denied');
-		}
-	}
+const REPLY_TIMEOUT_MS = 4000;
 
+/** The active worker, or null when none is registered (e.g. during development). */
+async function activeWorker(): Promise<ServiceWorker | null> {
+	if (!('serviceWorker' in navigator)) return null;
+	// `serviceWorker.ready` never settles without a registration, so ask directly.
+	const registration = await navigator.serviceWorker.getRegistration();
+	return registration?.active ?? null;
+}
+
+function ask(worker: ServiceWorker, message: Record<string, unknown>): Promise<WorkerReply> {
 	return new Promise((resolve, reject) => {
-		const messageChannel = new MessageChannel();
-
-		messageChannel.port1.onmessage = (event) => {
-			if (event.data.success) {
-				resolve(event.data);
-			} else {
-				reject(new Error('Failed to schedule notification'));
-			}
-		};
-
-		registration.active?.postMessage(
-			{
-				type: 'SCHEDULE_NOTIFICATION',
-				id: options.id || `notification-${Date.now()}`,
-				title: options.title,
-				body: options.body,
-				scheduledTime:
-					typeof options.scheduledTime === 'string'
-						? options.scheduledTime
-						: options.scheduledTime.toISOString(),
-				data: {
-					url: options.url || '/'
-				},
-				icon: options.icon,
-				badge: options.badge,
-				tag: options.tag,
-				requireInteraction: options.requireInteraction,
-				vibrate: options.vibrate
-			},
-			[messageChannel.port2]
+		const channel = new MessageChannel();
+		const timer = setTimeout(
+			() => reject(new Error('Service worker did not answer')),
+			REPLY_TIMEOUT_MS
 		);
+		channel.port1.onmessage = (event: MessageEvent<WorkerReply>) => {
+			clearTimeout(timer);
+			if (event.data?.success) resolve(event.data);
+			else reject(new Error('Service worker rejected the request'));
+		};
+		worker.postMessage(message, [channel.port2]);
 	});
 }
 
-/**
- * Cancel a scheduled notification
- */
-export async function cancelScheduledNotification(id: string) {
-	if (!('serviceWorker' in navigator)) {
+/** Schedules a notification for a specific time. Needs notification permission. */
+export async function scheduleNotification(options: ScheduledNotificationOptions) {
+	const worker = await activeWorker();
+	if (!worker) throw new Error('Service worker not available');
+	if (!('Notification' in window) || Notification.permission !== 'granted') {
+		throw new Error('Notification permission not granted');
+	}
+
+	return ask(worker, {
+		type: 'SCHEDULE_NOTIFICATION',
+		id: options.id ?? `notification-${Date.now()}`,
+		title: options.title,
+		body: options.body,
+		scheduledTime: new Date(options.scheduledTime).toISOString(),
+		data: { url: options.url ?? '/' },
+		icon: options.icon,
+		badge: options.badge,
+		tag: options.tag,
+		requireInteraction: options.requireInteraction,
+		vibrate: options.vibrate
+	});
+}
+
+export async function cancelScheduledNotification(id: string): Promise<boolean> {
+	const worker = await activeWorker();
+	if (!worker) return false;
+	try {
+		await ask(worker, { type: 'CANCEL_SCHEDULED_NOTIFICATION', id });
+		return true;
+	} catch {
 		return false;
 	}
-
-	const registration = await navigator.serviceWorker.ready;
-
-	return new Promise((resolve, reject) => {
-		const messageChannel = new MessageChannel();
-
-		messageChannel.port1.onmessage = (event) => {
-			if (event.data.success) {
-				resolve(true);
-			} else {
-				reject(false);
-			}
-		};
-
-		registration.active?.postMessage(
-			{
-				type: 'CANCEL_SCHEDULED_NOTIFICATION',
-				id
-			},
-			[messageChannel.port2]
-		);
-	});
 }
 
-/**
- * Get all scheduled notifications
- */
-export async function getScheduledNotifications(): Promise<any[]> {
-	if (!('serviceWorker' in navigator)) {
+export async function getScheduledNotifications(): Promise<unknown[]> {
+	const worker = await activeWorker();
+	if (!worker) return [];
+	try {
+		const reply = await ask(worker, { type: 'GET_SCHEDULED_NOTIFICATIONS' });
+		return reply.notifications ?? [];
+	} catch {
 		return [];
 	}
-
-	const registration = await navigator.serviceWorker.ready;
-
-	return new Promise((resolve, reject) => {
-		const messageChannel = new MessageChannel();
-
-		messageChannel.port1.onmessage = (event) => {
-			if (event.data.success) {
-				resolve(event.data.notifications || []);
-			} else {
-				reject([]);
-			}
-		};
-
-		registration.active?.postMessage(
-			{
-				type: 'GET_SCHEDULED_NOTIFICATIONS'
-			},
-			[messageChannel.port2]
-		);
-	});
 }

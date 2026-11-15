@@ -1,240 +1,300 @@
-<!-- src/routes/(dock)/offers/[id]/payment/+page.svelte -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import IconWallet from '~icons/fluent/wallet-24-regular';
-	import IconBank from '~icons/fluent/building-bank-24-regular';
-	import IconCalendar from '~icons/fluent/calendar-24-regular';
-	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
-	import IconShield from '~icons/fluent/shield-24-regular';
-	import IconArrowRight from '~icons/fluent/arrow-right-24-filled';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
-	import Modal from '#lib/components/Modal.svelte';
-	import Alert from '#lib/components/Alert.svelte';
-	import PaymentProgress from './PaymentProgress.svelte';
+	import { page } from '$app/state';
+	import { fly } from 'svelte/transition';
 	import { superForm } from 'sveltekit-superforms';
 	import { valibot } from 'sveltekit-superforms/adapters';
+	import IconWallet from '~icons/fluent/wallet-24-regular';
+	import IconBank from '~icons/fluent/building-bank-24-regular';
+	import IconCalendar from '~icons/fluent/calendar-clock-24-regular';
+	import IconStore from '~icons/fluent/building-shop-24-regular';
+	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
+	import IconShield from '~icons/fluent/shield-checkmark-24-regular';
+	import IconArrowRight from '~icons/fluent/arrow-right-24-filled';
+	import IconLock from '~icons/fluent/lock-closed-24-filled';
+	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { formatPickupWindow } from '#lib/components/reservations/pickup.js';
+	import { formatPrice } from '#lib/util.js';
+	import PaymentProgress from './PaymentProgress.svelte';
 	import { initPaymentSchema } from './schema';
-	import { formatPrice, formatDate } from '#lib/util.js';
 
 	type Method = 'iban' | 'tether';
 
 	let { data } = $props();
 
-	let reviewOpen = $state(false);
+	let step = $state<1 | 2>(1);
+	// Stays true after a successful submit so the button cannot be pressed again
+	// while the browser is on its way to the payment provider.
+	let leaving = $state(false);
 
-	const initPaymentForm = superForm(data.form, {
+	// svelte-ignore state_referenced_locally
+	const { form: formData, errors, enhance, submitting } = superForm(data.form, {
 		validators: valibot(initPaymentSchema),
 		resetForm: false,
-
 		onResult: async ({ result }) => {
-			if (result.type === 'success') {
-				const responseData = (result as any).data;
-
-				if (responseData?.success && responseData?.paymentMethod) {
-					if (responseData.paymentMethod === 'iban' && responseData.zarinpalPaymentUrl) {
-						await goto(responseData.zarinpalPaymentUrl);
-					} else if (responseData.paymentMethod === 'tether' && responseData.paymentId) {
-						await goto(`/offers/${data.offer.id}/payment/tether/${responseData.paymentId}`);
-					}
-				}
+			if (result.type !== 'success') {
+				if (result.type === 'failure') step = 1;
+				return;
 			}
+			const payload = result.data;
+			if (!payload?.success) return;
+
+			if (payload.paymentMethod === 'iban' && typeof payload.zarinpalPaymentUrl === 'string') {
+				leaving = true;
+				// The gateway lives on another origin, which `goto` refuses to load.
+				window.location.assign(payload.zarinpalPaymentUrl);
+			} else if (payload.paymentMethod === 'tether' && payload.paymentId) {
+				leaving = true;
+				await goto(`/offers/${data.offer.id}/payment/tether/${payload.paymentId}`);
+			}
+		},
+		onError: () => {
+			step = 1;
 		}
 	});
 
-	const { form: formData, errors, enhance, delayed } = initPaymentForm;
-
-	const methodMeta: Record<
-		Method,
-		{
-			label: string;
-			description: string;
-			icon: typeof IconBank;
-			selectedCard: string;
-			iconWrap: string;
-			iconColor: string;
-		}
-	> = {
+	const METHODS: Record<Method, { label: string; description: string; icon: typeof IconBank }> = {
 		iban: {
-			label: 'Bank Transfer',
-			description: 'Secure card payment via Zarinpal',
-			icon: IconBank,
-			selectedCard: 'border-primary bg-primary/5 shadow-sm',
-			iconWrap: 'bg-primary/15',
-			iconColor: 'text-primary'
+			label: 'Card or bank payment',
+			description: 'Pay through our secure payment gateway',
+			icon: IconBank
 		},
 		tether: {
 			label: 'Tether (USDT)',
-			description: 'Pay with cryptocurrency',
-			icon: IconWallet,
-			selectedCard: 'border-secondary bg-secondary/5 shadow-sm',
-			iconWrap: 'bg-secondary/15',
-			iconColor: 'text-secondary'
+			description: 'Transfer from your crypto wallet',
+			icon: IconWallet
+		}
+	};
+
+	const CALLBACK_ERRORS: Record<string, { title: string; text: string }> = {
+		payment_cancelled: {
+			title: 'Payment cancelled',
+			text: 'You have not been charged. You can try again whenever you are ready.'
+		},
+		already_processed: {
+			title: 'This payment was already processed',
+			text: 'Check your orders before paying again.'
 		}
 	};
 
 	const availableMethods = $derived(
-		[
-			data.businessPaymentMethods.ibanEnabled ? ('iban' as const) : null,
-			data.businessPaymentMethods.tetherEnabled ? ('tether' as const) : null
-		].filter((m): m is Method => m !== null)
+		(['iban', 'tether'] as const).filter((method) =>
+			method === 'iban'
+				? data.businessPaymentMethods.ibanEnabled
+				: data.businessPaymentMethods.tetherEnabled
+		)
 	);
 
-	// Make sure a valid, available method is always selected.
+	// The business' preferred method may be one it has since switched off.
 	$effect(() => {
-		if (availableMethods.length && !availableMethods.includes($formData.paymentMethod as Method)) {
+		if (availableMethods.length && !availableMethods.includes($formData.paymentMethod)) {
 			$formData.paymentMethod = availableMethods[0];
 		}
 	});
 
-	const selectMethod = (method: Method) => {
-		$formData.paymentMethod = method;
-	};
-
-	const formErrors = $derived($errors._errors ?? []);
+	const selected = $derived(METHODS[$formData.paymentMethod]);
+	const SelectedIcon = $derived(selected.icon);
+	const total = $derived(formatPrice(data.offer.price, data.offer.currency));
+	const savings = $derived(data.offer.originalValue - data.offer.price);
+	const formErrors = $derived([
+		...($errors._errors ?? []),
+		...($errors.pickupDate ?? []),
+		...($errors.paymentMethod ?? [])
+	]);
+	const callbackError = $derived.by(() => {
+		const code = page.url.searchParams.get('error');
+		if (!code) return null;
+		return (
+			CALLBACK_ERRORS[code] ?? {
+				title: 'The payment did not go through',
+				text: 'Nothing was charged. Please try again or choose another payment method.'
+			}
+		);
+	});
+	const busy = $derived($submitting || leaving);
+	const offerHref = $derived(`/offers/${data.offer.id}`);
 </script>
 
-<BaseLayout title="Checkout" description={data.offer.name} icon={IconWallet}>
-	<div class="space-y-6">
-		<PaymentProgress current={1} />
+<svelte:head>
+	<title>Checkout · {data.offer.name}</title>
+</svelte:head>
+
+<BaseLayout
+	title="Checkout"
+	description="Reserve your bag in three quick steps"
+	width="narrow"
+	backHref={offerHref}
+	backLabel="Back to offer"
+>
+	<div class="space-y-5 pb-24 md:pb-0">
+		<PaymentProgress current={step} />
 
 		{#if formErrors.length}
 			<Alert type="error">
-				<p class="font-medium">We couldn't start your payment</p>
-				<p class="mt-1 text-sm opacity-80">{formErrors.join(' ')}</p>
+				<p class="font-bold">We could not start your payment</p>
+				<p class="mt-0.5">{formErrors.join(' ')}</p>
+			</Alert>
+		{:else if callbackError}
+			<Alert type="warn">
+				<p class="font-bold">{callbackError.title}</p>
+				<p class="mt-0.5">{callbackError.text}</p>
 			</Alert>
 		{/if}
 
-		<!-- Order Summary -->
-		<div
-			class="overflow-hidden rounded-3xl border border-primary/20 bg-linear-to-br from-primary/15 via-primary/5 to-base-100 p-6"
-		>
-			<div class="text-xs font-bold tracking-wider text-primary/70 uppercase">Your order</div>
-			<div class="mt-1 text-lg font-bold text-base-content">{data.offer.name}</div>
+		<!-- Order summary -->
+		<section class="surface animate-rise-in overflow-hidden" aria-labelledby="order-heading">
+			<div class="p-5">
+				<p class="eyebrow" id="order-heading">Your order</p>
+				<h2 class="mt-1 text-xl leading-tight font-extrabold tracking-tight">{data.offer.name}</h2>
 
-			<div class="my-4 border-t border-dashed border-primary/20"></div>
-
-			<div class="flex items-end justify-between">
-				<span class="text-sm font-medium text-base-content/60">Total to pay</span>
-				<span class="text-3xl font-extrabold text-primary">
-					{formatPrice(data.offer.price, data.offer.currency)}
-				</span>
+				<ul class="mt-4 space-y-3 text-sm">
+					<li class="flex items-center gap-3">
+						<IconStore class="size-5 shrink-0 text-base-content/45" />
+						<span class="min-w-0 truncate font-semibold">
+							{data.offer.businessName}{#if data.offer.locationName && data.offer.locationName !== data.offer.businessName}
+								<span class="font-normal text-base-content/60"> · {data.offer.locationName}</span>
+							{/if}
+						</span>
+					</li>
+					<li class="flex items-center gap-3">
+						<IconCalendar class="size-5 shrink-0 text-base-content/45" />
+						<span class="tabular font-semibold">
+							Pickup {formatPickupWindow(data.pickup.from, data.pickup.until)}
+						</span>
+					</li>
+					{#if step === 2}
+						<li class="flex items-center gap-3" in:fly={{ y: 8, duration: 250 }}>
+							<SelectedIcon class="size-5 shrink-0 text-base-content/45" />
+							<span class="min-w-0 flex-1 truncate font-semibold">{selected.label}</span>
+							<button
+								type="button"
+								class="btn -my-2 btn-ghost btn-sm text-primary"
+								onclick={() => (step = 1)}
+								disabled={busy}
+							>
+								Change
+							</button>
+						</li>
+					{/if}
+				</ul>
 			</div>
 
-			{#if data.offer.isRecurring}
-				<div class="mt-4 flex items-center gap-3 rounded-2xl bg-base-100/70 p-3">
-					<div class="rounded-xl bg-secondary/20 p-2">
-						<IconCalendar class="size-5 text-secondary" />
-					</div>
-					<div>
-						<div class="text-xs font-medium tracking-wide text-base-content/50 uppercase">
-							Pickup date
-						</div>
-						<div class="font-semibold text-base-content">{formatDate(data.pickupDate)}</div>
-					</div>
-				</div>
-			{/if}
-		</div>
-
-		<!-- Payment Method Selection -->
-		<div class="space-y-3">
-			<h2 class="text-lg font-semibold">How would you like to pay?</h2>
-
-			{#each availableMethods as method (method)}
-				{@const meta = methodMeta[method]}
-				{@const selected = $formData.paymentMethod === method}
-				<button
-					type="button"
-					onclick={() => selectMethod(method)}
-					aria-pressed={selected}
-					class="flex w-full items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all
-					{selected ? meta.selectedCard : 'border-base-300 bg-base-100 hover:border-base-content/20'}"
-				>
-					<div class="rounded-xl p-3 {meta.iconWrap}">
-						<meta.icon class="size-6 {meta.iconColor}" />
-					</div>
-					<div class="flex-1">
-						<div class="font-semibold">{meta.label}</div>
-						<div class="text-sm text-base-content/60">{meta.description}</div>
-					</div>
-
-					{#if selected}
-						<IconCheckmarkCircle class="size-6 {meta.iconColor}" />
-					{:else}
-						<div class="size-6 rounded-full border-2 border-base-300"></div>
+			<div
+				class="flex items-end justify-between gap-4 border-t border-dashed border-base-300 bg-base-200/60 px-5 py-4"
+			>
+				<div>
+					<p class="text-sm font-semibold text-base-content/60">Total</p>
+					{#if savings > 0}
+						<p class="mt-0.5 text-xs font-bold text-secondary">
+							You save {formatPrice(savings, data.offer.currency)}
+						</p>
 					{/if}
-				</button>
-			{/each}
-		</div>
+				</div>
+				<p class="tabular text-3xl leading-none font-extrabold tracking-tight">{total}</p>
+			</div>
+		</section>
 
-		<div class="flex items-center justify-center gap-2 text-xs text-base-content/50">
-			<IconShield class="size-4" />
-			<span>Payments are encrypted and processed securely</span>
-		</div>
+		{#if data.soldOut}
+			<Alert type="warn">
+				<p class="font-bold">This offer has just sold out</p>
+				<p class="mt-0.5">Someone else was a little faster. There is plenty more to rescue.</p>
+			</Alert>
+			<Button href="/discover" block size="lg">Browse other offers</Button>
+		{:else if step === 1}
+			<section class="space-y-3" aria-labelledby="method-heading">
+				<h2 id="method-heading" class="text-lg font-extrabold tracking-tight">
+					How would you like to pay?
+				</h2>
 
-		<!-- Continue -->
-		<button
-			type="button"
-			onclick={() => (reviewOpen = true)}
-			disabled={!$formData.paymentMethod || $delayed}
-			class="btn w-full btn-lg btn-primary"
-		>
-			Review &amp; pay
-			<IconArrowRight class="size-5" />
-		</button>
+				<div role="radiogroup" aria-labelledby="method-heading" class="space-y-3">
+					{#each availableMethods as method, i (method)}
+						{@const meta = METHODS[method]}
+						{@const active = $formData.paymentMethod === method}
+						<button
+							type="button"
+							role="radio"
+							aria-checked={active}
+							onclick={() => ($formData.paymentMethod = method)}
+							style:--i={i}
+							class="surface pressable stagger flex min-h-[4.5rem] w-full animate-rise-in items-center gap-4 p-4 text-start
+							{active ? 'border-primary bg-primary/5 ring-1 ring-primary' : ''}"
+						>
+							<div
+								class="flex size-12 shrink-0 items-center justify-center rounded-2xl transition-colors {active
+									? 'bg-primary text-primary-content'
+									: 'bg-base-200 text-base-content/60'}"
+							>
+								<meta.icon class="size-6" />
+							</div>
+							<div class="min-w-0 flex-1">
+								<p class="font-bold">{meta.label}</p>
+								<p class="text-sm text-base-content/60">{meta.description}</p>
+							</div>
+							{#if active}
+								<IconCheckmarkCircle class="size-6 shrink-0 animate-pop-in text-primary" />
+							{:else}
+								<span class="size-6 shrink-0 rounded-full border-2 border-base-300"></span>
+							{/if}
+						</button>
+					{/each}
+				</div>
+			</section>
+		{:else}
+			<section class="surface p-5 text-sm" in:fly={{ y: 12, duration: 280 }}>
+				<h2 class="text-lg font-extrabold tracking-tight">Almost there</h2>
+				<p class="mt-1 text-base-content/70">
+					{#if $formData.paymentMethod === 'iban'}
+						You will be taken to the payment gateway to complete your purchase, then straight back
+						to your pickup ticket.
+					{:else}
+						On the next screen you will get the wallet address and the exact USDT amount to send.
+					{/if}
+				</p>
+				<p class="mt-3 text-base-content/70">
+					Collect your bag during the pickup window. Bags that are not collected in time cannot be
+					handed out later.
+				</p>
+			</section>
+		{/if}
+
+		<p class="flex items-center justify-center gap-2 text-xs text-base-content/55">
+			<IconShield class="size-4 shrink-0" />
+			Payments are encrypted and processed securely
+		</p>
+
+		{#if !data.soldOut}
+			<div
+				class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[1000] border-t border-base-300/70 bg-base-100/90 px-4 py-3 backdrop-blur-xl md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none"
+			>
+				{#if step === 1}
+					<Button
+						block
+						size="lg"
+						iconRight={IconArrowRight}
+						disabled={availableMethods.length === 0}
+						onclick={() => (step = 2)}
+					>
+						Continue to review
+					</Button>
+				{:else}
+					<form method="POST" action="?/initPayment" use:enhance>
+						<input type="hidden" name="pickupDate" value={$formData.pickupDate} />
+						<input type="hidden" name="paymentMethod" value={$formData.paymentMethod} />
+						<Button
+							type="submit"
+							block
+							size="lg"
+							icon={IconLock}
+							loading={busy}
+							loadingLabel={leaving ? 'Opening payment…' : 'Starting payment…'}
+						>
+							Pay {total}
+						</Button>
+					</form>
+				{/if}
+			</div>
+		{/if}
 	</div>
 </BaseLayout>
-
-<!-- Review bottom sheet -->
-<Modal bind:open={reviewOpen} title="Review your order" position="bottom">
-	{#if $formData.paymentMethod}
-		{@const meta = methodMeta[$formData.paymentMethod as Method]}
-		<div class="space-y-4">
-			<div class="rounded-2xl bg-base-200 p-4">
-				<div class="flex items-center justify-between py-1">
-					<span class="text-sm text-base-content/60">Item</span>
-					<span class="max-w-[60%] truncate text-right font-medium">{data.offer.name}</span>
-				</div>
-				{#if data.offer.isRecurring}
-					<div class="flex items-center justify-between py-1">
-						<span class="text-sm text-base-content/60">Pickup date</span>
-						<span class="font-medium">{formatDate(data.pickupDate)}</span>
-					</div>
-				{/if}
-				<div class="flex items-center justify-between py-1">
-					<span class="text-sm text-base-content/60">Payment method</span>
-					<span class="flex items-center gap-2 font-medium">
-						<meta.icon class="size-4 {meta.iconColor}" />
-						{meta.label}
-					</span>
-				</div>
-				<div class="my-2 border-t border-base-300"></div>
-				<div class="flex items-center justify-between py-1">
-					<span class="font-semibold">Total</span>
-					<span class="text-xl font-extrabold text-primary">
-						{formatPrice(data.offer.price, data.offer.currency)}
-					</span>
-				</div>
-			</div>
-
-			<form method="POST" action="?/initPayment" use:enhance>
-				<input type="hidden" name="pickupDate" value={$formData.pickupDate} />
-				<input type="hidden" name="paymentMethod" value={$formData.paymentMethod} />
-
-				<button type="submit" disabled={$delayed} class="btn w-full btn-lg btn-primary">
-					{#if $delayed}
-						<span class="loading loading-spinner"></span>
-						Processing…
-					{:else}
-						Pay {formatPrice(data.offer.price, data.offer.currency)}
-					{/if}
-				</button>
-			</form>
-
-			<p class="text-center text-xs text-base-content/50">
-				You'll {$formData.paymentMethod === 'iban'
-					? 'be redirected to a secure payment gateway'
-					: 'complete the transfer on the next screen'}.
-			</p>
-		</div>
-	{/if}
-</Modal>

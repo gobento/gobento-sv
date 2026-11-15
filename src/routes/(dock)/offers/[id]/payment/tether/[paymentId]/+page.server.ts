@@ -1,4 +1,3 @@
-// src/routes/(dock)/offers/[id]/payment/tether/[paymentId]/+page.server.ts
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '#lib/server/db.js';
@@ -43,26 +42,20 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	// Check if failed
 	if (payment.payment.status === 'failed') {
-		throw error(400, 'Payment has failed. Please create a new payment.');
+		throw redirect(303, `/offers/${payment.payment.offerId}/payment?error=payment_failed`);
 	}
 
 	const form = await superValidate(valibot(txHashSchema));
-
-	console.log('payment', payment);
 
 	return {
 		payment: {
 			id: payment.payment.id,
 			amountUsdt: payment.payment.amountUsdt,
-
-			currency: payment.payment.currency,
-			status: payment.payment.status
+			expiresAt: payment.payment.expiresAt
 		},
 		offer: {
-			id: payment.offer!.id,
-			name: payment.offer!.name,
-			pickupTimeFrom: payment.offer!.pickupTimeFrom,
-			pickupTimeUntil: payment.offer!.pickupTimeUntil
+			id: payment.payment.offerId,
+			name: payment.offer?.name ?? 'Your order'
 		},
 		platformWalletAddress: TETHER_CONTRACT_ADDRESS,
 		form
@@ -91,7 +84,7 @@ export const actions: Actions = {
 
 		// Verify ownership
 		if (payment.userAccountId !== account.id) {
-			return setError(form, '', 'Unauthorized');
+			return setError(form, '', 'This payment belongs to another account.');
 		}
 
 		// Check status
@@ -100,7 +93,7 @@ export const actions: Actions = {
 		}
 
 		if (payment.status === 'failed') {
-			return setError(form, '', 'Payment has failed');
+			return setError(form, '', 'This payment has failed. Please start a new one from the offer.');
 		}
 
 		// Verify Tether payment
@@ -114,6 +107,6 @@ export const actions: Actions = {
 		}
 
 		// Redirect to reservation
-		redirect(303, `/reservations/${result.reservationId}`);
+		redirect(303, `/reservations/${result.reservationId}?success=true`);
 	}
 };

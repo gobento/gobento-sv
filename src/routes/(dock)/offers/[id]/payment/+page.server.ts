@@ -1,8 +1,13 @@
-// src/routes/(dock)/offers/[id]/payment/+page.server.ts
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '#lib/server/db.js';
-import { businessOffers, businessWallets, reservations } from '#lib/server/schema.js';
+import {
+	businessLocations,
+	businessOffers,
+	businessProfiles,
+	businessWallets,
+	reservations
+} from '#lib/server/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { PaymentHandler } from '#lib/server/payments/handler.js';
 import { TETHER_CONTRACT_ADDRESS } from '$app/env/private';
@@ -11,6 +16,11 @@ import { valibot } from 'sveltekit-superforms/adapters';
 import { initPaymentSchema } from './schema';
 import { priceWithMargin } from '#lib/server/payments/currency.js';
 
+/** Combines the chosen day with the offer's daily pickup time (server-local wall clock). */
+function pickupMoment(day: string, time: string): Date {
+	return new Date(`${day}T${time.length === 5 ? `${time}:00` : time}`);
+}
+
 export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const account = locals.account!;
 
@@ -18,10 +28,24 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		throw error(403, 'Only user accounts can make payments');
 	}
 
-	// Get offer
 	const [offer] = await db
-		.select()
+		.select({
+			id: businessOffers.id,
+			name: businessOffers.name,
+			price: businessOffers.price,
+			originalValue: businessOffers.originalValue,
+			isActive: businessOffers.isActive,
+			isRecurring: businessOffers.isRecurring,
+			quantity: businessOffers.quantity,
+			pickupTimeFrom: businessOffers.pickupTimeFrom,
+			pickupTimeUntil: businessOffers.pickupTimeUntil,
+			businessAccountId: businessOffers.businessAccountId,
+			businessName: businessProfiles.name,
+			locationName: businessLocations.name
+		})
 		.from(businessOffers)
+		.innerJoin(businessProfiles, eq(businessProfiles.accountId, businessOffers.businessAccountId))
+		.leftJoin(businessLocations, eq(businessLocations.id, businessOffers.locationId))
 		.where(eq(businessOffers.id, params.id))
 		.limit(1);
 
@@ -33,53 +57,57 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		throw redirect(303, `/offers/${params.id}`);
 	}
 
-	console.log('offer', offer);
-
-	// Check if already reserved
-	const existingReservation = await db
-		.select()
-		.from(reservations)
-		.where(and(eq(reservations.offerId, params.id), eq(reservations.status, 'active')))
-		.limit(1);
-
-	console.log('existingReservation', existingReservation);
-
-	// Get business payment methods
-	const [wallet] = await db
-		.select()
-		.from(businessWallets)
-		.where(eq(businessWallets.accountId, offer.businessAccountId))
-		.limit(1);
+	const [activeReservations, [wallet]] = await Promise.all([
+		db
+			.select({ id: reservations.id })
+			.from(reservations)
+			.where(and(eq(reservations.offerId, params.id), eq(reservations.status, 'active'))),
+		db
+			.select({
+				ibanEnabled: businessWallets.ibanEnabled,
+				tetherEnabled: businessWallets.tetherEnabled,
+				preferredPaymentMethod: businessWallets.preferredPaymentMethod
+			})
+			.from(businessWallets)
+			.where(eq(businessWallets.accountId, offer.businessAccountId))
+			.limit(1)
+	]);
 
 	if (!wallet || (!wallet.ibanEnabled && !wallet.tetherEnabled)) {
-		throw error(500, 'Business has not configured payment methods');
+		throw error(503, 'This business cannot accept payments yet. Please try again later.');
 	}
 
-	// Get pickup date from URL or use default
-	const pickupDate = url.searchParams.get('pickupDate') || new Date().toISOString().slice(0, 10);
+	const requestedDate = url.searchParams.get('pickupDate');
+	const pickupDate =
+		requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
+			? requestedDate
+			: new Date().toISOString().slice(0, 10);
 
-	// Create form with initial data
 	const form = await superValidate(
 		{ paymentMethod: wallet.preferredPaymentMethod, pickupDate },
 		valibot(initPaymentSchema)
 	);
 
-	const price = priceWithMargin(offer.price);
-
 	return {
 		offer: {
 			id: offer.id,
 			name: offer.name,
-			price,
+			businessName: offer.businessName,
+			locationName: offer.locationName,
+			price: priceWithMargin(offer.price),
+			originalValue: offer.originalValue,
 			currency: wallet.ibanEnabled ? 'EUR' : 'IRR',
 			isRecurring: offer.isRecurring
 		},
+		pickup: {
+			from: pickupMoment(pickupDate, offer.pickupTimeFrom),
+			until: pickupMoment(pickupDate, offer.pickupTimeUntil)
+		},
+		soldOut: activeReservations.length >= offer.quantity,
 		businessPaymentMethods: {
 			ibanEnabled: wallet.ibanEnabled,
-			tetherEnabled: wallet.tetherEnabled,
-			preferredMethod: wallet.preferredPaymentMethod
+			tetherEnabled: wallet.tetherEnabled
 		},
-		pickupDate,
 		form
 	};
 };
@@ -100,12 +128,10 @@ export const actions: Actions = {
 
 		const { paymentMethod, pickupDate: pickupDateStr } = form.data;
 
-		const pickupDate = new Date(pickupDateStr);
-		if (isNaN(pickupDate.getTime())) {
+		if (isNaN(new Date(pickupDateStr).getTime())) {
 			return setError(form, 'pickupDate', 'Invalid pickup date');
 		}
 
-		// Get offer
 		const [offer] = await db
 			.select()
 			.from(businessOffers)
@@ -117,7 +143,14 @@ export const actions: Actions = {
 		}
 
 		if (!offer.isActive) {
-			return setError(form, '', 'Offer is not active');
+			return setError(form, '', 'This offer is no longer available.');
+		}
+
+		// The reservation's pickup window starts at this moment, so it has to carry
+		// the offer's pickup time rather than midnight of the chosen day.
+		const pickupDate = pickupMoment(pickupDateStr, offer.pickupTimeFrom);
+		if (pickupMoment(pickupDateStr, offer.pickupTimeUntil).getTime() <= Date.now()) {
+			return setError(form, 'pickupDate', 'The pickup window for this day has already passed.');
 		}
 
 		// Check if already reserved
@@ -128,7 +161,7 @@ export const actions: Actions = {
 			.limit(1);
 
 		if (existingReservation.length >= offer.quantity) {
-			return setError(form, '', 'Offer is already reserved');
+			return setError(form, '', 'Sorry, this offer has just sold out.');
 		}
 
 		// Verify business accepts this payment method
@@ -139,18 +172,17 @@ export const actions: Actions = {
 			.limit(1);
 
 		if (!wallet) {
-			return setError(form, '', 'Business payment configuration not found');
+			return setError(form, '', 'This business cannot accept payments yet.');
 		}
 
 		if (paymentMethod === 'iban' && !wallet.ibanEnabled) {
-			return setError(form, 'paymentMethod', 'Business does not accept IBAN payments');
+			return setError(form, 'paymentMethod', 'This business does not accept bank payments.');
 		}
 
 		if (paymentMethod === 'tether' && !wallet.tetherEnabled) {
-			return setError(form, 'paymentMethod', 'Business does not accept USDT payments');
+			return setError(form, 'paymentMethod', 'This business does not accept USDT payments.');
 		}
 
-		// Initiate payment
 		const currency = paymentMethod === 'tether' ? 'USDT' : wallet.ibanEnabled ? 'EUR' : 'IRR';
 
 		const price = priceWithMargin(offer.price);
@@ -171,10 +203,8 @@ export const actions: Actions = {
 		});
 
 		if (!paymentResult.success) {
-			return setError(form, '', paymentResult.error || 'Failed to initialize payment');
+			return setError(form, '', paymentResult.error || 'We could not start the payment. Please try again.');
 		}
-
-		console.log('paymentResult', paymentResult);
 
 		// Return payment details
 		if (paymentMethod === 'iban') {

@@ -1,4 +1,3 @@
-// src/routes/(dock)/offers/[id]/schema.ts
 import * as v from 'valibot';
 
 export const initPaymentSchema = v.object({

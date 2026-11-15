@@ -1,75 +1,96 @@
-<!-- src/routes/(public)/about/+page.svelte -->
 <script lang="ts">
-	import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
-	import FluentBook24Regular from '~icons/fluent/book-24-regular';
-	import FluentShield24Regular from '~icons/fluent/shield-24-regular';
-	import FluentMail24Regular from '~icons/fluent/mail-24-regular';
-	import FluentInfo24Regular from '~icons/fluent/info-24-regular';
+	import PublicPage from '#lib/components/account/PublicPage.svelte';
+	import BentoBox from '~icons/fluent-emoji-flat/bento-box';
+	import IconBook from '~icons/fluent/book-24-regular';
+	import IconShield from '~icons/fluent/shield-24-regular';
+	import IconMail from '~icons/fluent/mail-24-regular';
+	import IconChevron from '~icons/fluent/chevron-right-24-regular';
+	import IconSearch from '~icons/fluent/search-24-regular';
+	import IconBag from '~icons/fluent/shopping-bag-24-regular';
+	import IconHeart from '~icons/fluent/heart-24-regular';
+
+	const steps = [
+		{
+			icon: IconSearch,
+			tone: 'bg-primary/10 text-primary',
+			title: 'Discover',
+			text: 'Bakeries, restaurants and shops near you list what is left at the end of the day.'
+		},
+		{
+			icon: IconBag,
+			tone: 'bg-secondary/15 text-secondary',
+			title: 'Reserve and collect',
+			text: 'Reserve a bento at a reduced price and pick it up in the pickup window.'
+		},
+		{
+			icon: IconHeart,
+			tone: 'bg-accent/15 text-accent',
+			title: 'Share the rest',
+			text: 'What is not sold can be donated to verified local charities.'
+		}
+	];
+
+	const links = [
+		{ href: '/terms-of-service', label: 'Terms of service', icon: IconBook },
+		{ href: '/privacy-policy', label: 'Privacy policy', icon: IconShield },
+		{ href: '/contact', label: 'Contact us', icon: IconMail }
+	];
 </script>
 
 <svelte:head>
-	<title>GoBento | About</title>
+	<title>About · GoBento</title>
+	<meta name="description" content="GoBento fights food waste, one bento at a time." />
 </svelte:head>
 
-<div class="mx-auto max-w-2xl p-4">
-	<!-- Hero Section -->
-	<div class="mb-12 text-center">
-		<div class="mb-4 flex justify-center">
-			<FluentEmojiFlatBentoBox class="h-20 w-20" />
-		</div>
-		<h1 class="mb-3 text-3xl font-bold text-white">About GoBento</h1>
-		<p class="text-lg text-white/70">Fighting food waste, one bento at a time</p>
-	</div>
-
-	<!-- Info Cards Stack -->
-	<div class="flex flex-col gap-6">
-		<!-- What We Do Card -->
-		<div class="card border border-white/20 bg-white/10 backdrop-blur-md">
-			<div class="card-body">
-				<div class="mb-3 flex items-center gap-3">
-					<FluentInfo24Regular class="h-6 w-6 text-primary" />
-					<h2 class="card-title text-white">What We Do</h2>
-				</div>
-				<p class="text-white/80">
-					GoBento connects you with restaurants and stores that have surplus food at the end of the
-					day. Save money while helping reduce food waste in your community.
-				</p>
+<PublicPage title="About GoBento" description="Fighting food waste, one bento at a time.">
+	<div class="space-y-6">
+		<section class="surface flex items-center gap-4 p-5">
+			<div
+				class="flex size-16 shrink-0 animate-float items-center justify-center rounded-3xl bg-primary/10"
+			>
+				<BentoBox class="size-10" />
 			</div>
-		</div>
+			<p class="text-base-content/75">
+				Good food should be eaten, not thrown away. GoBento connects people with shops and
+				restaurants that have surplus food, so you save money and they waste less.
+			</p>
+		</section>
 
-		<!-- Legal & Contact Links -->
-		<div class="card border border-white/20 bg-white/10 backdrop-blur-md">
-			<div class="card-body">
-				<h2 class="mb-3 card-title text-white">Information & Support</h2>
-				<div class="flex flex-col gap-3">
-					<a
-						href="/terms-of-service"
-						class="flex items-center gap-3 rounded-lg p-3 transition-colors hover:bg-white/10"
-					>
-						<FluentBook24Regular class="h-5 w-5 text-primary" />
-						<span class="text-white">Terms of Service</span>
-					</a>
-					<a
-						href="/privacy-policy"
-						class="flex items-center gap-3 rounded-lg p-3 transition-colors hover:bg-white/10"
-					>
-						<FluentShield24Regular class="h-5 w-5 text-primary" />
-						<span class="text-white">Privacy Policy</span>
-					</a>
-					<a
-						href="/contact"
-						class="flex items-center gap-3 rounded-lg p-3 transition-colors hover:bg-white/10"
-					>
-						<FluentMail24Regular class="h-5 w-5 text-primary" />
-						<span class="text-white">Contact Us</span>
-					</a>
-				</div>
-			</div>
-		</div>
-	</div>
+		<section aria-labelledby="how-heading">
+			<h2 id="how-heading" class="eyebrow mb-2 px-1">How it works</h2>
+			<ol class="surface divide-y divide-base-300/70">
+				{#each steps as step, i (step.title)}
+					{@const Icon = step.icon}
+					<li class="stagger flex animate-rise-in items-start gap-3.5 p-4" style:--i={i}>
+						<span class="flex size-10 shrink-0 items-center justify-center rounded-xl {step.tone}">
+							<Icon class="size-5" />
+						</span>
+						<div>
+							<h3 class="font-bold">{step.title}</h3>
+							<p class="text-sm text-base-content/65">{step.text}</p>
+						</div>
+					</li>
+				{/each}
+			</ol>
+		</section>
 
-	<!-- Build Info Footer -->
-	<div class="mt-8 text-center text-sm text-white/40">
-		Build: {new Date().toLocaleString()}
+		<section aria-labelledby="info-heading">
+			<h2 id="info-heading" class="eyebrow mb-2 px-1">Information and support</h2>
+			<ul class="surface divide-y divide-base-300/70 overflow-hidden">
+				{#each links as link (link.href)}
+					{@const Icon = link.icon}
+					<li>
+						<a
+							href={link.href}
+							class="flex min-h-14 items-center gap-3.5 px-4 py-3 font-semibold transition-colors hover:bg-base-200/70"
+						>
+							<Icon class="size-5 text-primary" />
+							<span class="flex-1">{link.label}</span>
+							<IconChevron class="size-5 text-base-content/35 rtl:rotate-180" />
+						</a>
+					</li>
+				{/each}
+			</ul>
+		</section>
 	</div>
-</div>
+</PublicPage>

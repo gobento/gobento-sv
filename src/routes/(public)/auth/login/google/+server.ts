@@ -1,45 +1,29 @@
-// src/routes/auth/login/google/+server.ts
 import { redirect } from '@sveltejs/kit';
 import { generateState, generateCodeVerifier } from 'arctic';
 import { google } from '#lib/server/auth.js';
+import { safeRedirectPath } from '#lib/navigation.js';
 import type { RequestHandler } from './$types';
 
+const OAUTH_COOKIE = {
+	path: '/',
+	secure: import.meta.env.PROD,
+	httpOnly: true,
+	maxAge: 60 * 10,
+	sameSite: 'lax'
+} as const;
+
 export const GET: RequestHandler = async ({ url, cookies }) => {
-	// Generate random state for security
-	const randomState = generateState();
+	const state = generateState();
 	const codeVerifier = generateCodeVerifier();
 
-	// Get the 'next' parameter to redirect after login
-	const next = url.searchParams.get('next') || '/';
+	// Only same-origin paths survive; the callback validates again before redirecting.
+	const next = safeRedirectPath(url.searchParams.get('next'));
 
-	// Encode the redirect URL into the state parameter
-	// Format: randomState|redirectUrl
-	const stateWithRedirect = `${randomState}|${encodeURIComponent(next)}`;
+	const authUrl = google.createAuthorizationURL(state, codeVerifier, ['profile', 'email']);
 
-	const authUrl = await google.createAuthorizationURL(randomState, codeVerifier, [
-		'profile',
-		'email'
-	]);
-
-	// Store the full state (with redirect) for validation
-	cookies.set('google_oauth_state', stateWithRedirect, {
-		path: '/',
-		secure: import.meta.env.PROD,
-		httpOnly: true,
-		maxAge: 60 * 10,
-		sameSite: 'lax'
-	});
-
-	cookies.set('google_code_verifier', codeVerifier, {
-		path: '/',
-		secure: import.meta.env.PROD,
-		httpOnly: true,
-		maxAge: 60 * 10,
-		sameSite: 'lax'
-	});
-
-	console.log('🔍 Login - Redirect URL:', next);
-	console.log('🔍 Login - State with redirect:', stateWithRedirect);
+	// The post-login target travels in our own cookie (state|target), never through Google.
+	cookies.set('google_oauth_state', `${state}|${encodeURIComponent(next)}`, OAUTH_COOKIE);
+	cookies.set('google_code_verifier', codeVerifier, OAUTH_COOKIE);
 
 	redirect(302, authUrl.toString());
 };

@@ -1,142 +1,116 @@
-<!-- src/routes/+error.svelte -->
 <script lang="ts">
-	import FluentEmojiCrossMark from '~icons/fluent-emoji/cross-mark';
-	import FluentEmojiFaceWithRaisedEyebrow from '~icons/fluent-emoji/face-with-raised-eyebrow';
-	import FluentEmojiWarning from '~icons/fluent-emoji/warning';
-	import FluentEmojiSos from '~icons/fluent-emoji/sos-button';
-	import FluentArrowLeft24Regular from '~icons/fluent/arrow-left-24-regular';
-	import FluentHome24Regular from '~icons/fluent/home-24-regular';
-	import FluentMail24Regular from '~icons/fluent/mail-24-regular';
-	import FluentCopy24Regular from '~icons/fluent/copy-24-regular';
-	import FluentCheckmark24Regular from '~icons/fluent/checkmark-24-regular';
 	import { page } from '$app/state';
+	import EmojiNotFound from '~icons/fluent-emoji-flat/face-with-monocle';
+	import EmojiForbidden from '~icons/fluent-emoji-flat/locked';
+	import EmojiBroken from '~icons/fluent-emoji-flat/cooking';
+	import EmojiOffline from '~icons/fluent-emoji-flat/satellite-antenna';
+	import EmojiGeneric from '~icons/fluent-emoji-flat/thinking-face';
+	import IconBack from '~icons/fluent/arrow-left-24-regular';
+	import IconHome from '~icons/fluent/home-24-regular';
+	import IconMail from '~icons/fluent/mail-24-regular';
+	import IconRetry from '~icons/fluent/arrow-clockwise-24-regular';
+	import Button from '#lib/components/ui/Button.svelte';
+	import CopyField from '#lib/components/account/CopyField.svelte';
 
-	const { status, error } = $derived(page);
-	const errorId = $derived(error?.errorId);
-
-	let copied = $state(false);
-
-	async function copyErrorId() {
-		if (!errorId) return;
-		try {
-			await navigator.clipboard.writeText(errorId);
-			copied = true;
-			setTimeout(() => (copied = false), 2000);
-		} catch {
-			// Clipboard access can be denied; fail silently.
-		}
-	}
+	const status = $derived(page.status);
+	const errorId = $derived(page.error?.errorId);
+	const serverMessage = $derived(page.error?.message);
 
 	const config = $derived.by(() => {
 		if (status === 404)
 			return {
-				icon: FluentEmojiFaceWithRaisedEyebrow,
-				title: 'Page Not Found',
-				message: "This page doesn't exist or has been moved."
+				icon: EmojiNotFound,
+				title: 'Nothing on this shelf',
+				message: 'This page does not exist or has moved. Let us get you back to the good stuff.'
 			};
-		if (status === 400)
+		if (status === 401 || status === 403)
 			return {
-				icon: FluentEmojiWarning,
-				title: 'Bad Request',
-				message: 'Please check your input and try again.'
+				icon: EmojiForbidden,
+				title: 'This one is off limits',
+				message: serverMessage || 'Your account does not have access to this page.'
+			};
+		if (status === 429)
+			return {
+				icon: EmojiOffline,
+				title: 'Slow down a little',
+				message: 'Too many requests in a short time. Wait a moment and try again.',
+				retry: true
 			};
 		if (status >= 500)
 			return {
-				icon: FluentEmojiSos,
-				title: 'Server Error',
-				message: error?.message || 'Something went wrong on our end.',
-				showSupport: true
+				icon: EmojiBroken,
+				title: 'Something burned in the kitchen',
+				message: 'That is on us, not you. Try again in a moment, or tell us what happened.',
+				retry: true,
+				support: true
 			};
 		return {
-			icon: FluentEmojiCrossMark,
-			title: 'Error',
-			message: error?.message || 'An unexpected error occurred.'
+			icon: EmojiGeneric,
+			title: 'That did not work',
+			message: serverMessage || 'Please check what you entered and try again.'
 		};
 	});
+
+	const Icon = $derived(config.icon);
 
 	const contactUrl = $derived(
 		errorId ? `/contact?errorId=${encodeURIComponent(errorId)}` : '/contact'
 	);
+
+	function goBack() {
+		history.back();
+	}
+
+	function retry() {
+		location.reload();
+	}
 </script>
 
 <svelte:head>
-	<title>{config.title} - Error {status}</title>
+	<title>{config.title} · GoBento</title>
 </svelte:head>
 
-<div class="flex min-h-screen items-center justify-center px-4 py-16">
-	<div class="w-full max-w-md">
-		<!-- Icon -->
-		<div class="mb-8 flex justify-center">
-			<div class="animate-pop-in flex size-24 items-center justify-center rounded-full bg-base-200">
-				<config.icon class="size-16" />
+<div class="flex min-h-[85dvh] items-center justify-center px-4 py-10">
+	<div class="w-full max-w-sm text-center">
+		<div class="relative mx-auto mb-6 w-fit">
+			<div
+				class="flex size-28 animate-float items-center justify-center rounded-[2.25rem] bg-base-100 shadow-lift"
+			>
+				<Icon class="size-16" />
 			</div>
+			<span
+				class="tabular absolute -end-5 -top-2 animate-pop-in rounded-full bg-secondary px-2.5 py-1 text-sm font-extrabold text-secondary-content shadow-soft"
+			>
+				{status}
+			</span>
 		</div>
 
-		<!-- Status & Message -->
-		<div class="mb-6 text-center">
-			<p class="mb-2 text-6xl font-bold text-base-content/20">{status}</p>
-			<h1 class="mb-3 text-2xl font-semibold text-base-content">{config.title}</h1>
-			<p class="text-base-content/70">{config.message}</p>
-		</div>
+		<h1 class="animate-rise-in text-2xl font-extrabold tracking-tight">{config.title}</h1>
+		<p class="stagger mt-2 animate-rise-in text-base-content/70" style:--i={1}>
+			{config.message}
+		</p>
 
-		<!-- Error reference -->
 		{#if errorId}
-			<div class="mb-6 rounded-lg border border-base-300 bg-base-200/50 p-4">
-				<p
-					class="mb-2 text-center text-xs font-medium tracking-wide text-base-content/50 uppercase"
-				>
-					Error reference
-				</p>
-				<div class="flex items-center justify-between gap-2">
-					<code class="truncate font-mono text-sm text-base-content/80">{errorId}</code>
-					<button
-						type="button"
-						onclick={copyErrorId}
-						class="btn shrink-0 btn-ghost btn-sm"
-						aria-label="Copy error reference"
-					>
-						{#if copied}
-							<FluentCheckmark24Regular class="size-4 text-success" />
-							<span>Copied</span>
-						{:else}
-							<FluentCopy24Regular class="size-4" />
-							<span>Copy</span>
-						{/if}
-					</button>
-				</div>
-				<p class="mt-2 text-center text-xs text-base-content/50">
-					Share this code with support to help us investigate.
+			<div class="stagger mt-6 animate-rise-in text-start" style:--i={2}>
+				<p class="eyebrow mb-1.5 px-1">Error reference</p>
+				<CopyField value={errorId} label="Error reference" />
+				<p class="mt-1.5 px-1 text-xs text-base-content/55">
+					Share this code with support so we can find what went wrong.
 				</p>
 			</div>
 		{/if}
 
-		<!-- Support Call-to-Action -->
-		{#if config.showSupport}
-			<div class="mb-6 rounded-lg border border-primary/30 bg-primary/10 p-5">
-				<div class="mb-3 text-center">
-					<p class="mb-1 text-base font-semibold text-base-content">Need assistance?</p>
-					<p class="text-sm text-base-content/70">
-						Our support team is ready to help you resolve this issue
-					</p>
-				</div>
-				<a href={contactUrl} class="btn w-full gap-2 btn-primary">
-					<FluentMail24Regular class="size-5" />
-					<span>Contact Support</span>
-				</a>
-			</div>
-		{/if}
-
-		<!-- Actions -->
-		<div class="flex flex-col gap-3">
-			<a href="/" class="btn gap-2 btn-primary">
-				<FluentHome24Regular class="size-5" />
-				<span>Go Home</span>
-			</a>
-
-			<button onclick={() => window.history.back()} class="btn gap-2 btn-ghost">
-				<FluentArrowLeft24Regular class="size-5" />
-				<span>Go Back</span>
-			</button>
+		<div class="stagger mt-7 flex animate-rise-in flex-col gap-2.5" style:--i={3}>
+			{#if config.retry}
+				<Button icon={IconRetry} block onclick={retry}>Try again</Button>
+				<Button href="/" variant="ghost" icon={IconHome} block>Go to start</Button>
+			{:else}
+				<Button href="/" icon={IconHome} block>Go to start</Button>
+				<Button variant="ghost" icon={IconBack} block onclick={goBack}>Go back</Button>
+			{/if}
+			{#if config.support || errorId}
+				<Button href={contactUrl} variant="ghost" icon={IconMail} block>Contact support</Button>
+			{/if}
 		</div>
 	</div>
 </div>

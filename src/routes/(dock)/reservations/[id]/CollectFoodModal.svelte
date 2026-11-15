@@ -1,190 +1,172 @@
+<!-- Pickup sheet: shows the pickup code to staff and confirms the hand-over with a slide. -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { browser } from '$app/env';
-	import IconQrCode from '~icons/fluent/qr-code-24-regular';
-	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
-	import IconDismiss from '~icons/fluent/dismiss-circle-24-regular';
-	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
+	import IconArrowRight from '~icons/fluent/arrow-right-24-filled';
+	import IconCheck from '~icons/fluent/checkmark-24-filled';
 	import Modal from '#lib/components/Modal.svelte';
-	import Confetti from '#lib/components/motion/Confetti.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import Spinner from '#lib/components/ui/Spinner.svelte';
 
-	let {
-		open = $bindable(false),
-		claimToken,
-		form = null,
-		onCollectComplete = null
-	}: {
+	interface Props {
 		open: boolean;
 		claimToken: string;
-		form?: any;
-		onCollectComplete?: (() => void) | null;
-	} = $props();
-
-	let swipeProgress = $state(0);
-	let isDragging = $state(false);
-	let startX = $state(0);
-	let collectLoading = $state(false);
-	let celebrate = $state(false);
-
-	function handleSwipeStart(e: MouseEvent | TouchEvent) {
-		isDragging = true;
-		startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+		offerName: string;
+		businessName: string;
+		oncollected: () => void;
 	}
 
-	function handleSwipeEnd() {
-		if (swipeProgress >= 90) {
-			handleCollect();
-		} else {
-			swipeProgress = 0;
-		}
-		isDragging = false;
+	let { open = $bindable(false), claimToken, offerName, businessName, oncollected }: Props = $props();
+
+	const THUMB = 56;
+	const CONFIRM_AT = 0.9;
+
+	let formEl = $state<HTMLFormElement | null>(null);
+	let track = $state<HTMLElement | null>(null);
+	let progress = $state(0);
+	let dragging = $state(false);
+	let submitting = $state(false);
+	let errorMessage = $state('');
+	let startX = 0;
+	let travel = 1;
+
+	function vibrate(pattern: number | number[]) {
+		navigator.vibrate?.(pattern);
 	}
 
-	function handleSwipeMove(e: MouseEvent | TouchEvent) {
-		if (!isDragging) return;
-
-		const currentX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-		const diff = currentX - startX;
-		const maxWidth = 300;
-		const progress = Math.max(0, Math.min(100, (diff / maxWidth) * 100));
-
-		if (progress >= 90 && swipeProgress < 90) {
-			hapticFeedback('heavy');
-		} else if (progress >= 50 && swipeProgress < 50) {
-			hapticFeedback('light');
-		}
-
-		swipeProgress = progress;
+	function confirm() {
+		if (submitting) return;
+		progress = 1;
+		vibrate([30, 10, 30]);
+		formEl?.requestSubmit();
 	}
 
-	async function handleCollect() {
-		celebrate = false;
-		collectLoading = true;
-		const formEl = document.getElementById('collectForm') as HTMLFormElement;
-		if (formEl) {
-			formEl.requestSubmit();
-		}
+	function onPointerDown(event: PointerEvent) {
+		if (submitting || !track) return;
+		dragging = true;
+		startX = event.clientX;
+		travel = Math.max(1, track.clientWidth - THUMB - 8);
+		(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
 	}
 
-	function hapticFeedback(intensity: 'light' | 'medium' | 'heavy' = 'medium') {
-		if (!browser) return;
-		if ('vibrate' in navigator) {
-			const patterns = {
-				light: 10,
-				medium: 20,
-				heavy: [30, 10, 30]
-			};
-			navigator.vibrate(patterns[intensity]);
+	function onPointerMove(event: PointerEvent) {
+		if (!dragging) return;
+		const direction = getComputedStyle(track!).direction === 'rtl' ? -1 : 1;
+		const next = Math.min(1, Math.max(0, ((event.clientX - startX) * direction) / travel));
+		if (next >= CONFIRM_AT && progress < CONFIRM_AT) vibrate(15);
+		progress = next;
+	}
+
+	function onPointerUp() {
+		if (!dragging) return;
+		dragging = false;
+		if (progress >= CONFIRM_AT) confirm();
+		else progress = 0;
+	}
+
+	function onKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			confirm();
 		}
 	}
 
 	$effect(() => {
-		if (form?.success && !collectLoading) {
-			open = false;
-			swipeProgress = 0;
-			celebrate = true;
-			if (onCollectComplete) {
-				onCollectComplete();
-			}
-		}
-		if (!form?.success && collectLoading) {
-			collectLoading = false;
+		if (!open) {
+			progress = 0;
+			dragging = false;
+			errorMessage = '';
 		}
 	});
 </script>
 
-<!-- /src/lib/components/CollectFoodModal.svelte -->
-
-<svelte:window
-	onmousemove={handleSwipeMove}
-	onmouseup={handleSwipeEnd}
-	ontouchmove={handleSwipeMove}
-	ontouchend={handleSwipeEnd}
-/>
-
-<Modal bind:open size="small" title="Collect Your Food">
-	{#if form?.error && collectLoading === false}
-		<div class="mb-4 rounded-xl border-l-4 border-error bg-error/10 p-4">
-			<div class="flex items-center gap-2 text-error">
-				<IconDismiss class="size-5" />
-				<span>{form.error}</span>
-			</div>
-		</div>
-	{/if}
-
-	<!-- QR Code Display -->
-	<div class="mb-6 flex flex-col items-center">
-		<div class="rounded-2xl bg-white p-8 shadow-inner">
-			<IconQrCode class="h-32 w-32 text-gray-800" />
-		</div>
-		<div class="mt-4 w-full rounded-xl bg-base-200 p-4">
-			<p class="mb-2 text-center text-xs tracking-wide text-base-content/40 uppercase">
-				Collection Token
-			</p>
-			<p class="text-center font-mono text-sm font-medium break-all">
-				{claimToken}
-			</p>
-		</div>
-	</div>
-
-	<div class="divider my-6 text-xs tracking-wide uppercase">or</div>
-
-	<!-- Swipe to Collect -->
-	<div class="mb-6">
-		<p class="mb-4 text-center text-sm text-base-content/60">
-			Swipe right to confirm you've received your food
+<Modal bind:open title="Collect your food" position="bottom" size="small" dismissible={!submitting}>
+	<div class="space-y-5">
+		<p class="text-sm text-base-content/70">
+			Show this screen to the staff at <strong class="text-base-content">{businessName}</strong>,
+			then slide to confirm once you have your bag.
 		</p>
-		<div class="relative h-16 w-full overflow-hidden rounded-full bg-base-200">
-			<!-- Progress fill as one rounded rectangle -->
+
+		<div class="rounded-2xl border border-dashed border-base-300 bg-base-200/60 p-4 text-center">
+			<p class="eyebrow">Pickup code</p>
+			<p class="mt-1.5 font-mono text-sm font-bold break-all select-all" dir="ltr">{claimToken}</p>
+			<p class="mt-2 truncate text-sm text-base-content/60">{offerName}</p>
+		</div>
+
+		{#if errorMessage}
+			<Alert type="error">{errorMessage}</Alert>
+		{/if}
+
+		<form
+			bind:this={formEl}
+			method="POST"
+			action="?/claimReservation"
+			use:enhance={() => {
+				submitting = true;
+				errorMessage = '';
+				return async ({ result, update }) => {
+					if (result.type === 'success') {
+						await update({ reset: false });
+						submitting = false;
+						open = false;
+						oncollected();
+						return;
+					}
+					submitting = false;
+					progress = 0;
+					errorMessage =
+						result.type === 'failure' && typeof result.data?.error === 'string'
+							? result.data.error
+							: 'Something went wrong. Please try again.';
+					// A failure usually means the status changed elsewhere; refresh what is shown.
+					if (result.type === 'failure') await update({ reset: false });
+				};
+			}}
+		>
 			<div
-				class="absolute top-2 bottom-2 left-2 flex items-center justify-end rounded-full bg-success pr-1 transition-all duration-100"
-				style="width: calc(max(3rem, {swipeProgress}% - 0.5rem))"
+				bind:this={track}
+				class="relative h-16 overflow-hidden rounded-full bg-success/15 select-none"
 			>
-				<!-- Checkmark inside the filled area -->
 				<div
-					class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-content/20"
+					class="absolute inset-y-0 start-0 rounded-full bg-success/30 {dragging
+						? ''
+						: 'transition-[width] duration-300 ease-out-quint'}"
+					style:width="calc({THUMB + 8}px + (100% - {THUMB + 8}px) * {progress})"
+				></div>
+
+				<p
+					class="pointer-events-none absolute inset-0 flex items-center justify-center ps-12 text-sm font-extrabold text-success"
+					style:opacity={submitting ? 1 : Math.max(0, 1 - progress * 2.5)}
 				>
-					<IconCheckmark class="h-6 w-6" />
-				</div>
-			</div>
+					{submitting ? 'Confirming…' : 'Slide to confirm pickup'}
+				</p>
 
-			<!-- Invisible drag handle that covers the entire bar -->
-			<button
-				type="button"
-				class="absolute inset-0 z-10 cursor-grab active:cursor-grabbing"
-				onmousedown={handleSwipeStart}
-				ontouchstart={handleSwipeStart}
-			>
-				<span class="sr-only">Swipe to collect</span>
-			</button>
-
-			<!-- Text hint -->
-			<div
-				class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-medium"
-				style="opacity: {Math.max(0, 1 - swipeProgress / 40)}"
-			>
-				Swipe to collect <IconArrowRight class="size-5" />
+				<button
+					type="button"
+					class="absolute start-1 top-1 flex size-14 cursor-grab touch-none items-center justify-center rounded-full bg-success text-success-content shadow-soft active:cursor-grabbing {dragging
+						? ''
+						: 'transition-[inset-inline-start] duration-300 ease-out-quint'}"
+					style:inset-inline-start="calc(0.25rem + (100% - {THUMB + 8}px) * {progress})"
+					aria-label="Confirm pickup. Slide to the end, or press Enter."
+					disabled={submitting}
+					onpointerdown={onPointerDown}
+					onpointermove={onPointerMove}
+					onpointerup={onPointerUp}
+					onpointercancel={onPointerUp}
+					onkeydown={onKeydown}
+				>
+					{#if submitting}
+						<Spinner size="sm" />
+					{:else if progress >= CONFIRM_AT}
+						<IconCheck class="size-6" />
+					{:else}
+						<IconArrowRight class="size-6 rtl:rotate-180" />
+					{/if}
+				</button>
 			</div>
-		</div>
+		</form>
+
+		<p class="text-center text-xs text-base-content/55">
+			Only confirm when the bag is in your hands. This cannot be undone.
+		</p>
 	</div>
-
-	<form
-		id="collectForm"
-		method="POST"
-		action="?/claimReservation"
-		use:enhance={() => {
-			collectLoading = true;
-			return async ({ update }) => {
-				await update();
-				collectLoading = false;
-			};
-		}}
-	></form>
-
-	{#if collectLoading}
-		<div class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-primary/10 p-4">
-			<span class="loading loading-md loading-spinner text-primary"></span>
-			<span class="text-sm font-medium text-primary">Processing collection...</span>
-		</div>
-	{/if}
 </Modal>

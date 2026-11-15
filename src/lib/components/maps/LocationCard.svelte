@@ -1,9 +1,12 @@
-<!-- src/lib/components/LocationCard.svelte -->
+<!-- Address block with an on-demand map and a directions link. -->
 <script lang="ts">
+	import { slide } from 'svelte/transition';
 	import IconMapPin from '~icons/fluent/location-24-regular';
-	import IconChevronDown from '~icons/fluent/chevron-down-24-regular';
-	import IconChevronUp from '~icons/fluent/chevron-up-24-regular';
-	import IconFluentMap24Regular from '~icons/fluent/map-24-regular';
+	import IconMap from '~icons/fluent/map-24-regular';
+	import IconDirections from '~icons/fluent/directions-24-regular';
+	import IconTile from '#lib/components/ui/IconTile.svelte';
+	import Skeleton from '#lib/components/ui/Skeleton.svelte';
+	import { directionsUrl } from './leaflet';
 
 	interface LocationCardProps {
 		name: string;
@@ -15,6 +18,8 @@
 		latitude: number;
 		longitude: number;
 		showTitle?: boolean;
+		/** Start with the map open (detail pages); it still loads lazily. */
+		expanded?: boolean;
 	}
 
 	let {
@@ -26,63 +31,67 @@
 		country,
 		latitude,
 		longitude,
-		showTitle = true
+		showTitle = true,
+		expanded = false
 	}: LocationCardProps = $props();
 
-	let isExpanded = $state(false);
-
-	const toggleMap = () => {
-		isExpanded = !isExpanded;
-	};
+	// svelte-ignore state_referenced_locally
+	let isExpanded = $state(expanded);
+	const mapId = $props.id();
 </script>
 
 <div>
 	{#if showTitle}
-		<div class="mb-3 flex items-center gap-2">
-			<div class="rounded-lg bg-primary/10 p-2">
-				<IconMapPin class="size-5 text-primary" />
-			</div>
-			<h3 class="text-lg font-bold text-base-content">Pickup Location</h3>
-		</div>
+		<h3 class="eyebrow mb-2">Pickup location</h3>
 	{/if}
 
-	<button
-		onclick={toggleMap}
-		class="group btn h-auto min-h-0 w-full justify-start rounded-xl bg-base-200 btn-ghost p-4 normal-case hover:bg-base-300"
-	>
-		<div class="flex w-full items-start justify-between gap-3">
-			<div class="flex-1 space-y-1 text-left">
-				<p class="font-bold text-base-content">{name}</p>
-				<p class="font-semibold text-base-content/90">{address}</p>
-				<p class="text-sm font-medium text-base-content/70">
+	<div class="overflow-hidden rounded-2xl bg-base-200/60">
+		<div class="flex items-start gap-3 p-3.5">
+			<IconTile icon={IconMapPin} size="md" />
+			<div class="min-w-0 flex-1">
+				<p class="truncate font-extrabold">{name}</p>
+				<p class="text-sm text-base-content/70">{address}</p>
+				<p class="text-sm text-base-content/70">
 					{zipCode}
-					{city}{#if province}, {province}{/if}
+					{city}{#if province}, {province}{/if}{#if country}, {country}{/if}
 				</p>
-				{#if country}
-					<p class="text-xs font-medium text-base-content/60">{country}</p>
-				{/if}
-			</div>
-			<div
-				class="rounded-full bg-primary/10 p-1.5 transition-all group-hover:bg-primary group-hover:text-primary-content"
-			>
-				{#if isExpanded}
-					<IconChevronUp class="size-4" />
-				{:else}
-					<IconChevronDown class="size-4" />
-				{/if}
 			</div>
 		</div>
-	</button>
 
-	{#if isExpanded}
-		<div class="mt-3 h-[300px] w-full overflow-hidden rounded-xl border border-base-200">
-			{#await import('#lib/components/maps/MarkedMap.svelte')}
-				<div class="flex h-full items-center justify-center">
-					<IconFluentMap24Regular class="size-12 animate-pulse text-base-content/50" />
-				</div>
-			{:then { default: MarkedMap }}
-				<MarkedMap {latitude} {longitude} />
-			{/await}
+		{#if isExpanded}
+			<div id={mapId} class="h-52 w-full sm:h-64" transition:slide={{ duration: 220 }}>
+				{#await import('./MarkedMap.svelte')}
+					<Skeleton class="size-full rounded-none" />
+				{:then { default: MarkedMap }}
+					<MarkedMap {latitude} {longitude} />
+				{:catch}
+					<p class="flex size-full items-center justify-center text-sm text-base-content/60">
+						The map could not be loaded.
+					</p>
+				{/await}
+			</div>
+		{/if}
+
+		<div class="grid grid-cols-2 gap-px border-t border-base-300/70 bg-base-300/70">
+			<button
+				type="button"
+				class="flex min-h-12 items-center justify-center gap-2 bg-base-200/60 text-sm font-bold transition-colors hover:bg-base-200 hover:text-primary"
+				aria-expanded={isExpanded}
+				aria-controls={mapId}
+				onclick={() => (isExpanded = !isExpanded)}
+			>
+				<IconMap class="size-5" />
+				{isExpanded ? 'Hide map' : 'Show map'}
+			</button>
+			<a
+				href={directionsUrl(latitude, longitude)}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="flex min-h-12 items-center justify-center gap-2 bg-base-200/60 text-sm font-bold transition-colors hover:bg-base-200 hover:text-primary"
+			>
+				<IconDirections class="size-5" />
+				Directions
+			</a>
 		</div>
-	{/if}
+	</div>
 </div>

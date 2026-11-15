@@ -1,790 +1,615 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { browser } from '$app/env';
-	import { formatDate, formatTime, downloadBase64Pdf } from '#lib/util.js';
-	import { onMount, onDestroy } from 'svelte';
+	import { invalidateAll, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
+	import { onMount, tick } from 'svelte';
+	import { slide } from 'svelte/transition';
 
-	import IconLocation from '~icons/fluent/location-24-regular';
-	import IconPersonAdd from '~icons/fluent/person-add-24-regular';
-	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
-	import IconDismiss from '~icons/fluent/dismiss-circle-24-regular';
-	import IconFood from '~icons/fluent/food-24-regular';
-	import IconShare from '~icons/fluent/share-24-regular';
-	import IconCopy from '~icons/fluent/copy-24-regular';
-	import IconTimer from '~icons/fluent/timer-24-regular';
+	import IconBack from '~icons/fluent/chevron-left-24-regular';
 	import IconChevronRight from '~icons/fluent/chevron-right-24-regular';
-	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
-	import IconArrowDownload from '~icons/fluent/arrow-download-24-regular';
-	import FluentAlert24Regular from '~icons/fluent/alert-24-regular';
+	import IconClock from '~icons/fluent/clock-24-regular';
+	import IconLocation from '~icons/fluent/location-24-regular';
+	import IconDirections from '~icons/fluent/arrow-turn-right-24-regular';
+	import IconMap from '~icons/fluent/map-24-regular';
+	import IconPersonAdd from '~icons/fluent/person-add-24-regular';
+	import IconPeople from '~icons/fluent/people-24-regular';
+	import IconBag from '~icons/fluent/shopping-bag-24-filled';
+	import IconReceipt from '~icons/fluent/receipt-24-regular';
+	import IconAlert from '~icons/fluent/alert-24-regular';
+	import IconTimerOff from '~icons/fluent/timer-off-24-regular';
+	import IconSearch from '~icons/fluent/search-24-regular';
+	import IconNote from '~icons/fluent/note-24-regular';
+
+	import Alert from '#lib/components/Alert.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import IconTile from '#lib/components/ui/IconTile.svelte';
+	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';
+	import SuccessCheck from '#lib/components/ui/SuccessCheck.svelte';
+	import Confetti from '#lib/components/motion/Confetti.svelte';
+	import { toast } from '#lib/components/ui/toast.svelte';
+	import BusinessLogo from '#lib/components/reservations/BusinessLogo.svelte';
+	import {
+		countdownTo,
+		formatClock,
+		formatMoment,
+		formatPickupWindow,
+		pickupPhase
+	} from '#lib/components/reservations/pickup.js';
+	import { receiptSubmit } from '#lib/components/reservations/receipt.js';
+	import {
+		cancelPickupNotifications,
+		notificationPermission,
+		requestNotificationPermission,
+		schedulePickupNotifications
+	} from '#lib/client/schedulePickupNotifications.js';
+	import { RESERVATION_STATUS } from '#lib/statuses.js';
+	import { formatPrice } from '#lib/util.js';
 
 	import CollectFoodModal from './CollectFoodModal.svelte';
 	import CreateInviteModal from './CreateInviteModal.svelte';
 
-	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
-	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
-	import LocationCard from '#lib/components/maps/LocationCard.svelte';
-	import Alert from '#lib/components/Alert.svelte';
-	import { page } from '$app/state';
-	import Confetti from '#lib/components/motion/Confetti.svelte';
-
-	let { data, form } = $props();
+	let { data } = $props();
 
 	let showInviteModal = $state(false);
 	let showCollectModal = $state(false);
-	let inviteLoading = $state(false);
-	let inviteLink = $state('');
-	let linkCopied = $state(false);
-	let receiptLoading = $state(false);
-	let receiptError = $state('');
+	let showMap = $state(false);
+	let receiptPending = $state(false);
+	let invitePending = $state<'accept' | 'decline' | 'cancel' | null>(null);
+	let justPaid = $state(false);
+	let confetti = $state(false);
+	let canAskForReminder = $state(false);
+	let now = $state(Date.now());
 
-	// Countdown state
-	let timeRemaining = $state({
-		days: 0,
-		hours: 0,
-		minutes: 0,
-		seconds: 0,
-		isPickupTime: false,
-		hasStarted: false
-	});
-	let countdownInterval: ReturnType<typeof setInterval> | null = null;
+	const reservation = $derived(data.reservation);
+	const isActive = $derived(reservation.status === 'active');
+	const isCollected = $derived(reservation.status === 'claimed' || reservation.status === 'completed');
+	const phase = $derived(pickupPhase(reservation.pickupFrom, reservation.pickupUntil, now));
+	const countdown = $derived(
+		countdownTo(phase === 'upcoming' ? reservation.pickupFrom : reservation.pickupUntil, now)
+	);
+	const pickupWindow = $derived(
+		formatPickupWindow(reservation.pickupFrom, reservation.pickupUntil, now)
+	);
+	const collectedAt = $derived(reservation.claimedAt ?? reservation.completedAt);
 
-	function calculateTimeRemaining() {
-		const now = new Date();
-		const pickupStart = new Date(data.reservation.pickupFrom);
-		const pickupEnd = new Date(data.reservation.pickupUntil);
+	const handedToFriend = $derived(data.invite?.status === 'accepted');
+	const canCollectNow = $derived(
+		isActive && phase === 'open' && data.canCollect && !handedToFriend && !!reservation.claimToken
+	);
+	const inviteLink = $derived(
+		data.invite?.token
+			? `${page.url.origin}/reservations/${reservation.id}?invite=${data.invite.token}`
+			: null
+	);
+	const inviteQuery = $derived(
+		`&invite=${encodeURIComponent(page.url.searchParams.get('invite') ?? '')}`
+	);
+	const directionsHref = $derived(
+		data.location
+			? `https://www.google.com/maps/dir/?api=1&destination=${data.location.latitude},${data.location.longitude}`
+			: null
+	);
 
-		if (now >= pickupStart && now <= pickupEnd) {
-			timeRemaining.isPickupTime = true;
-			timeRemaining.hasStarted = true;
-			return;
-		}
-
-		if (now > pickupEnd) {
-			timeRemaining.hasStarted = true;
-			timeRemaining.isPickupTime = false;
-			return;
-		}
-
-		const diff = pickupStart.getTime() - now.getTime();
-
-		timeRemaining.days = Math.floor(diff / (1000 * 60 * 60 * 24));
-		timeRemaining.hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-		timeRemaining.minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-		timeRemaining.seconds = Math.floor((diff % (1000 * 60)) / 1000);
-		timeRemaining.hasStarted = false;
-		timeRemaining.isPickupTime = false;
+	async function celebrate() {
+		confetti = false;
+		await tick();
+		confetti = true;
 	}
 
 	onMount(() => {
-		calculateTimeRemaining();
-		countdownInterval = setInterval(() => {
-			const wasPickupTime = timeRemaining.isPickupTime;
-			calculateTimeRemaining();
-			if (!wasPickupTime && timeRemaining.isPickupTime) {
-				sendPickupNotification();
-			}
-		}, 1000);
-	});
+		canAskForReminder = notificationPermission() === 'default';
 
-	onDestroy(() => {
-		if (countdownInterval) {
-			clearInterval(countdownInterval);
-		}
-	});
-
-	async function sendPickupNotification() {
-		if (!browser) return;
-		if ('Notification' in window && Notification.permission === 'granted') {
-			new Notification('Pickup Time!', {
-				body: `Your food is ready to pick up at ${data.business.name}`,
-				icon: data.business.logo.url,
-				badge: data.business.logo.url,
-				tag: `pickup-${data.reservation.id}`,
-				requireInteraction: true
+		if (page.url.searchParams.get('success') === 'true') {
+			justPaid = true;
+			celebrate();
+			// Drop the flag so a reload or shared link does not celebrate again.
+			const url = new URL(page.url.href);
+			url.searchParams.delete('success');
+			tick().then(() => {
+				try {
+					replaceState(url, page.state);
+				} catch {
+					// The router is not ready yet; the flag simply stays in the URL.
+				}
 			});
 		}
-		if ('vibrate' in navigator) {
-			navigator.vibrate([200, 100, 200, 100, 200]);
-		}
-	}
+	});
 
-	function requestNotificationPermission() {
-		if (!browser) return;
-		if ('Notification' in window && Notification.permission === 'default') {
-			Notification.requestPermission();
-		}
-	}
-
-	function hapticFeedback(intensity: 'light' | 'medium' | 'heavy' = 'medium') {
-		if (!browser) return;
-		if ('vibrate' in navigator) {
-			const patterns = {
-				light: 10,
-				medium: 20,
-				heavy: [30, 10, 30]
-			};
-			navigator.vibrate(patterns[intensity]);
-		}
-	}
-
-	async function copyInviteLink() {
-		if (!browser) return;
-		if (inviteLink) {
-			try {
-				await navigator.clipboard.writeText(inviteLink);
-				linkCopied = true;
-				hapticFeedback('medium');
-				setTimeout(() => {
-					linkCopied = false;
-				}, 2000);
-			} catch (err) {
-				console.error('Failed to copy link:', err);
-			}
-		}
-	}
-
-	async function shareInviteLink() {
-		if (!browser) return;
-		if (inviteLink && navigator.share) {
-			try {
-				await navigator.share({
-					title: `Collect ${data.offer.name}`,
-					text: `I've invited you to collect this food from ${data.business.name}!`,
-					url: inviteLink
-				});
-			} catch (err) {
-				console.log('Share cancelled or not supported');
-			}
-		}
-	}
-
+	// One tick per second while the pickup is still ahead or under way.
 	$effect(() => {
-		if (form?.success && form?.inviteLink) {
-			inviteLink = form.inviteLink;
-		}
+		if (!isActive) return;
+		now = Date.now();
+		const timer = setInterval(() => (now = Date.now()), 1000);
+		return () => clearInterval(timer);
+	});
 
-		if (form?.success && !inviteLoading) {
-			if (!form.inviteLink && !form.inviteAccepted && !form.inviteDeclined) {
-				showInviteModal = false;
-				showCollectModal = false;
-			}
+	let lastPhase: typeof phase | null = null;
+	$effect(() => {
+		const current = phase;
+		const previous = lastPhase;
+		lastPhase = current;
+		if (!isActive || previous === null || previous === current) return;
+
+		if (current === 'open') {
+			navigator.vibrate?.([200, 100, 200]);
+			if (data.canCollect) toast.success('Your food is ready for pickup');
+		} else if (current === 'closed') {
+			// Lets the server settle the reservation as expired.
+			invalidateAll();
 		}
 	});
 
-	const hasPendingInvite = $derived(
-		data.isOwner && data.invites.some((inv) => inv.status === 'pending')
-	);
+	async function enableReminders() {
+		const granted = await requestNotificationPermission();
+		canAskForReminder = false;
+		if (!granted) {
+			toast.info('Notifications are blocked. You can allow them in your browser settings.');
+			return;
+		}
+		const result = await schedulePickupNotifications({
+			reservationId: reservation.id,
+			pickupDate: reservation.pickupFrom,
+			offerName: data.offer.name,
+			locationName: data.business.name
+		});
+		toast.success(
+			result.success
+				? 'We will remind you before pickup'
+				: 'Notifications are on. Keep this page open to be reminded.'
+		);
+	}
 
-	const hasAcceptedInvite = $derived(
-		data.isOwner && data.invites.some((inv) => inv.status === 'accepted')
-	);
+	function onCollected() {
+		celebrate();
+		toast.success('Enjoy your food!');
+		cancelPickupNotifications(reservation.id).catch(() => {});
+	}
 
-	const acceptedInvite = $derived(data.invites.find((inv) => inv.status === 'accepted'));
-
-	const canShare = $derived(
-		browser && data.isOwner && typeof navigator !== 'undefined' && navigator.share !== undefined
-	);
-
-	const baseUrl = 'https://yourapp.com';
-	const reservationUrl = `${baseUrl}/reservations/${data.reservation.id}`;
-
-	const reservationDescription = data.pendingInviteForUser
-		? `You've been invited to collect ${data.offer.name} from ${data.business.name}. Pickup on ${formatDate(data.reservation.pickupFrom)} between ${formatTime(data.reservation.pickupFrom)}–${formatTime(data.reservation.pickupUntil)}.`
-		: `${data.offer.name} reservation at ${data.business.name}. Pickup on ${formatDate(data.reservation.pickupFrom)} between ${formatTime(data.reservation.pickupFrom)}–${formatTime(data.reservation.pickupUntil)}.`;
-
-	const pageTitle = data.pendingInviteForUser
-		? `You're Invited: ${data.offer.name} at ${data.business.name}`
-		: data.reservation.status === 'claimed'
-			? `✓ Collected: ${data.offer.name}`
-			: `Your Reservation: ${data.offer.name}`;
+	function reportFailure(result: { type: string; data?: Record<string, unknown> }, fallback: string) {
+		if (result.type === 'failure' || result.type === 'error') {
+			const message = result.data?.error;
+			toast.error(typeof message === 'string' ? message : fallback);
+		}
+	}
 </script>
 
-<!-- /src/routes/(dock)/reservations/[id]/+page.svelte -->
-
 <svelte:head>
-	<title>{pageTitle}</title>
-	<meta name="description" content={reservationDescription} />
-
-	<meta property="og:title" content={pageTitle} />
-	<meta property="og:site_name" content="YourAppName" />
-	<meta property="og:url" content={reservationUrl} />
-	<meta property="og:description" content={reservationDescription} />
-	<meta property="og:type" content={data.pendingInviteForUser ? 'website' : 'article'} />
-	<meta property="og:image" content={data.business.logo.url} />
-	<meta property="og:image:alt" content="{data.business.name} - {data.offer.name}" />
-
-	{#if data.reservation.status === 'active'}
-		<meta
-			property="event:start_time"
-			content={new Date(data.reservation.pickupFrom).toISOString()}
-		/>
-		<meta
-			property="event:end_time"
-			content={new Date(data.reservation.pickupUntil).toISOString()}
-		/>
-	{/if}
-
-	{#if data.location}
-		<meta property="og:locality" content={data.location.city} />
-		<meta property="og:country-name" content={data.location.country} />
-		<meta property="place:location:latitude" content={data.location.latitude?.toString()} />
-		<meta property="place:location:longitude" content={data.location.longitude?.toString()} />
-	{/if}
-
-	<meta property="og:locale" content="en_US" />
-	<meta
-		property="article:published_time"
-		content={new Date(data.reservation.reservedAt).toISOString()}
-	/>
-
-	{#if data.pendingInviteForUser}
-		<meta property="og:type" content="website" />
-		<meta name="robots" content="noindex, nofollow" />
-	{/if}
+	<title>{data.offer.name} · {data.business.name}</title>
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
-<!-- Celebrates a freshly completed payment (?success=true). -->
-<Confetti show={page.url.searchParams.get('success') === 'true'} />
+<Confetti show={confetti} />
 
-<div class="space-y-4">
-	<!-- Status Banners -->
-	{#if form?.inviteAccepted}
-		<Alert type="success">
-			<div class="flex items-center gap-3">
-				<IconCheckmark class="size-8" />
-				<div>
-					<h3 class="font-bold">Invite Accepted</h3>
-					<p class="text-sm opacity-80">You can now collect this food reservation</p>
+{#snippet countdownCells()}
+	<div class="tabular flex items-start justify-center gap-1.5 text-center" role="timer">
+		{#each [...(countdown.days > 0 ? [{ value: String(countdown.days), unit: countdown.days === 1 ? 'day' : 'days' }] : []), { value: countdown.hours, unit: 'hrs' }, { value: countdown.minutes, unit: 'min' }, { value: countdown.seconds, unit: 'sec' }] as cell, i (cell.unit)}
+			{#if i > 0}
+				<span class="pt-2.5 text-2xl font-extrabold opacity-30" aria-hidden="true">:</span>
+			{/if}
+			<div class="w-16">
+				<div class="rounded-2xl bg-base-100 py-2.5 text-3xl leading-none font-extrabold shadow-soft">
+					{cell.value}
+				</div>
+				<div class="mt-1.5 text-[11px] font-bold tracking-wider text-base-content/50 uppercase">
+					{cell.unit}
 				</div>
 			</div>
-		</Alert>
-	{/if}
+		{/each}
+	</div>
+{/snippet}
 
-	{#if form?.inviteDeclined}
-		<Alert type="info">
-			<div class="flex items-center gap-3">
-				<IconDismiss class="size-8" />
-				<div>
-					<h3 class="font-bold">Invite Declined</h3>
-					<p class="text-sm opacity-80">You've declined this invitation</p>
-				</div>
-			</div>
-		</Alert>
-	{/if}
-
-	{#if data.reservation.status === 'claimed'}
-		<Alert type="success">
-			<div class="flex items-center gap-3">
-				<IconCheckmark class="size-8" />
-				<div class="flex-1">
-					<h3 class="font-bold">Food Collected</h3>
-					{#if data.reservation.claimedAt}
-						<p class="text-sm opacity-80">
-							{formatDate(data.reservation.claimedAt)} at {formatTime(data.reservation.claimedAt)}
-						</p>
-					{/if}
-					{#if data.reservation.claimedBy && data.isOwner}
-						{@const claimer = data.invites.find(
-							(inv) => inv.invitedAccountId === data.reservation.claimedBy
-						)}
-						{#if claimer}
-							<div class="mt-2 flex items-center gap-2 text-sm">
-								<span>👤</span>
-								<span>Collected by your friend</span>
-							</div>
-						{/if}
-					{/if}
-				</div>
-			</div>
-		</Alert>
-	{/if}
-
-	<!-- Countdown Timers -->
-	{#if data.reservation.status === 'active' && !data.pendingInviteForUser}
-		{#if timeRemaining.isPickupTime}
-			{@const now = new Date()}
-			{@const pickupEnd = new Date(data.reservation.pickupUntil)}
-			{@const diff = pickupEnd.getTime() - now.getTime()}
-			{@const daysLeft = Math.floor(diff / (1000 * 60 * 60 * 24))}
-			{@const hoursLeft = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))}
-			{@const minutesLeft = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))}
-			{@const secondsLeft = Math.floor((diff % (1000 * 60)) / 1000)}
-
-			<!-- Active Pickup Window -->
-			<div class="space-y-4">
-				<Alert type="success" class="animate-pulse border-2">
-					<div class="flex items-center gap-4">
-						<div class="flex h-14 w-14 items-center justify-center rounded-full bg-success/20">
-							<IconCheckmark class="size-8" />
-						</div>
-						<div>
-							<h3 class="text-xl font-bold">🎉 Pickup Time!</h3>
-							<p class="text-sm opacity-80">Your food is ready to be collected now</p>
-						</div>
-					</div>
-				</Alert>
-
-				<div
-					class="rounded-2xl border border-warning/20 bg-linear-to-br from-warning/5 to-warning/10 p-6"
-				>
-					<div class="mb-4 text-center">
-						<div class="mb-2 inline-flex items-center gap-2 rounded-full bg-warning/10 px-4 py-2">
-							<IconTimer class="size-5 text-warning" />
-							<span class="text-sm font-semibold tracking-wide text-warning uppercase"
-								>Window Closes In</span
-							>
-						</div>
-						<p class="mt-1 text-sm text-base-content/60">
-							Pickup until {formatTime(data.reservation.pickupUntil)}
-						</p>
-					</div>
-
-					<div class="flex justify-center gap-2 sm:gap-4">
-						{#if daysLeft > 0}
-							<div
-								class="flex min-w-[70px] flex-col items-center rounded-xl bg-base-100 p-4 shadow-sm sm:min-w-[90px]"
-							>
-								<span class="text-3xl leading-none font-bold text-warning tabular-nums sm:text-4xl"
-									>{daysLeft}</span
-								>
-
-								<span
-									class="mt-2 text-xs font-medium tracking-wider text-base-content/50 uppercase"
-								>
-									{daysLeft === 1 ? 'Day' : 'Days'}
-								</span>
-							</div>
-						{/if}
-
-						<div
-							class="flex min-w-[70px] flex-col items-center rounded-xl bg-base-100 p-4 shadow-sm sm:min-w-[90px]"
-						>
-							<span class="text-3xl leading-none font-bold text-warning tabular-nums sm:text-4xl">
-								{hoursLeft.toString().padStart(2, '0')}
-							</span>
-							<span class="mt-2 text-xs font-medium tracking-wider text-base-content/50 uppercase"
-								>Hours</span
-							>
-						</div>
-
-						<div class="flex items-center text-2xl font-bold text-warning/40 sm:text-3xl">:</div>
-
-						<div
-							class="flex min-w-[70px] flex-col items-center rounded-xl bg-base-100 p-4 shadow-sm sm:min-w-[90px]"
-						>
-							<span class="text-3xl leading-none font-bold text-warning tabular-nums sm:text-4xl">
-								{minutesLeft.toString().padStart(2, '0')}
-							</span>
-							<span class="mt-2 text-xs font-medium tracking-wider text-base-content/50 uppercase"
-								>Minutes</span
-							>
-						</div>
-
-						<div class="flex items-center text-2xl font-bold text-warning/40 sm:text-3xl">:</div>
-
-						<div
-							class="flex min-w-[70px] flex-col items-center rounded-xl bg-base-100 p-4 shadow-sm sm:min-w-[90px]"
-						>
-							<span class="text-3xl leading-none font-bold text-warning tabular-nums sm:text-4xl">
-								{secondsLeft.toString().padStart(2, '0')}
-							</span>
-							<span class="mt-2 text-xs font-medium tracking-wider text-base-content/50 uppercase"
-								>Seconds</span
-							>
-						</div>
-					</div>
-				</div>
-
-				<!-- Collect Button -->
-				{#if (data.isOwner || data.userInvite?.status === 'accepted') && !hasAcceptedInvite}
-					<button
-						onclick={() => {
-							showCollectModal = true;
-							hapticFeedback('heavy');
-						}}
-						class="btn btn-block gap-3 shadow-lg transition-all btn-lg btn-success hover:shadow-xl"
-					>
-						<IconCheckmark class="size-6" />
-						<span class="text-lg">Collect Food Now</span>
-						<IconArrowRight class="size-5" />
-					</button>
-				{/if}
-			</div>
-		{:else if !timeRemaining.hasStarted}
-			<!-- Countdown Before Pickup -->
-			<div
-				class="rounded-2xl border border-primary/20 bg-linear-to-br from-primary/5 to-primary/10 p-6 shadow-lg"
-			>
-				<div class="mb-6 text-center">
-					<div class="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2">
-						<IconTimer class="size-5 text-primary" />
-						<span class="text-sm font-semibold tracking-wide text-primary uppercase"
-							>Pickup Starts In</span
-						>
-					</div>
-					<h2 class="mt-3 text-2xl font-bold">Food Ready In</h2>
-					<p class="mt-1 text-sm text-base-content/60">
-						Available from {formatTime(data.reservation.pickupFrom)}–{formatTime(
-							data.reservation.pickupUntil
-						)}
-					</p>
-				</div>
-
-				<div class="flex justify-center gap-2 sm:gap-4">
-					{#if timeRemaining.days > 0}
-						<div
-							class="flex min-w-[70px] flex-col items-center rounded-xl bg-base-100 p-4 shadow-sm sm:min-w-[90px]"
-						>
-							<span class="text-3xl leading-none font-bold text-primary tabular-nums sm:text-4xl">
-								{timeRemaining.days}
-							</span>
-							<span class="mt-2 text-xs font-medium tracking-wider text-base-content/50 uppercase">
-								{timeRemaining.days === 1 ? 'Day' : 'Days'}
-							</span>
-						</div>
-					{/if}
-
-					<div
-						class="flex min-w-[70px] flex-col items-center rounded-xl bg-base-100 p-4 shadow-sm sm:min-w-[90px]"
-					>
-						<span class="text-3xl leading-none font-bold text-primary tabular-nums sm:text-4xl">
-							{timeRemaining.hours.toString().padStart(2, '0')}
-						</span>
-						<span class="mt-2 text-xs font-medium tracking-wider text-base-content/50 uppercase"
-							>Hours</span
-						>
-					</div>
-
-					<div class="flex items-center text-2xl font-bold text-primary/40 sm:text-3xl">:</div>
-
-					<div
-						class="flex min-w-[70px] flex-col items-center rounded-xl bg-base-100 p-4 shadow-sm sm:min-w-[90px]"
-					>
-						<span class="text-3xl leading-none font-bold text-primary tabular-nums sm:text-4xl">
-							{timeRemaining.minutes.toString().padStart(2, '0')}
-						</span>
-						<span class="mt-2 text-xs font-medium tracking-wider text-base-content/50 uppercase"
-							>Minutes</span
-						>
-					</div>
-
-					<div class="flex items-center text-2xl font-bold text-primary/40 sm:text-3xl">:</div>
-
-					<div
-						class="flex min-w-[70px] flex-col items-center rounded-xl bg-base-100 p-4 shadow-sm sm:min-w-[90px]"
-					>
-						<span class="text-3xl leading-none font-bold text-primary tabular-nums sm:text-4xl">
-							{timeRemaining.seconds.toString().padStart(2, '0')}
-						</span>
-						<span class="mt-2 text-xs font-medium tracking-wider text-base-content/50 uppercase"
-							>Seconds</span
-						>
-					</div>
-				</div>
-
-				{#if browser && 'Notification' in window && Notification.permission === 'default'}
-					<button
-						onclick={requestNotificationPermission}
-						class="btn mt-6 btn-block gap-2 btn-outline btn-primary btn-sm"
-					>
-						<FluentAlert24Regular class="size-4" />
-						Get Notified When Ready
-					</button>
-				{/if}
-			</div>
-		{/if}
-	{/if}
-
-	<!-- Business Info -->
+<div class="page-narrow space-y-4 {canCollectNow ? 'pb-28 md:pb-10' : ''}">
 	<a
-		href="/businesses/{data.business.accountId}"
-		class="block rounded-2xl bg-base-100 p-6 transition-all hover:shadow-md"
+		href="/reservations"
+		class="-ms-2 inline-flex items-center gap-0.5 rounded-full py-1 ps-1 pe-3 text-sm font-bold text-base-content/60 transition-colors hover:bg-base-300/50 hover:text-base-content"
 	>
-		<div class="flex items-start gap-4">
-			<div class="size-16 shrink-0 overflow-hidden rounded-2xl">
-				<OptimizedLogoImage
-					src={data.business.logo.url}
-					alt={data.business.name}
-					size="md"
-					shape="square"
-					priority={true}
-				/>
-			</div>
-			<div class="min-w-0 flex-1">
-				<div class="flex items-center gap-2">
-					<h2 class="truncate text-xl font-bold">{data.business.name}</h2>
-					<IconChevronRight class="size-5 shrink-0 text-base-content/40" />
-				</div>
-				<p class="mt-1 text-xs text-base-content/40">{data.business.country}</p>
-				<p class="mt-2 line-clamp-2 text-sm text-base-content/60">{data.business.description}</p>
-			</div>
-		</div>
+		<IconBack class="size-5 rtl:rotate-180" />
+		Orders
 	</a>
 
-	<!-- Offer Details -->
-	<div class="rounded-2xl bg-base-100 p-6">
-		<div class="flex items-start gap-3">
-			<IconFood class="mt-1 size-5 shrink-0 text-base-content/40" />
-			<div class="min-w-0 flex-1">
-				<h1 class="text-2xl font-bold">{data.offer.name}</h1>
-				<p class="mt-2 text-base-content/60">{data.offer.description}</p>
-			</div>
-			<div class="shrink-0 text-right">
-				<div class="text-2xl font-bold text-primary tabular-nums">
-					{data.offer.price.toFixed(2)}
-				</div>
-				<div class="text-xs text-base-content/40">{data.offer.currency}</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Receipt Download -->
-	<div class="rounded-2xl bg-base-100 p-6">
-		<div class="mb-3 flex items-center gap-2">
-			<div class="rounded-lg bg-primary/10 p-2">
-				<IconArrowDownload class="size-5 text-primary" />
-			</div>
-			<h3 class="text-lg font-bold">Payment Receipt</h3>
-		</div>
-		<p class="mb-4 text-sm text-base-content/60">Download a PDF receipt for this purchase.</p>
-		{#if receiptError}
-			<Alert type="error" class="mb-4">{receiptError}</Alert>
-		{/if}
-		<form
-			method="POST"
-			action="?/downloadReceipt"
-			use:enhance={() => {
-				receiptLoading = true;
-				receiptError = '';
-				return async ({ result }) => {
-					receiptLoading = false;
-					if (result.type === 'success' && result.data?.receipt) {
-// @ts-ignore
-						downloadBase64Pdf(result.data.receipt.base64, result.data.receipt.filename);
-					} else if (result.type === 'failure') {
-						receiptError = (result.data?.error as string) ?? 'Failed to generate receipt';
-					}
-				};
-			}}
-		>
-			<button
-				type="submit"
-				class="btn btn-block gap-2 btn-outline btn-primary"
-				disabled={receiptLoading}
-			>
-				{#if receiptLoading}
-					<span class="loading loading-sm loading-spinner"></span>
-					Generating...
-				{:else}
-					<IconArrowDownload class="size-5" />
-					Download Receipt (PDF)
-				{/if}
-			</button>
-		</form>
-	</div>
-
-	<!-- Pickup Location & Details -->
-	<div class=" px-6">
-		<div class="space-y-4">
-			{#if data.location}
-				<div class="overflow-hidden rounded-xl">
-					<OptimizedLocationImage
-						src={data.location.imageUrl}
-// @ts-ignore
-						alt={data.location.name}
-						priority={true}
-						class="h-48 w-full object-cover"
-					/>
-				</div>
-
-				<LocationCard
-// @ts-ignore
-					name={data.location.name}
-// @ts-ignore
-					address={data.location.address}
-// @ts-ignore
-					city={data.location.city}
-					province={data.location.province}
-// @ts-ignore
-					zipCode={data.location.zipCode}
-// @ts-ignore
-					country={data.location.country}
-// @ts-ignore
-					latitude={data.location.latitude}
-// @ts-ignore
-					longitude={data.location.longitude}
-				/>
-			{:else}
-				<div class="flex items-center gap-3 rounded-xl bg-base-200 p-4 text-base-content/60">
-					<IconLocation class="size-5" />
-					<span>Location details not specified</span>
-				</div>
-			{/if}
-
-			{#if data.reservation.notes}
-				<div class="rounded-xl bg-base-200 p-4">
-					<p class="mb-2 text-xs tracking-wide text-base-content/40 uppercase">Your Notes</p>
-					<p class="text-sm">{data.reservation.notes}</p>
-				</div>
-			{/if}
-		</div>
-	</div>
-
-	<!-- Invite System -->
-	{#if data.pendingInviteForUser}
-		<!-- Pending Invite for User -->
-		<div class="rounded-2xl border-l-4 border-primary bg-primary/10 p-6">
-			<div class="mb-6 text-center">
-				<IconPersonAdd class="mx-auto mb-4 size-16 text-primary" />
-				<h2 class="text-2xl font-bold text-primary">You've Been Invited</h2>
-				<p class="mt-2 text-sm text-primary/80">
-					Someone wants to pass this food collection to you
+	{#if justPaid}
+		<div class="surface flex animate-rise-in items-center gap-4 p-4" role="status">
+			<SuccessCheck size="md" />
+			<div class="min-w-0">
+				<p class="font-extrabold">Payment complete</p>
+				<p class="text-sm text-base-content/70">
+					Your bag is reserved. This page is your pickup ticket.
 				</p>
 			</div>
+		</div>
+	{/if}
 
-			<div class="mb-6 space-y-4 rounded-xl bg-base-100 p-4">
+	{#if data.hasPendingInvite}
+		<section class="surface animate-rise-in p-5 text-center">
+			<IconTile icon={IconPersonAdd} size="xl" class="mx-auto animate-float" />
+			<h1 class="mt-4 text-2xl font-extrabold tracking-tight">You have been invited</h1>
+			<p class="mt-1 text-base-content/70">
+				A friend would like you to collect this bag for them. It is already paid for.
+			</p>
+			<div class="mt-5 grid grid-cols-2 gap-3">
+				<form
+					method="POST"
+					action="?/declineInvite{inviteQuery}"
+					use:enhance={() => {
+						invitePending = 'decline';
+						return async ({ result, update }) => {
+							if (result.type === 'redirect') toast.info('Invite declined');
+							reportFailure(result, 'Could not decline the invite');
+							await update();
+							invitePending = null;
+						};
+					}}
+				>
+					<Button
+						type="submit"
+						variant="ghost"
+						block
+						loading={invitePending === 'decline'}
+						disabled={invitePending !== null}
+					>
+						Decline
+					</Button>
+				</form>
+				<form
+					method="POST"
+					action="?/acceptInvite{inviteQuery}"
+					use:enhance={() => {
+						invitePending = 'accept';
+						return async ({ result, update }) => {
+							if (result.type === 'success') toast.success('Invite accepted. The pickup is yours.');
+							reportFailure(result, 'Could not accept the invite');
+							await update();
+							invitePending = null;
+						};
+					}}
+				>
+					<Button
+						type="submit"
+						block
+						loading={invitePending === 'accept'}
+						disabled={invitePending !== null}
+					>
+						Accept
+					</Button>
+				</form>
+			</div>
+		</section>
+	{/if}
+
+	<!-- The ticket -->
+	<article class="surface animate-rise-in overflow-hidden">
+		{#if isCollected}
+			<div class="flex flex-col items-center gap-3 bg-success/10 px-5 py-7 text-center">
+				<SuccessCheck size="md" />
 				<div>
-					<p class="mb-1 text-xs tracking-wide text-base-content/40 uppercase">Offer</p>
-					<p class="font-medium">{data.offer.name}</p>
-				</div>
-				<div>
-					<p class="mb-1 text-xs tracking-wide text-base-content/40 uppercase">Pickup Time</p>
-					<p class="text-sm tabular-nums">
-						{formatDate(data.reservation.pickupFrom)} • {formatTime(
-							data.reservation.pickupFrom
-						)}–{formatTime(data.reservation.pickupUntil)}
-					</p>
-				</div>
-				<div>
-					<p class="mb-1 text-xs tracking-wide text-base-content/40 uppercase">Location</p>
-					<p class="text-sm">{data.business.name}</p>
-					{#if data.location}
-						<p class="text-xs text-base-content/60">
-							{data.location.address}, {data.location.city}
+					<p class="text-2xl font-extrabold tracking-tight">Collected</p>
+					{#if collectedAt}
+						<p class="tabular mt-0.5 text-sm text-base-content/70">{formatMoment(collectedAt)}</p>
+					{/if}
+					{#if reservation.collectedByFriend}
+						<p class="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-success">
+							<IconPeople class="size-4" /> Picked up by your friend
 						</p>
 					{/if}
 				</div>
 			</div>
+		{:else if reservation.status === 'expired' || phase === 'closed'}
+			<div class="flex flex-col items-center gap-3 bg-base-200/70 px-5 py-7 text-center">
+				<IconTile icon={IconTimerOff} tone="muted" size="lg" class="bg-base-300/60" />
+				<div>
+					<p class="text-2xl font-extrabold tracking-tight">Pickup window closed</p>
+					<p class="mt-0.5 text-sm text-base-content/70">
+						This bag was not collected in time and can no longer be handed out.
+					</p>
+				</div>
+				<Button href="/discover" variant="neutral" outline size="sm" icon={IconSearch} class="min-h-11">
+					Find another bag
+				</Button>
+			</div>
+		{:else if phase === 'open'}
+			<div class="bg-success/10 px-5 py-6 text-center">
+				<p class="inline-flex items-center gap-2 text-sm font-extrabold text-success">
+					<span class="relative flex size-2.5">
+						<span class="absolute inline-flex size-full animate-ping rounded-full bg-success/60"></span>
+						<span class="relative inline-flex size-2.5 rounded-full bg-success"></span>
+					</span>
+					Pickup is open
+				</p>
+				<p class="mt-1 text-2xl font-extrabold tracking-tight">Ready for pickup now</p>
+				<p class="tabular mt-1 text-sm text-base-content/70">
+					Closes at {formatClock(reservation.pickupUntil)} · in
+					<span class="font-bold text-base-content">
+						{#if countdown.days > 0}{countdown.days}d
+						{/if}{countdown.hours}:{countdown.minutes}:{countdown.seconds}
+					</span>
+				</p>
+				{#if handedToFriend}
+					<p class="mt-3 text-sm font-bold text-base-content/70">Your friend is collecting this bag.</p>
+				{/if}
+			</div>
+		{:else}
+			<div class="bg-primary/8 px-5 py-6 text-center">
+				<p class="eyebrow mb-3 text-primary">Pickup opens in</p>
+				{@render countdownCells()}
+				{#if canAskForReminder && data.canCollect}
+					<Button
+						variant="ghost"
+						size="sm"
+						icon={IconAlert}
+						class="mt-4 min-h-11 text-primary"
+						onclick={enableReminders}
+					>
+						Remind me before pickup
+					</Button>
+				{/if}
+			</div>
+		{/if}
 
-			{#if form?.error}
-				<Alert type="error" class="mb-4">
-					{form.error}
-				</Alert>
+		<!-- Perforation between the status stub and the ticket body -->
+		<div class="relative h-0 border-t-2 border-dashed border-base-300" aria-hidden="true">
+			<span
+				class="absolute -start-3 -top-3 size-6 rounded-full border border-base-300/70 bg-base-200"
+			></span>
+			<span class="absolute -end-3 -top-3 size-6 rounded-full border border-base-300/70 bg-base-200"
+			></span>
+		</div>
+
+		<div class="space-y-4 p-5">
+			<div class="flex items-start gap-3">
+				<BusinessLogo src={data.business.logoUrl} size="lg" priority />
+				<div class="min-w-0 flex-1">
+					<h1 class="text-xl leading-tight font-extrabold tracking-tight">{data.offer.name}</h1>
+					<a
+						href="/businesses/{data.business.accountId}"
+						class="mt-0.5 inline-flex max-w-full items-center gap-0.5 text-sm font-bold text-base-content/60 hover:text-primary"
+					>
+						<span class="truncate">{data.business.name}</span>
+						<IconChevronRight class="size-4 shrink-0 rtl:rotate-180" />
+					</a>
+				</div>
+				<StatusBadge map={RESERVATION_STATUS} status={reservation.status} class="mt-1 shrink-0" />
+			</div>
+
+			<dl class="grid grid-cols-2 gap-3 text-sm">
+				<div class="rounded-2xl bg-base-200/60 p-3">
+					<dt class="flex items-center gap-1.5 text-xs font-bold text-base-content/55">
+						<IconClock class="size-4" /> Pickup
+					</dt>
+					<dd class="tabular mt-1 font-extrabold">{pickupWindow}</dd>
+				</div>
+				<div class="rounded-2xl bg-base-200/60 p-3">
+					<dt class="flex items-center gap-1.5 text-xs font-bold text-base-content/55">
+						<IconBag class="size-4" />
+						{data.offer.price === null ? 'Order' : 'Paid'}
+					</dt>
+					<dd class="tabular mt-1 font-extrabold">
+						{#if data.offer.price !== null}
+							{formatPrice(data.offer.price, data.offer.currency)}
+						{:else if data.isOwner}
+							Donation
+						{:else}
+							Paid by your friend
+						{/if}
+					</dd>
+				</div>
+			</dl>
+
+			{#if data.offer.description}
+				<p class="text-sm text-base-content/70">{data.offer.description}</p>
 			{/if}
 
-			<div class="flex gap-3">
-				<form
-					method="POST"
-					action="?/declineInvite&invite={page.url.searchParams.get('invite')}"
-					use:enhance
-					class="flex-1"
+			{#if canCollectNow}
+				<div
+					class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[1000] border-t border-base-300/70 bg-base-100/90 px-4 py-3 backdrop-blur-xl md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none"
 				>
-					<button type="submit" class="btn btn-block gap-2 btn-ghost">
-						<IconDismiss class="size-5" />
-						Decline
-					</button>
-				</form>
-				<form
-					method="POST"
-					action="?/acceptInvite&invite={page.url.searchParams.get('invite')}"
-					use:enhance
-					class="flex-1"
-				>
-					<button type="submit" class="btn btn-block gap-2 btn-primary">
-						<IconCheckmark class="size-5" />
-						Accept
-					</button>
-				</form>
-			</div>
-		</div>
-	{:else if data.isOwner && data.reservation.status === 'active'}
-		<!-- Invite Management for Owner -->
-		<div class="rounded-2xl bg-base-100 p-6">
-			<div class="mb-3 flex items-center gap-2">
-				<div class="rounded-lg bg-primary/10 p-2">
-					<IconShare class="size-5 text-primary" />
+					<Button
+						variant="success"
+						block
+						size="lg"
+						icon={IconBag}
+						onclick={() => {
+							navigator.vibrate?.(20);
+							showCollectModal = true;
+						}}
+					>
+						Collect food now
+					</Button>
 				</div>
-				<h3 class="text-lg font-bold text-base-content">Can't collect it in time?</h3>
-			</div>
+			{/if}
+		</div>
+	</article>
 
-			{#if hasAcceptedInvite && acceptedInvite}
-				<Alert type="info" class="mb-4">
-					<div>
-						<p class="font-medium">Friend Has Access</p>
-						<p class="mt-1 text-sm opacity-80">
-							Your friend can now collect this food. Cancel the invite if you want to collect it
-							yourself instead.
+	<!-- Where to go -->
+	<section class="surface overflow-hidden" aria-labelledby="location-heading">
+		{#if data.location}
+			{#if data.location.imageUrl}
+				<div class="aspect-[5/2] bg-base-200">
+					<img
+						src={data.location.imageUrl}
+						alt=""
+						loading="lazy"
+						decoding="async"
+						class="size-full object-cover"
+					/>
+				</div>
+			{/if}
+			<div class="space-y-4 p-5">
+				<div class="flex items-start gap-3">
+					<IconTile icon={IconLocation} />
+					<div class="min-w-0 flex-1">
+						<h2 id="location-heading" class="font-extrabold">{data.location.name}</h2>
+						<p class="text-sm text-base-content/70">
+							{data.location.address}, {data.location.zipCode}
+							{data.location.city}
 						</p>
 					</div>
-				</Alert>
-				<form method="POST" action="?/cancelInvite" use:enhance>
-					<button type="submit" class="btn btn-block gap-2 btn-outline btn-error">
-						<IconDismiss class="size-5" />
-						Cancel Invite
-					</button>
-				</form>
-			{:else if hasPendingInvite}
-				{@const pendingInvite = data.invites.find((inv) => inv.status === 'pending')}
-
-				<div class="mb-4">
-					<p class="font-medium">Invite Link Active</p>
-					<p class="mt-2 text-sm opacity-80">
-						Share this link with a friend to let them collect this food
-					</p>
-					<div class="mt-3 rounded-lg bg-base-200 p-3 font-mono text-xs break-all">
-						{page.url.origin}/reservations/{data.reservation.id}?invite={pendingInvite?.inviteToken}
-					</div>
-					<div class="mt-3 flex gap-2">
-						<button
-							onclick={() => {
-								inviteLink = `${page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
-								copyInviteLink();
-							}}
-							class="btn flex-1 gap-2 btn-secondary"
-						>
-							<IconCopy class="size-5" />
-							{linkCopied ? 'Copied!' : 'Copy Link'}
-						</button>
-						{#if canShare}
-							<button
-								onclick={() => {
-									inviteLink = `${page.url.origin}/reservations/${data.reservation.id}?invite=${pendingInvite?.inviteToken}`;
-									shareInviteLink();
-								}}
-								class="btn flex-1 gap-2 btn-primary"
-							>
-								<IconShare class="size-5" />
-								Share
-							</button>
-						{/if}
-					</div>
 				</div>
+				<div class="grid grid-cols-2 gap-2">
+					<Button
+						href={directionsHref ?? undefined}
+						target="_blank"
+						rel="noopener noreferrer"
+						variant="neutral"
+						outline
+						icon={IconDirections}
+					>
+						Directions
+					</Button>
+					<Button
+						variant="ghost"
+						icon={IconMap}
+						aria-expanded={showMap}
+						onclick={() => (showMap = !showMap)}
+					>
+						{showMap ? 'Hide map' : 'Show map'}
+					</Button>
+				</div>
+				{#if showMap}
+					<div class="h-64 overflow-hidden rounded-2xl bg-base-200" transition:slide={{ duration: 250 }}>
+						{#await import('#lib/components/maps/MarkedMap.svelte')}
+							<div class="skeleton-shimmer size-full"></div>
+						{:then { default: MarkedMap }}
+							<MarkedMap latitude={data.location.latitude} longitude={data.location.longitude} />
+						{:catch}
+							<p class="flex size-full items-center justify-center text-sm text-base-content/60">
+								The map could not be loaded.
+							</p>
+						{/await}
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<div class="flex items-center gap-3 p-5">
+				<IconTile icon={IconLocation} tone="muted" />
+				<div>
+					<h2 id="location-heading" class="font-extrabold">Pickup location</h2>
+					<p class="text-sm text-base-content/70">
+						Ask {data.business.name} where to collect your bag.
+					</p>
+				</div>
+			</div>
+		{/if}
+	</section>
 
-				<form method="POST" action="?/cancelInvite" use:enhance>
-					<button type="submit" class="btn btn-block gap-2 btn-ghost btn-sm">
-						<IconDismiss class="size-5" />
-						Cancel Invite
-					</button>
-				</form>
+	{#if reservation.notes}
+		<section class="surface flex items-start gap-3 p-5">
+			<IconTile icon={IconNote} tone="muted" />
+			<div class="min-w-0">
+				<h2 class="font-extrabold">Your note</h2>
+				<p class="text-sm break-words text-base-content/70">{reservation.notes}</p>
+			</div>
+		</section>
+	{/if}
+
+	{#if data.isOwner && isActive && phase !== 'closed'}
+		<section class="surface space-y-4 p-5">
+			<div class="flex items-start gap-3">
+				<IconTile icon={IconPeople} tone="secondary" />
+				<div class="min-w-0 flex-1">
+					<h2 class="font-extrabold">
+						{#if handedToFriend}A friend is collecting this{:else if data.invite}Invite link is
+							active{:else}Can't make it in time?{/if}
+					</h2>
+					<p class="text-sm text-base-content/70">
+						{#if handedToFriend}
+							Your friend accepted the invite. Cancel it if you want to collect the bag yourself.
+						{:else if data.invite}
+							Waiting for your friend to accept. The link works for one person.
+						{:else}
+							Let a friend collect the bag for you with a one-time link.
+						{/if}
+					</p>
+				</div>
+			</div>
+
+			{#if data.invite}
+				<div class="grid gap-2 {inviteLink ? 'grid-cols-2' : ''}">
+					{#if inviteLink}
+						<Button variant="neutral" outline onclick={() => (showInviteModal = true)}>
+							Show link
+						</Button>
+					{/if}
+					<form
+						method="POST"
+						action="?/cancelInvite"
+						use:enhance={() => {
+							invitePending = 'cancel';
+							return async ({ result, update }) => {
+								if (result.type === 'success') toast.success('Invite cancelled');
+								reportFailure(result, 'Could not cancel the invite');
+								await update();
+								invitePending = null;
+							};
+						}}
+					>
+						<Button
+							type="submit"
+							variant="error"
+							outline
+							block
+							loading={invitePending === 'cancel'}
+						>
+							Cancel invite
+						</Button>
+					</form>
+				</div>
 			{:else}
-				<p class="mb-4 text-sm text-base-content/60">Let a friend collect this food instead!</p>
-				<button onclick={() => (showInviteModal = true)} class="btn btn-block gap-2 btn-primary"
-					><IconShare class="size-5" />Pass to Friend</button
+				<Button
+					variant="neutral"
+					outline
+					block
+					icon={IconPersonAdd}
+					onclick={() => (showInviteModal = true)}
 				>
+					Pass to a friend
+				</Button>
 			{/if}
-		</div>
+		</section>
+	{/if}
+
+	{#if data.canDownloadReceipt}
+		<section class="surface flex items-center gap-3 p-4 ps-5">
+			<IconTile icon={IconReceipt} tone="muted" />
+			<div class="min-w-0 flex-1">
+				<h2 class="font-extrabold">Receipt</h2>
+				<p class="tabular text-sm text-base-content/70">
+					Ordered {formatMoment(reservation.reservedAt, now)}
+				</p>
+			</div>
+			<form
+				method="POST"
+				action="?/downloadReceipt"
+				use:enhance={receiptSubmit((pending) => (receiptPending = pending))}
+			>
+				<Button
+					type="submit"
+					variant="ghost"
+					class="text-primary"
+					loading={receiptPending}
+					loadingLabel="Creating…"
+				>
+					Download PDF
+				</Button>
+			</form>
+		</section>
 	{/if}
 </div>
 
-<CreateInviteModal
-	bind:open={showInviteModal}
-	{form}
-	{inviteLoading}
-	{linkCopied}
-	{inviteLink}
-	{canShare}
-	{copyInviteLink}
-	{shareInviteLink}
-/>
+{#if data.isOwner}
+	<CreateInviteModal
+		bind:open={showInviteModal}
+		{inviteLink}
+		offerName={data.offer.name}
+		businessName={data.business.name}
+	/>
+{/if}
 
-<CollectFoodModal bind:open={showCollectModal} claimToken={data.reservation.claimToken} />
+{#if reservation.claimToken}
+	<CollectFoodModal
+		bind:open={showCollectModal}
+		claimToken={reservation.claimToken}
+		offerName={data.offer.name}
+		businessName={data.business.name}
+		oncollected={onCollected}
+	/>
+{/if}

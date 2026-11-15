@@ -1,10 +1,28 @@
-// src/routes/(authorized)/payments/callback/+page.server.ts
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '#lib/server/db.js';
 import { payments } from '#lib/server/schema.js';
 import { eq } from 'drizzle-orm';
 import { PaymentHandler } from '#lib/server/payments/handler.js';
+
+/** Sends the customer back to checkout, keeping the pickup day they had chosen. */
+function checkoutUrl(payment: { offerId: string; metadata: string | null }, code: string): string {
+	const query = new URLSearchParams({ error: code });
+	try {
+		const pickupDate = payment.metadata ? JSON.parse(payment.metadata).pickupDate : null;
+		if (typeof pickupDate === 'string' && !isNaN(new Date(pickupDate).getTime())) {
+			const day = new Date(pickupDate);
+			const pad = (value: number) => value.toString().padStart(2, '0');
+			query.set(
+				'pickupDate',
+				`${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`
+			);
+		}
+	} catch {
+		// Metadata is best effort; checkout falls back to today.
+	}
+	return `/offers/${payment.offerId}/payment?${query}`;
+}
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const account = locals.account!;
@@ -13,73 +31,57 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		throw error(403, 'Only user accounts can make payments');
 	}
 
-	// Get query parameters from Zarinpal callback
 	const authority = url.searchParams.get('Authority');
 	const status = url.searchParams.get('Status');
 	const paymentId = url.searchParams.get('paymentId');
 
-	console.log('Payment callback:', { authority, status, paymentId });
-
-	if (!authority || !paymentId) {
-		console.error('Missing callback parameters');
+	if (!authority || !status || !paymentId) {
 		throw error(400, 'Invalid callback parameters');
 	}
 
-	// Get payment record
 	const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
 
 	if (!payment) {
-		console.error('Payment not found:', paymentId);
 		throw error(404, 'Payment not found');
 	}
 
-	// Verify payment is from correct user
 	if (payment.userAccountId !== account.id) {
-		console.error('Unauthorized payment access');
 		throw error(403, 'Unauthorized');
 	}
 
-	// Check if payment was cancelled by user
-	if (status === 'NOK') {
-		console.log('Payment cancelled by user');
-		// todo: Property 'failPayment' does not exist on type 'typeof PaymentHandler'.ts(2339)
-// @ts-ignore
-		await PaymentHandler.failPayment(paymentId, 'Payment cancelled by user');
-		throw redirect(303, `/offers/${payment.offerId}?error=payment_cancelled`);
-	}
-
-	// Check if already processed
 	if (payment.status === 'completed') {
-		console.log('Payment already completed, redirecting to reservation');
 		if (payment.reservationId) {
-			throw redirect(303, `/reservations/${payment.reservationId}?success=true`);
+			throw redirect(303, `/reservations/${payment.reservationId}`);
 		}
-		throw redirect(303, `/offers/${payment.offerId}?error=already_processed`);
+		throw redirect(303, checkoutUrl(payment, 'already_processed'));
 	}
 
 	if (payment.status === 'failed') {
-		console.log('Payment previously failed');
-		throw redirect(303, `/offers/${payment.offerId}?error=payment_failed`);
+		throw redirect(303, checkoutUrl(payment, 'payment_failed'));
 	}
 
-	// Complete payment (verifies with Zarinpal and creates reservation)
-	console.log('Completing payment...', payment.id, authority, status);
-	const completeResult = await PaymentHandler.completeZarinpalPayment({
+	// Verifies with the gateway and creates the reservation. A cancelled payment
+	// (Status=NOK) is recorded as failed in there as well.
+	const result = await PaymentHandler.completeZarinpalPayment({
 		paymentId: payment.id,
-		authority: authority,
-		status: status!
+		authority,
+		status
 	});
 
-	if (!completeResult.success) {
-		console.error('Payment completion failed:', completeResult.error);
-		throw redirect(
-			303,
-			`/offers/${payment.offerId}?error=${completeResult.error || 'payment_failed'}`
-		);
+	if (!result.success) {
+		if (status !== 'OK') {
+			throw redirect(303, checkoutUrl(payment, 'payment_cancelled'));
+		}
+		console.error('Payment completion failed:', result.error);
+		throw redirect(303, checkoutUrl(payment, 'payment_failed'));
 	}
 
-	console.log('Payment completed successfully, reservation:', completeResult.reservationId);
+	if (!result.reservationId) {
+		// Paid, but the reservation could not be created; the orders list is the
+		// safest place to land while support sorts it out.
+		console.error('Payment completed without a reservation:', payment.id);
+		throw redirect(303, '/reservations');
+	}
 
-	// Success! Redirect to reservation
-	throw redirect(303, `/reservations/${completeResult.reservationId}?success=true`);
+	throw redirect(303, `/reservations/${result.reservationId}?success=true`);
 };

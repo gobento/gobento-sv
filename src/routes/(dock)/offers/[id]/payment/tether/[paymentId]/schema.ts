@@ -1,4 +1,3 @@
-// src/routes/(dock)/offers/[id]/payment/tether/[paymentId]/schema.ts
 import * as v from 'valibot';
 
 export const txHashSchema = v.object({

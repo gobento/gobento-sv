@@ -1,41 +1,139 @@
-<!-- Page component (src/routes/auth/login/+page.svelte) -->
 <script lang="ts">
-	import { page } from '$app/state';
+	import type { PageData } from './$types';
+	import BentoBox from '~icons/fluent-emoji-flat/bento-box';
+	import GoogleLogo from '~icons/logos/google-icon';
+	import IconTag from '~icons/fluent/tag-24-regular';
+	import IconLeaf from '~icons/fluent/leaf-two-24-regular';
+	import IconShop from '~icons/fluent/building-shop-24-regular';
+	import IconPerson from '~icons/fluent/person-24-regular';
+	import IconHeart from '~icons/fluent/heart-24-regular';
+	import IconShield from '~icons/fluent/shield-24-regular';
+	import IconSettings from '~icons/fluent/settings-24-regular';
+	import IconBeaker from '~icons/fluent/beaker-24-regular';
+	import Spinner from '#lib/components/ui/Spinner.svelte';
 
-	import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
-	import LogosGoogleIcon from '~icons/logos/google-icon';
+	let { data }: { data: PageData } = $props();
+
+	const googleHref = $derived(`/auth/login/google?next=${encodeURIComponent(data.next)}`);
+
+	const valueProps = [
+		{ icon: IconTag, label: 'Great food for less', tone: 'bg-secondary/15 text-secondary' },
+		{ icon: IconLeaf, label: 'Less food in the bin', tone: 'bg-accent/15 text-accent' },
+		{ icon: IconShop, label: 'Support local shops', tone: 'bg-primary/10 text-primary' }
+	];
+
+	const demoRoles = [
+		{ role: 'user', label: 'Customer', hint: 'Find and reserve food', icon: IconPerson },
+		{ role: 'business', label: 'Business', hint: 'Publish surplus offers', icon: IconShop },
+		{ role: 'charity', label: 'Charity', hint: 'Collect donations', icon: IconHeart },
+		{ role: 'moderator', label: 'Moderator', hint: 'Review accounts', icon: IconShield },
+		{ role: 'admin', label: 'Admin', hint: 'Run the platform', icon: IconSettings }
+	];
+
+	// Leaving for Google takes a moment; show that the tap registered.
+	let leaving = $state(false);
 </script>
 
+<svelte:window onpageshow={() => (leaving = false)} />
+
 <svelte:head>
-	<title>Login - Go Bento</title>
-	<meta name="description" content="Login to access Go Bento features" />
+	<title>Sign in · GoBento</title>
+	<meta name="description" content="Sign in to GoBento and rescue surplus food near you." />
 </svelte:head>
 
-<!-- Header -->
-<header class="mb-6 text-center">
-	<div class="mb-3 flex justify-center">
-		<FluentEmojiFlatBentoBox class="size-12" />
-	</div>
-	<h1 class="text-2xl font-bold text-white">Go Bento</h1>
-	<p class="mt-2 text-base text-white/70">Sign in to continue</p>
-</header>
-
-<!-- Login Card -->
-<div class="card border border-white/30 bg-white/10 backdrop-blur-md">
-	<div class="card-body gap-4 p-6">
-		<a
-			class="btn border-[#e5e5e5] bg-white text-black"
-			href={`/auth/login/google?next=${encodeURIComponent(page.url.searchParams.get('next') || '/')}`}
+<div class="mx-auto flex w-full max-w-sm flex-col items-center text-center">
+	<div class="animate-pop-in">
+		<div
+			class="flex size-24 animate-float items-center justify-center rounded-[2rem] bg-base-100 shadow-lift"
 		>
-			<LogosGoogleIcon class="size-5" />
+			<BentoBox class="size-16" />
+		</div>
+	</div>
+
+	<h1 class="mt-6 animate-rise-in text-4xl font-extrabold tracking-tight">GoBento</h1>
+	<p class="stagger mt-2 animate-rise-in text-lg text-base-content/70" style:--i={1}>
+		Rescue delicious surplus food near you, one bento at a time.
+	</p>
+
+	<ul class="mt-7 grid w-full grid-cols-3 gap-2">
+		{#each valueProps as prop, i (prop.label)}
+			{@const Icon = prop.icon}
+			<li class="stagger flex animate-rise-in flex-col items-center gap-2" style:--i={i + 2}>
+				<span class="flex size-11 items-center justify-center rounded-2xl {prop.tone}">
+					<Icon class="size-5" />
+				</span>
+				<span class="text-xs leading-tight font-bold text-base-content/70">{prop.label}</span>
+			</li>
+		{/each}
+	</ul>
+
+	<div class="stagger mt-8 w-full animate-rise-in" style:--i={5}>
+		<a
+			href={googleHref}
+			data-sveltekit-reload
+			onclick={() => (leaving = true)}
+			class="btn btn-block h-14 gap-3 rounded-2xl border-base-300 bg-base-100 text-base font-bold text-base-content shadow-soft transition-[transform,box-shadow] duration-200 ease-spring hover:shadow-lift active:scale-[0.97]"
+		>
+			{#if leaving}
+				<Spinner size="sm" />
+			{:else}
+				<GoogleLogo class="size-5" />
+			{/if}
 			Continue with Google
 		</a>
 
-		<div class="text-center text-xs text-white/60">
-			By signing in, you agree to our
-			<a class="link link-primary" href={'/terms-of-service'}>Terms of Service</a>
+		<p class="mt-4 text-xs text-base-content/60">
+			By continuing you agree to our
+			<a class="link font-semibold link-hover text-base-content/80" href="/terms-of-service"
+				>terms of service</a
+			>
 			and
-			<a class="link link-primary" href={'/privacy-policy'}>Privacy Policy</a>.
-		</div>
+			<a class="link font-semibold link-hover text-base-content/80" href="/privacy-policy"
+				>privacy policy</a
+			>.
+		</p>
 	</div>
+
+	{#if data.demoAccounts}
+		<section
+			class="stagger surface mt-8 w-full animate-rise-in p-4 text-start"
+			style:--i={6}
+			aria-labelledby="demo-heading"
+		>
+			<div class="flex items-center gap-2">
+				<IconBeaker class="size-4 text-secondary" />
+				<h2 id="demo-heading" class="eyebrow">Demo accounts</h2>
+			</div>
+			<p class="mt-1 text-sm text-base-content/60">
+				This is a demo with sample data. Pick a role to look around.
+			</p>
+			<ul class="mt-3 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+				{#each demoRoles as demo (demo.role)}
+					{@const Icon = demo.icon}
+					<li class="last:odd:col-span-full">
+						<a
+							href="/auth/login/demo?as={demo.role}"
+							data-sveltekit-reload
+							class="pressable flex min-h-14 items-center gap-3 rounded-2xl bg-base-200/60 px-3 py-2 hover:bg-primary/10"
+						>
+							<span
+								class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-base-100 text-primary"
+							>
+								<Icon class="size-5" />
+							</span>
+							<span class="min-w-0">
+								<span class="block text-sm font-bold">{demo.label}</span>
+								<span class="block truncate text-xs text-base-content/60">{demo.hint}</span>
+							</span>
+						</a>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
+
+	<nav class="mt-8 flex gap-5 text-sm font-semibold text-base-content/60" aria-label="More">
+		<a class="hover:text-base-content" href="/about">About</a>
+		<a class="hover:text-base-content" href="/contact">Contact</a>
+	</nav>
 </div>

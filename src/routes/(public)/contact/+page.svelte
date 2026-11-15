@@ -1,109 +1,88 @@
-<!-- src/routes/(public)/contact/+page.svelte -->
 <script lang="ts">
-	import FluentEmojiFlatBentoBox from '~icons/fluent-emoji-flat/bento-box';
-	import FluentMail24Regular from '~icons/fluent/mail-24-regular';
-	import FluentErrorCircle24Regular from '~icons/fluent/error-circle-24-regular';
 	import { page } from '$app/state';
+	import PublicPage from '#lib/components/account/PublicPage.svelte';
+	import CopyField from '#lib/components/account/CopyField.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import IconSend from '~icons/fluent/send-24-regular';
+	import IconClock from '~icons/fluent/clock-24-regular';
+	import IconBag from '~icons/fluent/shopping-bag-24-regular';
+	import IconShield from '~icons/fluent/shield-24-regular';
+
+	const SUPPORT_URL = 'https://t.me/MilitaernewsKontakt';
 
 	const errorId = $derived(page.url.searchParams.get('errorId'));
-	const hasError = $derived(!!errorId);
+
+	const tips = [
+		{
+			icon: IconBag,
+			title: 'Problem with an order?',
+			text: 'Tell us the pickup location and time, or report it straight from the reservation.'
+		},
+		{
+			icon: IconShield,
+			title: 'Verification or account question?',
+			text: 'Include the name of your business or charity so we can find it.'
+		},
+		{
+			icon: IconClock,
+			title: 'When will we reply?',
+			text: 'We usually answer within one or two working days.'
+		}
+	];
 </script>
 
 <svelte:head>
-	<title>GoBento | Contact</title>
+	<title>Contact · GoBento</title>
+	<meta name="description" content="Get in touch with the GoBento team." />
 </svelte:head>
 
-<div class="mx-auto max-w-2xl p-4">
-	<!-- Hero Section -->
-	<div class="mb-12 text-center">
-		<div class="mb-4 flex justify-center">
-			<FluentEmojiFlatBentoBox class="h-20 w-20" />
-		</div>
-		<h1 class="mb-3 text-3xl font-bold text-white">Contact Us</h1>
-		<p class="text-lg text-white/70">
-			We're here to help! Reach out to us for any questions or concerns.
-		</p>
-	</div>
-
-	<!-- Error Alert -->
-	{#if hasError}
-		<div class="mb-6 alert border border-warning/30 bg-warning/10">
-			<FluentErrorCircle24Regular class="size-6 text-warning" />
-			<div>
-				<p class="font-medium">Reporting an error</p>
-				<p class="text-sm opacity-80">
-					Error ID <span class="font-mono font-semibold">{errorId}</span> has been pre-filled below
+<PublicPage title="Contact us" description="Questions, feedback or a problem? We are happy to help.">
+	<div class="space-y-6">
+		{#if errorId}
+			<Alert type="warn">
+				<p class="font-bold">Reporting an error</p>
+				<p class="mt-0.5">
+					Please include this reference in your message so we can find what went wrong.
 				</p>
-			</div>
-		</div>
-	{/if}
+				<CopyField value={errorId} label="Error reference" class="mt-3" />
+			</Alert>
+		{/if}
 
-	<!-- Contact Form -->
-	<div class="card border border-white/20 bg-white/10 backdrop-blur-md">
-		<div class="card-body">
-			<h2 class="mb-3 card-title text-white">Contact Form</h2>
-			<form class="space-y-4">
-				<div class="form-control">
-					<label class="label" for="name">
-						<span class="label-text font-medium">Name*</span>
-					</label>
-					<input
-						id="name"
-						type="text"
-						placeholder="Enter your name"
-						class="input-bordered input w-full"
-						required
-					/>
-				</div>
+		<section class="surface p-5">
+			<h2 class="text-lg font-extrabold tracking-tight">Message the team</h2>
+			<p class="mt-1 text-sm text-base-content/65">
+				Support runs over Telegram. Tap the button to open a chat with us
+				{errorId ? 'and paste the error reference.' : 'and describe what you need.'}
+			</p>
+			<a
+				href={SUPPORT_URL}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="btn mt-4 btn-block gap-2 font-bold shadow-glow btn-primary"
+			>
+				<IconSend class="size-5" />
+				Open Telegram chat
+			</a>
+		</section>
 
-				<div class="form-control">
-					<label class="label" for="email">
-						<span class="label-text font-medium">Email*</span>
-					</label>
-					<input
-						id="email"
-						type="email"
-						placeholder="Enter your email"
-						class="input-bordered input w-full"
-						required
-					/>
-				</div>
-
-				{#if hasError}
-					<div class="form-control">
-						<label class="label" for="errorId">
-							<span class="label-text font-medium">Error ID</span>
-						</label>
-						<input
-							id="errorId"
-							type="text"
-							value={errorId}
-							class="input-bordered input w-full font-mono"
-							readonly
-						/>
-					</div>
-				{/if}
-
-				<div class="form-control">
-					<label class="label" for="message">
-						<span class="label-text font-medium">Message*</span>
-					</label>
-					<textarea
-						id="message"
-						placeholder={hasError
-							? 'Please describe what you were doing when the error occurred...'
-							: 'Enter your message'}
-						class="textarea-bordered textarea w-full"
-						rows="5"
-						required
-					></textarea>
-				</div>
-
-				<button class="btn gap-2 btn-primary">
-					<FluentMail24Regular class="size-5" />
-					<span>Submit</span>
-				</button>
-			</form>
-		</div>
+		<section aria-labelledby="tips-heading">
+			<h2 id="tips-heading" class="eyebrow mb-2 px-1">Good to know</h2>
+			<ul class="surface divide-y divide-base-300/70">
+				{#each tips as tip (tip.title)}
+					{@const Icon = tip.icon}
+					<li class="flex items-start gap-3.5 p-4">
+						<span
+							class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+						>
+							<Icon class="size-5" />
+						</span>
+						<div>
+							<h3 class="font-bold">{tip.title}</h3>
+							<p class="text-sm text-base-content/65">{tip.text}</p>
+						</div>
+					</li>
+				{/each}
+			</ul>
+		</section>
 	</div>
-</div>
+</PublicPage>

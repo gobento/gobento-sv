@@ -1,14 +1,13 @@
-// src/routes/(dock)/reservations/+page.server.ts
 import { db } from '#lib/server/db.js';
 import {
 	reservations,
 	businessOffers,
 	businessLocations,
 	businessProfiles,
-	files,
-	accounts
+	files
 } from '#lib/server/schema.js';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, desc, lt } from 'drizzle-orm';
+import { priceWithMargin } from '#lib/server/payments/currency.js';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
@@ -20,72 +19,59 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw error(403, 'Only user and charity accounts can access reservations');
 	}
 
-	// Fetch all reservations for the current user (active, claimed, completed)
-	// Excluding only expired ones for better UX
-	const userReservations = await db
+	// A missed pickup stays "active" until someone looks at it; settle those
+	// first so the list never shows an order as upcoming after its window closed.
+	await db
+		.update(reservations)
+		.set({ status: 'expired' })
+		.where(
+			and(
+				eq(reservations.userAccountId, account.id),
+				eq(reservations.status, 'active'),
+				lt(reservations.pickupUntil, new Date())
+			)
+		);
+
+	const rows = await db
 		.select({
 			id: reservations.id,
 			status: reservations.status,
 			pickupFrom: reservations.pickupFrom,
 			pickupUntil: reservations.pickupUntil,
-			reservedAt: reservations.reservedAt,
-			claimedAt: reservations.claimedAt,
-			completedAt: reservations.completedAt,
-			notes: reservations.notes,
-			offer: {
-				id: businessOffers.id,
-				name: businessOffers.name,
-				description: businessOffers.description,
-				price: businessOffers.price,
-				currency: businessOffers.currency
-			},
-			location: {
-				id: businessLocations.id,
-				name: businessLocations.name,
-				address: businessLocations.address,
-				city: businessLocations.city,
-				province: businessLocations.province,
-				zipCode: businessLocations.zipCode,
-				country: businessLocations.country
-			},
-			business: {
-				name: businessProfiles.name,
-				profilePictureId: businessProfiles.profilePictureId
-			},
-			profilePicture: {
-				key: files.key,
-				fileName: files.fileName
-			}
+			offerName: businessOffers.name,
+			price: businessOffers.price,
+			currency: businessOffers.currency,
+			locationName: businessLocations.name,
+			city: businessLocations.city,
+			businessName: businessProfiles.name,
+			logoKey: files.key
 		})
 		.from(reservations)
 		.innerJoin(businessOffers, eq(reservations.offerId, businessOffers.id))
 		.leftJoin(businessLocations, eq(businessOffers.locationId, businessLocations.id))
-		.innerJoin(accounts, eq(businessOffers.businessAccountId, accounts.id))
 		.innerJoin(businessProfiles, eq(businessOffers.businessAccountId, businessProfiles.accountId))
-		.innerJoin(files, eq(businessProfiles.profilePictureId, files.id))
-		.where(
-			and(
-				eq(reservations.userAccountId, account.id),
-				inArray(reservations.status, ['active', 'claimed', 'completed'])
-			)
-		)
-		.orderBy(reservations.pickupFrom);
+		.leftJoin(files, eq(businessProfiles.profilePictureId, files.id))
+		.where(eq(reservations.userAccountId, account.id))
+		.orderBy(desc(reservations.pickupFrom));
 
-	// Generate signed URLs for all business logos
-	const reservationsWithLogos = await Promise.all(
-		userReservations.map(async (reservation) => {
-			return {
-				...reservation,
-				business: {
-					...reservation.business,
-					logoUrl: await getSignedDownloadUrl(reservation.profilePicture.key)
-				}
-			};
-		})
+	// Many orders share a business, so sign each logo only once.
+	const logoKeys = [...new Set(rows.map((row) => row.logoKey).filter((key) => key !== null))];
+	const logoUrls = new Map(
+		await Promise.all(
+			logoKeys.map(async (key) => [key, await getSignedDownloadUrl(key)] as const)
+		)
 	);
 
+	const isCharity = account.accountType === 'charity';
+
 	return {
-		reservations: reservationsWithLogos
+		isCharity,
+		reservations: rows.map(({ logoKey, price, ...row }) => ({
+			...row,
+			// Charities reserve donated bags; only customers pay.
+			price: isCharity ? null : priceWithMargin(price),
+			logoUrl: logoKey ? (logoUrls.get(logoKey) ?? null) : null
+		}))
 	};
 };
 

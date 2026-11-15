@@ -1,207 +1,175 @@
-// @ts-nocheck
-<!-- /src/routes/(dock)/reservations/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import IconCalendar from '~icons/fluent/calendar-24-regular';
+	import { fly } from 'svelte/transition';
+	import IconBag from '~icons/fluent/shopping-bag-24-regular';
 	import IconClock from '~icons/fluent/clock-24-regular';
-	import IconLocation from '~icons/fluent/location-24-regular';
-	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
-	import IconArrowDownload from '~icons/fluent/arrow-download-24-regular';
-	import IconCheckmark from '~icons/fluent/checkmark-circle-24-filled';
-	import IconFilter from '~icons/fluent/filter-24-regular';
+	import IconHistory from '~icons/fluent/history-24-regular';
+	import IconChevron from '~icons/fluent/chevron-right-24-regular';
+	import IconReceipt from '~icons/fluent/receipt-24-regular';
+	import IconSearch from '~icons/fluent/search-24-regular';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
-	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
-
-	import NotFound from '#lib/components/NotFound.svelte';
-	import { formatDate, formatTime, downloadBase64Pdf } from '#lib/util.js';
+	import Button from '#lib/components/ui/Button.svelte';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
+	import Segmented from '#lib/components/ui/Segmented.svelte';
+	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';
+	import BusinessLogo from '#lib/components/reservations/BusinessLogo.svelte';
+	import { formatPickupWindow, pickupPhase } from '#lib/components/reservations/pickup.js';
+	import { receiptSubmit } from '#lib/components/reservations/receipt.js';
+	import { RESERVATION_STATUS } from '#lib/statuses.js';
+	import { formatPrice } from '#lib/util.js';
 
 	let { data } = $props();
 
-	let showClaimed = $state(false);
-	let loadingReceiptId = $state<string | null>(null);
-	let receiptErrors = $state<Record<string, string>>({});
+	type View = 'upcoming' | 'past';
 
-	const filteredReservations = $derived(
-		showClaimed ? data.reservations : data.reservations.filter((r) => r.status === 'active')
+	let view = $state<View>('upcoming');
+	let receiptPendingId = $state<string | null>(null);
+	let now = $state(Date.now());
+
+	// Keeps "Today"/"Ready now" honest while the page stays open.
+	$effect(() => {
+		const timer = setInterval(() => (now = Date.now()), 30_000);
+		return () => clearInterval(timer);
+	});
+
+	const upcoming = $derived(
+		data.reservations
+			.filter((reservation) => reservation.status === 'active')
+			.toSorted((a, b) => a.pickupFrom.getTime() - b.pickupFrom.getTime())
 	);
+	const past = $derived(data.reservations.filter((reservation) => reservation.status !== 'active'));
+	const shown = $derived(view === 'upcoming' ? upcoming : past);
 
-	function getStatusBadge(status: string) {
-		const styles = {
-			active: 'badge-primary',
-			claimed: 'badge-success',
-			completed: 'badge-neutral',
-			expired: 'badge-error'
-		};
-		return styles[status as keyof typeof styles] || 'badge-ghost';
-	}
-
-	function getStatusText(status: string) {
-		const text = {
-			active: 'Active',
-			claimed: 'Claimed',
-			completed: 'Completed',
-			expired: 'Expired'
-		};
-		return text[status as keyof typeof text] || status;
-	}
+	const options = $derived([
+		{ value: 'upcoming' as const, label: 'Upcoming', count: upcoming.length },
+		{ value: 'past' as const, label: 'Past', count: past.length }
+	]);
 </script>
 
-<BaseLayout title="My Reservations" icon={IconCalendar}>
-	<!-- Filter Toggle -->
-	<div class="mb-8 flex items-center justify-end gap-3">
-		<label class="flex cursor-pointer items-center gap-2">
-			<input type="checkbox" class="toggle toggle-primary" bind:checked={showClaimed} />
-			<span class="text-sm font-medium">Show claimed</span>
-		</label>
-	</div>
+<svelte:head>
+	<title>Orders · GoBento</title>
+</svelte:head>
 
-	<!-- Empty State -->
-	{#if filteredReservations.length === 0}
-		<NotFound
-			icon={IconCalendar}
-			title={showClaimed ? 'No reservations found' : 'No active reservations'}
-			description={showClaimed
-				? "You haven't made any reservations yet."
-				: 'You have no active offers reserved. Browse offers to get started.'}
-		/>
-	{:else}
-		<!-- Reservations Grid -->
-		<div class="grid gap-4">
-			{#each filteredReservations as reservation}
-				<div class="card bg-base-100 transition-all duration-200 hover:bg-base-200/50">
-					<a href="/reservations/{reservation.id}" class="card-body p-6">
-						<div class="flex flex-col gap-4">
-							<!-- Status Badge (for claimed/completed) -->
-							{#if reservation.status !== 'active'}
-								<div class="flex justify-end">
-									<span class="badge {getStatusBadge(reservation.status)} gap-2 badge-lg">
-										{#if reservation.status === 'claimed'}
-											<IconCheckmark class="size-4" />
-										{/if}
-										{getStatusText(reservation.status)}
-									</span>
-								</div>
-							{/if}
+<BaseLayout title="Orders" description="Your reserved bags and pickup tickets" icon={IconBag}>
+	<Segmented {options} bind:value={view} label="Filter orders" class="mb-5 sm:max-w-sm" />
 
-							<!-- Pickup Date & Time -->
-							<div class="flex items-start gap-4">
-								<div class="rounded-xl bg-primary/10 p-3">
-									<IconCalendar class="h-6 w-6 text-primary" />
-								</div>
-								<div class="flex-1">
-									<div
-										class="mb-1 text-xs font-medium tracking-wide text-base-content/50 uppercase"
-									>
-										Pickup Time
-									</div>
-									<div class="text-lg font-semibold">
-										{formatDate(reservation.pickupFrom)}
-									</div>
-									<div class="mt-1 flex items-center gap-2 text-sm text-base-content/70">
-										<IconClock class="size-4" />
-										<span>
-											{formatTime(reservation.pickupFrom.toLocaleTimeString())} - {formatTime(
-												reservation.pickupUntil.toLocaleTimeString()
-											)}
-										</span>
-									</div>
-								</div>
-							</div>
-
-							<!-- Offer Details -->
-							<div class="space-y-2">
-								<h3 class="text-xl font-bold">{reservation.offer.name}</h3>
-								<p class="line-clamp-2 text-sm text-base-content/60">
-									{reservation.offer.description}
-								</p>
-								<div class="text-lg font-semibold text-primary">
-									{reservation.offer.price.toFixed(2)}
-									{reservation.offer.currency}
-								</div>
-							</div>
-
-							<!-- Location -->
-							{#if reservation.location}
-								<div class="flex items-start gap-3 rounded-lg bg-base-200/50 p-3">
-									<IconLocation class="mt-0.5 size-5 shrink-0 text-base-content/60" />
-									<div class="text-sm">
-										<div class="font-medium">{reservation.location.name}</div>
-										<div class="text-base-content/50">
-											{reservation.location.address}, {reservation.location.zipCode}
-											{reservation.location.city}
-										</div>
-									</div>
-								</div>
-							{/if}
-
-							<!-- Business Info & Arrow -->
-							<div
-								class="mt-2 flex items-center justify-between border-t border-base-content/10 pt-4"
-							>
-								<div class="flex items-center gap-3">
-									<OptimizedLogoImage
-										src={reservation.business.logoUrl}
-										alt={reservation.business.name}
-										size="sm"
-										shape="square"
-									/>
-
-									<div class="text-sm font-medium">{reservation.business.name}</div>
-								</div>
-								<IconArrowRight class="size-5 text-base-content/40" />
-							</div>
-						</div>
-					</a>
-
-					<!-- Receipt Download -->
-					<div class="border-t border-base-content/10 px-6 py-3">
-						{#if receiptErrors[reservation.id]}
-							<p class="mb-2 text-sm text-error">{receiptErrors[reservation.id]}</p>
-						{/if}
-						<form
-							method="POST"
-							action="?/downloadReceipt"
-							use:enhance={() => {
-								loadingReceiptId = reservation.id;
-								if (receiptErrors[reservation.id]) {
-									const next = { ...receiptErrors };
-									delete next[reservation.id];
-									receiptErrors = next;
-								}
-								return async ({ result }) => {
-									loadingReceiptId = null;
-									if (result.type === 'success' && result.data?.receipt) {
-// @ts-ignore
-										downloadBase64Pdf(result.data.receipt.base64, result.data.receipt.filename);
-									} else if (result.type === 'failure') {
-										receiptErrors = {
-											...receiptErrors,
-											[reservation.id]:
-												(result.data?.error as string) ?? 'Failed to generate receipt'
-										};
-									}
-								};
-							}}
+	{#key view}
+		<div in:fly={{ y: 10, duration: 220 }}>
+			{#if shown.length === 0}
+				{#if view === 'upcoming'}
+					<EmptyState
+						icon={IconBag}
+						title="Nothing to pick up yet"
+						description="Reserve a surprise bag nearby and your pickup ticket will show up here."
+						actionLabel="Discover offers"
+						actionHref="/discover"
+						actionIcon={IconSearch}
+					/>
+				{:else}
+					<EmptyState
+						icon={IconHistory}
+						tone="muted"
+						title="No past orders"
+						description="Bags you have collected will be listed here, together with their receipts."
+						actionLabel="Discover offers"
+						actionHref="/discover"
+						actionIcon={IconSearch}
+					/>
+				{/if}
+			{:else}
+				<ul class="grid gap-3 lg:grid-cols-2">
+					{#each shown as reservation, i (reservation.id)}
+						{@const ready =
+							reservation.status === 'active' &&
+							pickupPhase(reservation.pickupFrom, reservation.pickupUntil, now) === 'open'}
+						<li
+							class="surface flex animate-rise-in flex-col stagger"
+							style:--i={Math.min(i, 8)}
 						>
-							<input type="hidden" name="reservationId" value={reservation.id} />
-							<button
-								type="submit"
-								class="btn gap-2 btn-ghost btn-sm"
-								disabled={loadingReceiptId === reservation.id}
+							<a
+								href="/reservations/{reservation.id}"
+								class="flex flex-1 items-start gap-3 rounded-t-box p-4 transition-colors hover:bg-base-200/50"
 							>
-								{#if loadingReceiptId === reservation.id}
-									<span class="loading loading-xs loading-spinner"></span>
-									Generating...
-								{:else}
-									<IconArrowDownload class="size-4" />
-									Download Receipt
-								{/if}
-							</button>
-						</form>
-					</div>
-				</div>
-			{/each}
-		</div>
-	{/if}
-</BaseLayout>
+								<BusinessLogo src={reservation.logoUrl} priority={i < 4} />
+								<div class="min-w-0 flex-1">
+									<div class="flex items-start justify-between gap-2">
+										<h2 class="truncate leading-snug font-extrabold">{reservation.offerName}</h2>
+										{#if ready}
+											<span class="badge shrink-0 gap-1 badge-sm badge-success">
+												<span class="size-1.5 animate-pulse rounded-full bg-current"></span>
+												Ready now
+											</span>
+										{:else}
+											<StatusBadge
+												map={RESERVATION_STATUS}
+												status={reservation.status}
+												class="shrink-0"
+											/>
+										{/if}
+									</div>
+									<p class="truncate text-sm text-base-content/60">
+										{reservation.businessName}{#if reservation.city}
+											· {reservation.city}{/if}
+									</p>
+									<p
+										class="tabular mt-2 flex items-center gap-1.5 text-sm font-bold {reservation.status ===
+										'active'
+											? 'text-primary'
+											: 'text-base-content/70'}"
+									>
+										<IconClock class="size-4 shrink-0" />
+										{formatPickupWindow(reservation.pickupFrom, reservation.pickupUntil, now)}
+									</p>
+								</div>
+							</a>
 
+							<div
+								class="flex min-h-12 items-center justify-between gap-2 border-t border-base-300/70 py-1 ps-4 pe-2"
+							>
+								<span class="tabular font-extrabold">
+									{reservation.price === null
+										? 'Donation'
+										: formatPrice(reservation.price, reservation.currency)}
+								</span>
+								<div class="flex items-center">
+									{#if !data.isCharity}
+										<form
+											method="POST"
+											action="?/downloadReceipt"
+											use:enhance={receiptSubmit(
+												(pending) => (receiptPendingId = pending ? reservation.id : null)
+											)}
+										>
+											<input type="hidden" name="reservationId" value={reservation.id} />
+											<Button
+												type="submit"
+												variant="ghost"
+												size="sm"
+												icon={IconReceipt}
+												class="min-h-11"
+												loading={receiptPendingId === reservation.id}
+												disabled={receiptPendingId !== null}
+												aria-label="Download receipt for {reservation.offerName}"
+											>
+												Receipt
+											</Button>
+										</form>
+									{/if}
+									<Button
+										href="/reservations/{reservation.id}"
+										variant="ghost"
+										size="sm"
+										iconRight={IconChevron}
+										class="min-h-11 text-primary"
+									>
+										{reservation.status === 'active' ? 'Ticket' : 'Details'}
+									</Button>
+								</div>
+							</div>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+	{/key}
+</BaseLayout>
