@@ -1,21 +1,26 @@
 <!-- src/routes/(dock)/+layout.svelte -->
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import type { Component, Snippet } from 'svelte';
 	import type { LayoutData } from './$types';
 	import { page, navigating } from '$app/state';
-	import { m } from '#paraglide/messages';
+	import Modal from '#lib/components/Modal.svelte';
+	import {
+		activePath,
+		navigationFor,
+		splitForTabBar,
+		type NavIcon,
+		type NavItem
+	} from '#lib/navigation.js';
 
-	// User navigation
+	import BentoIcon from '~icons/fluent-emoji-flat/bento-box';
 	import CompassIcon from '~icons/fluent/compass-northwest-24-regular';
 	import CompassFilledIcon from '~icons/fluent/compass-northwest-24-filled';
-	import FluentShoppingBag24Regular from '~icons/fluent/shopping-bag-24-regular';
-	import FluentShoppingBag24Filled from '~icons/fluent/shopping-bag-24-filled';
+	import BagIcon from '~icons/fluent/shopping-bag-24-regular';
+	import BagFilledIcon from '~icons/fluent/shopping-bag-24-filled';
 	import HeartIcon from '~icons/fluent/heart-24-regular';
 	import HeartFilledIcon from '~icons/fluent/heart-24-filled';
 	import PersonIcon from '~icons/fluent/person-24-regular';
 	import PersonFilledIcon from '~icons/fluent/person-24-filled';
-
-	// Business/Charity navigation
 	import HomeIcon from '~icons/fluent/home-24-regular';
 	import HomeFilledIcon from '~icons/fluent/home-24-filled';
 	import ChartIcon from '~icons/fluent/data-bar-vertical-24-regular';
@@ -24,18 +29,18 @@
 	import TagFilledIcon from '~icons/fluent/tag-24-filled';
 	import MoneyIcon from '~icons/fluent/money-24-regular';
 	import MoneyFilledIcon from '~icons/fluent/money-24-filled';
-	import SettingsIcon from '~icons/fluent/settings-24-regular';
-	import SettingsFilledIcon from '~icons/fluent/settings-24-filled';
-
-	// Business navigation
 	import LocationIcon from '~icons/fluent/location-24-regular';
 	import LocationFilledIcon from '~icons/fluent/location-24-filled';
 	import WarningIcon from '~icons/fluent/warning-24-regular';
 	import WarningFilledIcon from '~icons/fluent/warning-24-filled';
-
-	// Moderator navigation
+	import SettingsIcon from '~icons/fluent/settings-24-regular';
+	import SettingsFilledIcon from '~icons/fluent/settings-24-filled';
 	import ShieldIcon from '~icons/fluent/shield-task-24-regular';
 	import ShieldFilledIcon from '~icons/fluent/shield-task-24-filled';
+	import MoreIcon from '~icons/fluent/grid-dots-24-regular';
+	import MoreFilledIcon from '~icons/fluent/grid-dots-24-filled';
+	import ChevronIcon from '~icons/fluent/chevron-right-24-regular';
+	import SignOutIcon from '~icons/fluent/sign-out-24-regular';
 
 	interface Props {
 		children: Snippet;
@@ -44,247 +49,151 @@
 
 	let { children, data }: Props = $props();
 
-	// Navigation configurations for different account types
-	const userNav = [
-		{
-			path: '/discover',
-			label: 'Discover',
-			icon: CompassIcon,
-			filledIcon: CompassFilledIcon
-		},
-		{
-			path: '/reservations',
-			label: 'Reservations',
-			icon: FluentShoppingBag24Regular,
-			filledIcon: FluentShoppingBag24Filled
-		},
-		{
-			path: '/favorites',
-			label: 'Favorites',
-			icon: HeartIcon,
-			filledIcon: HeartFilledIcon
-		},
-		{
-			path: '/profile',
-			label: m.profile(),
-			icon: PersonIcon,
-			filledIcon: PersonFilledIcon
-		}
-	];
+	const ICONS: Record<NavIcon, { regular: Component; filled: Component }> = {
+		discover: { regular: CompassIcon, filled: CompassFilledIcon },
+		bag: { regular: BagIcon, filled: BagFilledIcon },
+		heart: { regular: HeartIcon, filled: HeartFilledIcon },
+		person: { regular: PersonIcon, filled: PersonFilledIcon },
+		home: { regular: HomeIcon, filled: HomeFilledIcon },
+		tag: { regular: TagIcon, filled: TagFilledIcon },
+		chart: { regular: ChartIcon, filled: ChartFilledIcon },
+		money: { regular: MoneyIcon, filled: MoneyFilledIcon },
+		location: { regular: LocationIcon, filled: LocationFilledIcon },
+		warning: { regular: WarningIcon, filled: WarningFilledIcon },
+		settings: { regular: SettingsIcon, filled: SettingsFilledIcon },
+		shield: { regular: ShieldIcon, filled: ShieldFilledIcon }
+	};
 
-	const businessNav = [
-		{
-			path: '/dashboard',
-			label: 'Dashboard',
-			icon: HomeIcon,
-			filledIcon: HomeFilledIcon
-		},
-		{
-			path: '/offers',
-			label: 'Offers',
-			icon: TagIcon,
-			filledIcon: TagFilledIcon
-		},
-		{
-			path: '/analytics',
-			label: 'Analytics',
-			icon: ChartIcon,
-			filledIcon: ChartFilledIcon
-		},
-		{
-			path: '/charities',
-			label: 'Charities',
-			icon: HeartIcon,
-			filledIcon: HeartFilledIcon
-		},
-		{
-			path: '/transactions',
-			label: 'Payments',
-			icon: MoneyIcon,
-			filledIcon: MoneyFilledIcon
-		},
-		{
-			path: '/locations',
-			label: 'Locations',
-			icon: LocationIcon,
-			filledIcon: LocationFilledIcon
-		},
-		{
-			path: '/complaints',
-			label: 'Complaints',
-			icon: WarningIcon,
-			filledIcon: WarningFilledIcon
-		},
-		{
-			path: '/profile',
-			label: m.profile(),
-			icon: SettingsIcon,
-			filledIcon: SettingsFilledIcon
-		}
-	];
+	const items = $derived(navigationFor(data.account?.accountType));
+	const active = $derived(activePath(items, page.url.pathname));
+	const bar = $derived(splitForTabBar(items));
+	const overflowActive = $derived(bar.overflow.some((item) => item.path === active));
 
-	const moderatorNav = [
-		{
-			path: '/moderation',
-			label: 'Moderation',
-			icon: ShieldIcon,
-			filledIcon: ShieldFilledIcon
-		},
-		{
-			path: '/profile',
-			label: m.profile(),
-			icon: SettingsIcon,
-			filledIcon: SettingsFilledIcon
-		}
-	];
+	let moreOpen = $state(false);
 
-	const adminNav = [
-		{
-			path: '/admin',
-			label: 'Dashboard',
-			icon: HomeIcon,
-			filledIcon: HomeFilledIcon
-		},
-		{
-			path: '/admin/accounts',
-			label: 'Accounts',
-			icon: PersonIcon,
-			filledIcon: PersonFilledIcon
-		},
-		{
-			path: '/admin/payments',
-			label: 'Payments',
-			icon: MoneyIcon,
-			filledIcon: MoneyFilledIcon
-		},
-		{
-			path: '/moderation',
-			label: 'Moderation',
-			icon: ShieldIcon,
-			filledIcon: ShieldFilledIcon
-		},
-		{
-			path: '/profile',
-			label: m.profile(),
-			icon: SettingsIcon,
-			filledIcon: SettingsFilledIcon
-		}
-	];
-
-	const charityNav = [
-		{
-			path: '/dashboard',
-			label: 'Dashboard',
-			icon: HomeIcon,
-			filledIcon: HomeFilledIcon
-		},
-		{
-			path: '/donations',
-			label: 'Donations',
-			icon: HeartIcon,
-			filledIcon: HeartFilledIcon
-		},
-		{
-			path: '/impact',
-			label: 'Impact',
-			icon: ChartIcon,
-			filledIcon: ChartFilledIcon
-		},
-		{
-			path: '/profile',
-			label: m.profile(),
-			icon: SettingsIcon,
-			filledIcon: SettingsFilledIcon
-		}
-	];
-
-	// Select navigation based on account type
-	const navigation = $derived(() => {
-		const accountType = data.account?.accountType;
-
-		switch (accountType) {
-			case 'business':
-				return businessNav;
-			case 'charity':
-				return charityNav;
-			case 'moderator':
-				return moderatorNav;
-			case 'admin':
-				return adminNav;
-			case 'user':
-			default:
-				return userNav;
-		}
+	// Close the sheet as soon as a navigation starts.
+	$effect(() => {
+		if (navigating.to) moreOpen = false;
 	});
-
-	// Highlight an item for its own path and any route beneath it
-	// (e.g. /offers/123 keeps "Offers" active).
-	function isActive(path: string) {
-		return page.url.pathname === path || page.url.pathname.startsWith(path + '/');
-	}
 </script>
 
-<!-- Slim progress bar at the very top while a client-side navigation loads.
-     The current page stays interactive underneath, so navigation feels instant. -->
+{#snippet glyph(item: NavItem, isActive: boolean)}
+	{@const Icon = isActive ? ICONS[item.icon].filled : ICONS[item.icon].regular}
+	{#key isActive}
+		<Icon class="size-6 {isActive ? 'animate-pop-in' : ''}" />
+	{/key}
+{/snippet}
+
+<!-- Slim progress bar while a client-side navigation loads. The current page
+     stays interactive underneath, so navigation never blocks. -->
 {#if navigating.to}
 	<div class="nav-progress" aria-hidden="true"><span></span></div>
 {/if}
 
-<!-- Desktop Sidebar (fixed to left or right based on RTL) -->
-<nav
-	class="fixed inset-y-0 start-0 z-50 hidden w-56 flex-col gap-1 border-e border-base-300 bg-base-100 p-3 md:flex"
+<a
+	href="#main"
+	class="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-[2000] focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:font-bold focus:text-primary-content"
 >
-	{#each navigation() as item (item.path)}
-		<a
-			href={item.path}
-			data-sveltekit-preload-data="hover"
-			aria-current={isActive(item.path) ? 'page' : undefined}
-			class="nav-item"
-			class:nav-item-active={isActive(item.path)}
-		>
-			{#if isActive(item.path)}
-				<item.filledIcon class="animate-pop-in size-6" />
-			{:else}
-				<item.icon class="size-6" />
-			{/if}
-			<span class="font-medium">{item.label}</span>
+	Skip to content
+</a>
+
+<!-- Desktop sidebar -->
+<nav
+	aria-label="Main"
+	class="fixed inset-y-0 start-0 z-50 hidden w-60 flex-col border-e border-base-300/70 bg-base-100 p-3 md:flex"
+>
+	<a href="/" class="mb-4 flex items-center gap-2.5 rounded-2xl px-3 py-3">
+		<BentoIcon class="size-8" />
+		<span class="text-xl font-extrabold tracking-tight">GoBento</span>
+	</a>
+
+	<div class="flex flex-1 flex-col gap-1 overflow-y-auto">
+		{#each items as item (item.path)}
+			{@const isActive = item.path === active}
+			<a
+				href={item.path}
+				aria-current={isActive ? 'page' : undefined}
+				class="nav-item"
+				class:nav-item-active={isActive}
+			>
+				{@render glyph(item, isActive)}
+				<span>{item.label}</span>
+			</a>
+		{/each}
+	</div>
+
+	<div class="mt-2 border-t border-base-300/70 pt-3">
+		<p class="truncate px-3.5 pb-1 text-xs text-base-content/50" title={data.account.email}>
+			{data.account.email}
+		</p>
+		<a href="/auth/logout" data-sveltekit-reload class="nav-item">
+			<SignOutIcon class="size-6 rtl:rotate-180" />
+			<span>Sign out</span>
 		</a>
-	{/each}
+	</div>
 </nav>
 
-<!-- Main Content (with padding for sidebar on desktop) -->
-
 <main
-	class="h-dvh w-full max-w-full overflow-x-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] md:ps-58 md:pb-0"
+	id="main"
+	tabindex="-1"
+	class="page-view min-h-dvh w-full pb-[calc(4rem+env(safe-area-inset-bottom))] outline-none md:ps-60 md:pb-0"
 >
-	{#key page.url.pathname}
-		<div class="animate-page-enter">
-			{@render children()}
-		</div>
-	{/key}
+	{@render children()}
 </main>
 
-<!-- Mobile Bottom Dock -->
-<div class="dock md:hidden">
-	{#each navigation() as item (item.path)}
+<!-- Phone tab bar -->
+<nav aria-label="Main" class="tabbar md:hidden">
+	{#each bar.tabs as item (item.path)}
+		{@const isActive = item.path === active}
 		<a
 			href={item.path}
-			data-sveltekit-preload-code="viewport"
 			data-sveltekit-preload-data="tap"
-			aria-current={isActive(item.path) ? 'page' : undefined}
-			class="dock-item"
-			class:dock-item-active={isActive(item.path)}
+			aria-current={isActive ? 'page' : undefined}
+			class="tabbar-item"
+			class:tabbar-item-active={isActive}
 		>
-			<span class="dock-icon">
-				{#key isActive(item.path)}
-					{#if isActive(item.path)}
-						<item.filledIcon class="animate-pop-in size-6" />
-					{:else}
-						<item.icon class="size-6" />
-					{/if}
-				{/key}
-			</span>
-			<span class="dock-label">{item.label}</span>
+			<span class="tabbar-icon">{@render glyph(item, isActive)}</span>
+			<span class="tabbar-label">{item.label}</span>
 		</a>
 	{/each}
-</div>
+
+	{#if bar.overflow.length > 0}
+		<button
+			type="button"
+			class="tabbar-item"
+			class:tabbar-item-active={overflowActive || moreOpen}
+			aria-haspopup="dialog"
+			aria-expanded={moreOpen}
+			onclick={() => (moreOpen = true)}
+		>
+			<span class="tabbar-icon">
+				{#if overflowActive || moreOpen}
+					<MoreFilledIcon class="size-6" />
+				{:else}
+					<MoreIcon class="size-6" />
+				{/if}
+			</span>
+			<span class="tabbar-label">More</span>
+		</button>
+	{/if}
+</nav>
+
+<Modal bind:open={moreOpen} title="More" position="bottom">
+	<ul class="flex flex-col gap-1 pb-2">
+		{#each bar.overflow as item, index (item.path)}
+			{@const isActive = item.path === active}
+			<li class="animate-rise-in stagger" style:--i={index}>
+				<a
+					href={item.path}
+					aria-current={isActive ? 'page' : undefined}
+					class="nav-item py-3"
+					class:nav-item-active={isActive}
+				>
+					{@render glyph(item, isActive)}
+					<span class="flex-1">{item.label}</span>
+					<ChevronIcon class="size-5 opacity-40 rtl:rotate-180" />
+				</a>
+			</li>
+		{/each}
+	</ul>
+</Modal>

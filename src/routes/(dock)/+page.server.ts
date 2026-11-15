@@ -1,17 +1,8 @@
 import type { PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
+import { homeFor } from '#lib/navigation.js';
 
+// `/` has no content of its own: send each role to its home screen.
 export const load: PageServerLoad = async ({ locals }) => {
-	const accountType = locals.account?.accountType;
-
-	const home =
-		accountType === 'moderator'
-			? '/moderation'
-			: accountType === 'admin'
-				? '/admin'
-				: accountType === 'business' || accountType === 'charity'
-					? '/dashboard'
-					: '/discover';
-
-	throw redirect(307, home);
+	redirect(307, homeFor(locals.account?.accountType));
 };
