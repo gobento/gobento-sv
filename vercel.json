@@ -1,4 +1,5 @@
 {
 	"installCommand": "bun install",
-	"buildCommand": "bun run build"
+	"buildCommand": "bun run build",
+	"crons": [{ "path": "/api/cron/recurring-gifts", "schedule": "0 5 * * *" }]
 }

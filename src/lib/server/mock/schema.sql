@@ -107,6 +107,14 @@ CREATE TABLE "complaints" (
 	"resolved_at" timestamp with time zone
 );
 
+CREATE TABLE "employees" (
+	"account_id" text PRIMARY KEY NOT NULL,
+	"employer_account_id" text NOT NULL,
+	"location_id" text,
+	"name" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE "favorite_locations" (
 	"account_id" text NOT NULL,
 	"location_id" text NOT NULL,
@@ -211,6 +219,7 @@ CREATE TABLE "pickup_requests" (
 	"status" text DEFAULT 'pending' NOT NULL,
 	"reservation_id" text,
 	"notes" text,
+	"recurring_gift_id" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"responded_at" timestamp with time zone
 );
@@ -223,6 +232,28 @@ CREATE TABLE "push_subscriptions" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"last_notified_at" timestamp with time zone,
 	CONSTRAINT "push_subscriptions_ntfy_topic_unique" UNIQUE("ntfy_topic")
+);
+
+CREATE TABLE "recurring_gifts" (
+	"id" text PRIMARY KEY NOT NULL,
+	"business_account_id" text NOT NULL,
+	"charity_account_id" text NOT NULL,
+	"location_id" text,
+	"food_type" text,
+	"message" text NOT NULL,
+	"frequency" text NOT NULL,
+	"weekday" integer,
+	"day_of_month" integer,
+	"pickup_time_from" time NOT NULL,
+	"pickup_time_until" time NOT NULL,
+	"time_zone" text NOT NULL,
+	"starts_on" text NOT NULL,
+	"status" text DEFAULT 'proposed' NOT NULL,
+	"next_occurrence_at" timestamp with time zone,
+	"notes" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"responded_at" timestamp with time zone,
+	"ended_at" timestamp with time zone
 );
 
 CREATE TABLE "reservation_claims" (
@@ -313,6 +344,9 @@ ALTER TABLE "complaints" ADD CONSTRAINT "complaints_business_account_id_accounts
 ALTER TABLE "complaints" ADD CONSTRAINT "complaints_offer_id_business_offers_id_fk" FOREIGN KEY ("offer_id") REFERENCES "public"."business_offers"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "complaints" ADD CONSTRAINT "complaints_location_id_business_locations_id_fk" FOREIGN KEY ("location_id") REFERENCES "public"."business_locations"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "complaints" ADD CONSTRAINT "complaints_resolved_by_account_id_accounts_id_fk" FOREIGN KEY ("resolved_by_account_id") REFERENCES "public"."accounts"("id") ON DELETE set null ON UPDATE no action;
+ALTER TABLE "employees" ADD CONSTRAINT "employees_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "employees" ADD CONSTRAINT "employees_employer_account_id_accounts_id_fk" FOREIGN KEY ("employer_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "employees" ADD CONSTRAINT "employees_location_id_business_locations_id_fk" FOREIGN KEY ("location_id") REFERENCES "public"."business_locations"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "favorite_locations" ADD CONSTRAINT "favorite_locations_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "favorite_locations" ADD CONSTRAINT "favorite_locations_location_id_business_locations_id_fk" FOREIGN KEY ("location_id") REFERENCES "public"."business_locations"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "files" ADD CONSTRAINT "files_uploaded_by_accounts_id_fk" FOREIGN KEY ("uploaded_by") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
@@ -333,7 +367,11 @@ ALTER TABLE "pickup_requests" ADD CONSTRAINT "pickup_requests_charity_account_id
 ALTER TABLE "pickup_requests" ADD CONSTRAINT "pickup_requests_location_id_business_locations_id_fk" FOREIGN KEY ("location_id") REFERENCES "public"."business_locations"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "pickup_requests" ADD CONSTRAINT "pickup_requests_offer_id_business_offers_id_fk" FOREIGN KEY ("offer_id") REFERENCES "public"."business_offers"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "pickup_requests" ADD CONSTRAINT "pickup_requests_reservation_id_reservations_id_fk" FOREIGN KEY ("reservation_id") REFERENCES "public"."reservations"("id") ON DELETE set null ON UPDATE no action;
+ALTER TABLE "pickup_requests" ADD CONSTRAINT "pickup_requests_recurring_gift_id_recurring_gifts_id_fk" FOREIGN KEY ("recurring_gift_id") REFERENCES "public"."recurring_gifts"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "push_subscriptions" ADD CONSTRAINT "push_subscriptions_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "recurring_gifts" ADD CONSTRAINT "recurring_gifts_business_account_id_accounts_id_fk" FOREIGN KEY ("business_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "recurring_gifts" ADD CONSTRAINT "recurring_gifts_charity_account_id_accounts_id_fk" FOREIGN KEY ("charity_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "recurring_gifts" ADD CONSTRAINT "recurring_gifts_location_id_business_locations_id_fk" FOREIGN KEY ("location_id") REFERENCES "public"."business_locations"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "reservation_claims" ADD CONSTRAINT "reservation_claims_reservation_id_reservations_id_fk" FOREIGN KEY ("reservation_id") REFERENCES "public"."reservations"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "reservation_claims" ADD CONSTRAINT "reservation_claims_claimed_by_account_id_accounts_id_fk" FOREIGN KEY ("claimed_by_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "reservation_invites" ADD CONSTRAINT "reservation_invites_reservation_id_reservations_id_fk" FOREIGN KEY ("reservation_id") REFERENCES "public"."reservations"("id") ON DELETE cascade ON UPDATE no action;
@@ -347,3 +385,4 @@ ALTER TABLE "sessions" ADD CONSTRAINT "sessions_account_id_accounts_id_fk" FOREI
 ALTER TABLE "settlement_payments" ADD CONSTRAINT "settlement_payments_settlement_id_monthly_settlements_id_fk" FOREIGN KEY ("settlement_id") REFERENCES "public"."monthly_settlements"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "settlement_payments" ADD CONSTRAINT "settlement_payments_payment_id_payments_id_fk" FOREIGN KEY ("payment_id") REFERENCES "public"."payments"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
+CREATE UNIQUE INDEX "pickup_requests_gift_occurrence_idx" ON "pickup_requests" USING btree ("recurring_gift_id","proposed_pickup_from");

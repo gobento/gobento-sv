@@ -50,6 +50,13 @@
       "when": 1783681184525,
       "tag": "0006_add_payment_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783681184526,
+      "tag": "0007_recurring_gifts_and_staff",
+      "breakpoints": true
     }
-    ]
-    }
+  ]
+}

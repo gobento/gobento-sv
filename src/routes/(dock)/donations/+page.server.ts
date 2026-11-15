@@ -7,14 +7,41 @@ import {
 	businessLocations,
 	businessOffers,
 	reservations,
+	recurringGifts,
 	files
 } from '#lib/server/schema.js';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 import { notifyAccount } from '#lib/server/notifications.js';
 import { randomUUID } from 'crypto';
 import { PUBLIC_APP_URL } from '$app/env/private';
+import { describeSchedule } from '#lib/recurringGifts.js';
+import { firstOccurrenceFrom, materializeDueGifts } from '#lib/server/recurringGifts.js';
+
+const appUrl = (path: string) => `${PUBLIC_APP_URL || 'http://localhost:5173'}${path}`;
+
+/** One of this charity's gifts, or null. */
+async function ownGift(charityAccountId: string, giftId: FormDataEntryValue | null) {
+	if (typeof giftId !== 'string' || !giftId) return null;
+	const [gift] = await db
+		.select()
+		.from(recurringGifts)
+		.where(and(eq(recurringGifts.id, giftId), eq(recurringGifts.charityAccountId, charityAccountId)))
+		.limit(1);
+	return gift ?? null;
+}
+
+/** One of this charity's pickup requests, or null. */
+async function ownPickup(charityAccountId: string, requestId: FormDataEntryValue | null) {
+	if (typeof requestId !== 'string' || !requestId) return null;
+	const [pickup] = await db
+		.select()
+		.from(pickupRequests)
+		.where(and(eq(pickupRequests.id, requestId), eq(pickupRequests.charityAccountId, charityAccountId)))
+		.limit(1);
+	return pickup ?? null;
+}
 
 function generateClaimToken(): string {
 	return `CLAIM-${randomUUID()}`;
@@ -27,6 +54,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw error(403, 'Only charity accounts can access donations');
 	}
 
+	await materializeDueGifts({ charityAccountId: account.id });
+
 	const rows = await db
 		.select({
 			id: pickupRequests.id,
@@ -38,6 +67,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			createdAt: pickupRequests.createdAt,
 			respondedAt: pickupRequests.respondedAt,
 			notes: pickupRequests.notes,
+			recurringGiftId: pickupRequests.recurringGiftId,
 			businessName: businessProfiles.name,
 			logoKey: files.key,
 			locationName: businessLocations.name,
@@ -65,10 +95,190 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}))
 	);
 
-	return { requests };
+	const giftRows = await db
+		.select({
+			id: recurringGifts.id,
+			status: recurringGifts.status,
+			message: recurringGifts.message,
+			foodType: recurringGifts.foodType,
+			frequency: recurringGifts.frequency,
+			weekday: recurringGifts.weekday,
+			dayOfMonth: recurringGifts.dayOfMonth,
+			pickupTimeFrom: recurringGifts.pickupTimeFrom,
+			pickupTimeUntil: recurringGifts.pickupTimeUntil,
+			startsOn: recurringGifts.startsOn,
+			nextOccurrenceAt: recurringGifts.nextOccurrenceAt,
+			createdAt: recurringGifts.createdAt,
+			businessName: businessProfiles.name,
+			logoKey: files.key,
+			locationName: businessLocations.name,
+			locationCity: businessLocations.city,
+			locationAddress: businessLocations.address
+		})
+		.from(recurringGifts)
+		.innerJoin(businessProfiles, eq(recurringGifts.businessAccountId, businessProfiles.accountId))
+		.innerJoin(files, eq(businessProfiles.profilePictureId, files.id))
+		.leftJoin(businessLocations, eq(recurringGifts.locationId, businessLocations.id))
+		.where(
+			and(
+				eq(recurringGifts.charityAccountId, account.id),
+				inArray(recurringGifts.status, ['proposed', 'active', 'paused'])
+			)
+		)
+		.orderBy(desc(recurringGifts.createdAt));
+
+	const gifts = await Promise.all(
+		giftRows.map(async ({ logoKey, ...gift }) => ({
+			...gift,
+			logoUrl: await getSignedDownloadUrl(logoKey),
+			schedule: describeSchedule({
+				frequency: gift.frequency,
+				weekday: gift.weekday,
+				dayOfMonth: gift.dayOfMonth,
+				timeFrom: gift.pickupTimeFrom,
+				timeUntil: gift.pickupTimeUntil
+			})
+		}))
+	);
+
+	const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+	const stats = {
+		collected: requests.filter((r) => r.status === 'completed').length,
+		collectedThisMonth: requests.filter(
+			(r) => r.status === 'completed' && r.proposedPickupFrom && r.proposedPickupFrom >= monthAgo
+		).length,
+		regularDonors: new Set(gifts.filter((g) => g.status === 'active').map((g) => g.businessName))
+			.size,
+		businesses: new Set(
+			requests.filter((r) => r.status === 'accepted' || r.status === 'completed').map((r) => r.businessName)
+		).size
+	};
+
+	return { requests, gifts, stats };
 };
 
 export const actions: Actions = {
+	acceptGift: async ({ request, locals }) => {
+		const account = locals.account!;
+		if (account.accountType !== 'charity') return fail(403, { action: { error: 'Not allowed' } });
+		const gift = await ownGift(account.id, (await request.formData()).get('giftId'));
+		if (!gift) return fail(404, { action: { error: 'Regular gift not found' } });
+		if (gift.status !== 'proposed') {
+			return fail(400, { action: { error: 'This gift has already been answered' } });
+		}
+		await db
+			.update(recurringGifts)
+			.set({ status: 'active', respondedAt: new Date(), nextOccurrenceAt: firstOccurrenceFrom(gift) })
+			.where(eq(recurringGifts.id, gift.id));
+		await materializeDueGifts({ charityAccountId: account.id });
+
+		await notifyAccount(gift.businessAccountId, {
+			title: 'Regular gift accepted',
+			message: 'A charity accepted your regular food gift. Pickups are now booked automatically.',
+			tags: ['white_check_mark', 'repeat'],
+			priority: 'high',
+			click: appUrl('/charities')
+		}).catch((err) => console.error('Failed to notify business about a gift:', err));
+		return { action: { success: true } };
+	},
+
+	declineGift: async ({ request, locals }) => {
+		const account = locals.account!;
+		if (account.accountType !== 'charity') return fail(403, { action: { error: 'Not allowed' } });
+		const formData = await request.formData();
+		const gift = await ownGift(account.id, formData.get('giftId'));
+		if (!gift) return fail(404, { action: { error: 'Regular gift not found' } });
+		if (gift.status !== 'proposed') {
+			return fail(400, { action: { error: 'This gift has already been answered' } });
+		}
+		const notes = (formData.get('notes') as string | null)?.trim() || null;
+		await db
+			.update(recurringGifts)
+			.set({ status: 'declined', respondedAt: new Date(), notes })
+			.where(eq(recurringGifts.id, gift.id));
+
+		await notifyAccount(gift.businessAccountId, {
+			title: 'Regular gift declined',
+			message: 'A charity declined your regular food gift.',
+			tags: ['x'],
+			priority: 'default',
+			click: appUrl('/charities')
+		}).catch((err) => console.error('Failed to notify business about a gift:', err));
+		return { action: { success: true } };
+	},
+
+	stopGift: async ({ request, locals }) => {
+		const account = locals.account!;
+		if (account.accountType !== 'charity') return fail(403, { action: { error: 'Not allowed' } });
+		const gift = await ownGift(account.id, (await request.formData()).get('giftId'));
+		if (!gift) return fail(404, { action: { error: 'Regular gift not found' } });
+		if (gift.status !== 'active' && gift.status !== 'paused') {
+			return fail(400, { action: { error: 'This gift is not running' } });
+		}
+		const now = new Date();
+		await db
+			.update(recurringGifts)
+			.set({ status: 'ended', nextOccurrenceAt: null, endedAt: now })
+			.where(eq(recurringGifts.id, gift.id));
+		await db
+			.update(pickupRequests)
+			.set({ status: 'cancelled' })
+			.where(
+				and(
+					eq(pickupRequests.recurringGiftId, gift.id),
+					eq(pickupRequests.status, 'accepted'),
+					sql`${pickupRequests.proposedPickupFrom} > ${now}`
+				)
+			);
+
+		await notifyAccount(gift.businessAccountId, {
+			title: 'Regular gift stopped',
+			message: 'A charity stopped collecting your regular food gift.',
+			tags: ['x'],
+			priority: 'default',
+			click: appUrl('/charities')
+		}).catch((err) => console.error('Failed to notify business about a gift:', err));
+		return { action: { success: true } };
+	},
+
+	skipPickup: async ({ request, locals }) => {
+		const account = locals.account!;
+		if (account.accountType !== 'charity') return fail(403, { action: { error: 'Not allowed' } });
+		const pickup = await ownPickup(account.id, (await request.formData()).get('requestId'));
+		if (!pickup) return fail(404, { action: { error: 'Pickup not found' } });
+		if (pickup.status !== 'accepted') {
+			return fail(400, { action: { error: 'Only a scheduled pickup can be called off' } });
+		}
+		await db
+			.update(pickupRequests)
+			.set({ status: 'cancelled', notes: 'Called off by the charity' })
+			.where(eq(pickupRequests.id, pickup.id));
+
+		await notifyAccount(pickup.businessAccountId, {
+			title: 'Pickup called off',
+			message: "A charity can't make one of its scheduled pickups.",
+			tags: ['calendar'],
+			priority: 'high',
+			click: appUrl('/dashboard')
+		}).catch((err) => console.error('Failed to notify business about a pickup:', err));
+		return { action: { success: true } };
+	},
+
+	markCollected: async ({ request, locals }) => {
+		const account = locals.account!;
+		if (account.accountType !== 'charity') return fail(403, { action: { error: 'Not allowed' } });
+		const pickup = await ownPickup(account.id, (await request.formData()).get('requestId'));
+		if (!pickup) return fail(404, { action: { error: 'Pickup not found' } });
+		if (pickup.status !== 'accepted') {
+			return fail(400, { action: { error: 'Only a scheduled pickup can be marked as collected' } });
+		}
+		await db
+			.update(pickupRequests)
+			.set({ status: 'completed' })
+			.where(eq(pickupRequests.id, pickup.id));
+		return { action: { success: true } };
+	},
+
 	acceptRequest: async ({ request, locals }) => {
 		const account = locals.account!;
 

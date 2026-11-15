@@ -9,7 +9,8 @@ import {
 	timestamp,
 	serial,
 	primaryKey,
-	time
+	time,
+	uniqueIndex
 } from 'drizzle-orm/pg-core';
 
 // Base accounts table - shared fields for all account types
@@ -17,7 +18,7 @@ export const accounts = pgTable('accounts', {
 	id: text('id').primaryKey(),
 	email: text('email').notNull().unique(),
 	accountType: text('account_type', {
-		enum: ['user', 'moderator', 'business', 'charity', 'admin']
+		enum: ['user', 'moderator', 'business', 'charity', 'admin', 'employee']
 	}).notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
@@ -257,6 +258,50 @@ export const charityFoodPreferences = pgTable(
 	})
 );
 
+// Regular gifts: a business gives surplus food to a charity on a fixed schedule.
+// The charity agrees once; each occurrence is then created as an accepted pickup request.
+export const recurringGifts = pgTable('recurring_gifts', {
+	id: text('id').primaryKey(),
+	businessAccountId: text('business_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	charityAccountId: text('charity_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	locationId: text('location_id').references(() => businessLocations.id, { onDelete: 'set null' }),
+	foodType: text('food_type', {
+		enum: [
+			'bakery',
+			'produce',
+			'dairy',
+			'prepared_meals',
+			'packaged_dry',
+			'frozen',
+			'beverages',
+			'other'
+		]
+	}),
+	message: text('message').notNull(),
+	frequency: text('frequency', { enum: ['weekly', 'biweekly', 'monthly'] }).notNull(),
+	weekday: integer('weekday'), // 0-6, Sunday first (weekly / biweekly)
+	dayOfMonth: integer('day_of_month'), // 1-28 (monthly)
+	pickupTimeFrom: time('pickup_time_from').notNull(),
+	pickupTimeUntil: time('pickup_time_until').notNull(),
+	timeZone: text('time_zone').notNull(),
+	startsOn: text('starts_on').notNull(), // YYYY-MM-DD in time_zone
+	status: text('status', {
+		enum: ['proposed', 'active', 'paused', 'declined', 'ended']
+	})
+		.notNull()
+		.default('proposed'),
+	// Start of the next pickup window that has not been turned into a request yet
+	nextOccurrenceAt: timestamp('next_occurrence_at', { withTimezone: true }),
+	notes: text('notes'),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	respondedAt: timestamp('responded_at', { withTimezone: true }),
+	endedAt: timestamp('ended_at', { withTimezone: true })
+});
+
 // Pickup requests sent by a business to a charity to collect surplus food
 export const pickupRequests = pgTable('pickup_requests', {
 	id: text('id').primaryKey(),
@@ -292,8 +337,31 @@ export const pickupRequests = pgTable('pickup_requests', {
 		onDelete: 'set null'
 	}),
 	notes: text('notes'),
+	recurringGiftId: text('recurring_gift_id').references(() => recurringGifts.id, {
+		onDelete: 'set null'
+	}),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	respondedAt: timestamp('responded_at', { withTimezone: true })
+}, (table) => ({
+	// One request per gift occurrence, even when two requests race to create it
+	giftOccurrence: uniqueIndex('pickup_requests_gift_occurrence_idx').on(
+		table.recurringGiftId,
+		table.proposedPickupFrom
+	)
+}));
+
+// Staff of a business or charity: a low-level account that works for one employer.
+// Business staff are bound to exactly one location; charity staff to none.
+export const employees = pgTable('employees', {
+	accountId: text('account_id')
+		.primaryKey()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	employerAccountId: text('employer_account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	locationId: text('location_id').references(() => businessLocations.id, { onDelete: 'cascade' }),
+	name: text('name').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
 
 // Admin-specific data
@@ -532,6 +600,9 @@ export type ReservationClaim = typeof reservationClaims.$inferSelect;
 export type CharityProfile = typeof charityProfiles.$inferSelect;
 export type CharityFoodPreference = typeof charityFoodPreferences.$inferSelect;
 export type PickupRequest = typeof pickupRequests.$inferSelect;
+export type RecurringGift = typeof recurringGifts.$inferSelect;
+export type Employee = typeof employees.$inferSelect;
 export type AdminProfile = typeof adminProfiles.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type PaymentAttempt = typeof paymentAttempts.$inferSelect;
+

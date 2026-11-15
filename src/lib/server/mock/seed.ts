@@ -23,6 +23,7 @@ import type { Database } from './database';
 import { DEMO_ACCOUNTS } from './demo-accounts';
 import * as t from '../schema';
 import { logoSvg, photoSvg, putMockFile } from './storage';
+import { nextOccurrence, todayIn, type GiftSchedule } from '../../recurringGifts';
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -783,6 +784,102 @@ export async function seedMockDatabase(db: Database, now = new Date()): Promise<
 			respondedAt: at(-7 * DAY + 3 * HOUR)
 		}
 	]);
+
+	// --- Regular gifts --------------------------------------------------------
+	const zone = 'Europe/Berlin';
+	const weeklyBread: GiftSchedule = {
+		frequency: 'weekly',
+		weekday: 5, // Friday
+		dayOfMonth: null,
+		timeFrom: '19:00',
+		timeUntil: '20:00',
+		timeZone: zone,
+		startsOn: todayIn(zone, at(-35 * DAY))
+	};
+	const biweeklyVeg: GiftSchedule = {
+		frequency: 'biweekly',
+		weekday: 2, // Tuesday
+		dayOfMonth: null,
+		timeFrom: '17:30',
+		timeUntil: '18:30',
+		timeZone: zone,
+		startsOn: todayIn(zone, now)
+	};
+	const giftRow = (
+		id: string,
+		businessAccountId: string,
+		charityAccountId: string,
+		locationId: string,
+		foodType: t.RecurringGift['foodType'],
+		message: string,
+		schedule: GiftSchedule,
+		status: t.RecurringGift['status']
+	) => ({
+		id,
+		businessAccountId,
+		charityAccountId,
+		locationId,
+		foodType,
+		message,
+		frequency: schedule.frequency,
+		weekday: schedule.weekday,
+		dayOfMonth: schedule.dayOfMonth,
+		pickupTimeFrom: schedule.timeFrom,
+		pickupTimeUntil: schedule.timeUntil,
+		timeZone: schedule.timeZone,
+		startsOn: schedule.startsOn,
+		status,
+		nextOccurrenceAt: status === 'active' ? (nextOccurrence(schedule, now)?.from ?? null) : null,
+		createdAt: at(-36 * DAY),
+		respondedAt: status === 'proposed' ? null : at(-35 * DAY)
+	});
+	await db.insert(t.recurringGifts).values([
+		giftRow(
+			'gift-kiez-weekly',
+			B,
+			DEMO_ACCOUNTS.charity,
+			'loc-kiez-kreuzberg',
+			'bakery',
+			'Unsold bread and pastries from the week, usually two to three crates.',
+			weeklyBread,
+			'active'
+		),
+		giftRow(
+			'gift-korb-proposed',
+			'biz-korb',
+			DEMO_ACCOUNTS.charity,
+			'loc-korb',
+			'produce',
+			'Vegetables that are past their best look but perfectly fine to cook with.',
+			biweeklyVeg,
+			'proposed'
+		)
+	]);
+
+	// Past collections of the weekly gift, for history and stats.
+	const pastFridays: t.PickupRequest[] = [];
+	for (let week = 1; week <= 4; week++) {
+		const occurrence = nextOccurrence(weeklyBread, at(-week * 7 * DAY));
+		if (!occurrence || occurrence.from > now) continue;
+		pastFridays.push({
+			id: `pickup-gift-week-${week}`,
+			businessAccountId: B,
+			charityAccountId: DEMO_ACCOUNTS.charity,
+			locationId: 'loc-kiez-kreuzberg',
+			offerId: null,
+			foodType: 'bakery',
+			message: 'Unsold bread and pastries from the week, usually two to three crates.',
+			proposedPickupFrom: occurrence.from,
+			proposedPickupUntil: occurrence.until,
+			status: 'completed',
+			reservationId: null,
+			notes: null,
+			recurringGiftId: 'gift-kiez-weekly',
+			createdAt: new Date(occurrence.from.getTime() - 3 * DAY),
+			respondedAt: new Date(occurrence.from.getTime() - 3 * DAY)
+		});
+	}
+	if (pastFridays.length) await db.insert(t.pickupRequests).values(pastFridays);
 
 	// --- Complaints ---------------------------------------------------------
 	await db.insert(t.complaints).values([

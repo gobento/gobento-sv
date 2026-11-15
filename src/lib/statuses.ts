@@ -48,12 +48,31 @@ export const COMPLAINT_STATUS: Record<string, StatusMeta> = {
 	resolved: { label: 'Resolved', tone: 'success', icon: IconCheckmarkCircle }
 };
 
+/** Pickup requests between a business and a charity. */
+export const PICKUP_STATUS: Record<string, StatusMeta> = {
+	pending: { label: 'Pending', tone: 'warning', icon: IconClock },
+	accepted: { label: 'Scheduled', tone: 'primary' },
+	completed: { label: 'Collected', tone: 'success', icon: IconCheckmarkCircle },
+	declined: { label: 'Declined', tone: 'error', icon: IconDismissCircle },
+	cancelled: { label: 'Called off', tone: 'muted' }
+};
+
+/** Regular gifts from a business to a charity. */
+export const GIFT_STATUS: Record<string, StatusMeta> = {
+	proposed: { label: 'Awaiting charity', tone: 'warning', icon: IconClock },
+	active: { label: 'Active', tone: 'success', icon: IconCheckmarkCircle },
+	paused: { label: 'Paused', tone: 'neutral' },
+	declined: { label: 'Declined', tone: 'error', icon: IconDismissCircle },
+	ended: { label: 'Ended', tone: 'muted' }
+};
+
 export const ACCOUNT_TYPE: Record<string, StatusMeta> = {
 	user: { label: 'User', tone: 'neutral' },
 	business: { label: 'Business', tone: 'primary' },
 	charity: { label: 'Charity', tone: 'secondary' },
 	moderator: { label: 'Moderator', tone: 'accent' },
-	admin: { label: 'Admin', tone: 'error' }
+	admin: { label: 'Admin', tone: 'error' },
+	employee: { label: 'Staff', tone: 'info' }
 };
 
 export const PAYMENT_METHOD: Record<string, StatusMeta> = {
