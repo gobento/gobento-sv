@@ -7,7 +7,7 @@
 	import Modal from '#lib/components/Modal.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import Spinner from '#lib/components/ui/Spinner.svelte';
-	import { toast } from '#lib/components/ui/toast.svelte';
+	import { toast } from '#lib/components/ui/toast.svelte.js';
 	import {
 		LOCATE_MESSAGES,
 		LocateError,

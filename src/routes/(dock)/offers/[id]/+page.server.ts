@@ -129,6 +129,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				}
 			: null,
 		business: {
+			id: business.accountId,
 			name: business.name,
 			description: business.description,
 			businessType: business.businessType,

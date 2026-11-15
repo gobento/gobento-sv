@@ -22,14 +22,14 @@
 		businessTypeLabel,
 		discountPercent,
 		pickupWindow
-	} from '#lib/components/offers/format';
+	} from '#lib/components/offers/format.js';
 	import LocationPicker from '#lib/components/maps/LocationPicker.svelte';
 	import {
 		readSavedLocation,
 		saveLocation,
 		shortPlaceName,
 		type UserLocation
-	} from '#lib/components/maps/userLocation';
+	} from '#lib/components/maps/userLocation.js';
 	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { formatDistance } from '#lib/util.js';
@@ -127,7 +127,7 @@
 
 	// Only offer categories that exist right now, so no chip leads to an empty list.
 	const typeOptions = $derived.by(() => {
-		const present = new Set(data.offers.map((offer) => offer.business.type));
+		const present = new Set<string>(data.offers.map((offer) => offer.business.type));
 		return BUSINESS_TYPES.filter(
 			(type) =>
 				type.value === ALL_TYPES || present.has(type.value) || selectedTypes.includes(type.value)

@@ -29,7 +29,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	const account = accountResult[0];
-	let profile = null;
+	let profile:
+		| typeof businessProfiles.$inferSelect
+		| typeof charityProfiles.$inferSelect
+		| typeof userProfiles.$inferSelect
+		| null = null;
 	let profilePictureUrl = null;
 	let wallet = null;
 	let userImpact = null;

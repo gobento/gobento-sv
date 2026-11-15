@@ -10,7 +10,7 @@
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import FormField from '#lib/components/ui/FormField.svelte';
-	import { toast } from '#lib/components/ui/toast.svelte';
+	import { toast } from '#lib/components/ui/toast.svelte.js';
 	import { formatClock } from '#lib/components/reservations/pickup.js';
 	import PaymentProgress from '../../PaymentProgress.svelte';
 	import { txHashSchema } from './schema';

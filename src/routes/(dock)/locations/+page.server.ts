@@ -1,4 +1,3 @@
-// @ts-nocheck
 // src/routes/(dock)/locations/+page.server.ts
 import { db } from '#lib/server/db.js';
 import { businessLocations, businessOffers, files } from '#lib/server/schema.js';
@@ -60,8 +59,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Add offer counts and signed image URLs to locations
 	const locationsWithOffers = await Promise.all(
 		locations.map(async (loc) => {
-// @ts-ignore
-			const imageUrl = await getSignedDownloadUrl(loc.image.key);
+			const imageUrl = loc.image ? await getSignedDownloadUrl(loc.image.key) : null;
 
 			return {
 				id: loc.id,

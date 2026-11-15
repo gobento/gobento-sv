@@ -8,7 +8,7 @@
 	import Modal from '#lib/components/Modal.svelte';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
-	import { toast } from '#lib/components/ui/toast.svelte';
+	import { toast } from '#lib/components/ui/toast.svelte.js';
 
 	interface Props {
 		open: boolean;

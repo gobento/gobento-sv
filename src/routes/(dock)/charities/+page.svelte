@@ -1,4 +1,3 @@
-// @ts-nocheck
 <!-- src/routes/(dock)/charities/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
@@ -32,11 +31,7 @@
 		const params = new URLSearchParams();
 		if (foodType) params.set('foodType', foodType);
 		if (country) params.set('country', country);
-		goto(`/charities${params.toString() ? `?${params.toString()}` : ''}`, {
-// @ts-ignore
-			reset: true,
-			noScroll: true
-		});
+		goto(`/charities${params.toString() ? `?${params.toString()}` : ''}`, { reset: false });
 	}
 
 	function openRequest(charity: PageData['charities'][number]) {

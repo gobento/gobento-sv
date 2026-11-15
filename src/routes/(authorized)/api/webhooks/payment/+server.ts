@@ -1,4 +1,3 @@
-// @ts-nocheck
 // src/routes/api/webhooks/payment/+server.ts
 
 import { json, error } from '@sveltejs/kit';
@@ -7,8 +6,6 @@ import { db } from '#lib/server/db.js';
 import { payments } from '#lib/server/schema.js';
 import { eq } from 'drizzle-orm';
 import { PaymentHandler } from '#lib/server/payments/handler.js';
-import { ZarinpalService } from '#lib/server/payments/zarinpal.js';
-import { TetherService } from '#lib/server/payments/tether.js';
 import { PAYMENT_WEBHOOK_SECRET, ZARINPAL_WEBHOOK_SECRET } from '$app/env/private';
 import crypto from 'crypto';
 
@@ -59,148 +56,59 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 /**
- * Handle Zarinpal webhook
+ * Handle Zarinpal webhook. Verification, failure handling and reservation
+ * creation are done by the same handler as the browser callback.
  */
-async function handleZarinpalWebhook(body: any) {
-	const { authority, status, ref_id, amount, payment_id } = body;
+async function handleZarinpalWebhook(body: Record<string, unknown>) {
+	const { authority, status, payment_id } = body;
 
-	if (!payment_id) {
-		throw error(400, 'Missing payment_id');
+	if (typeof payment_id !== 'string' || typeof authority !== 'string') {
+		throw error(400, 'Missing payment_id or authority');
 	}
 
-	// Get payment record
 	const [payment] = await db.select().from(payments).where(eq(payments.id, payment_id)).limit(1);
 
 	if (!payment) {
 		throw error(404, 'Payment not found');
 	}
 
-	// Check if already processed
 	if (payment.status === 'completed') {
 		return json({ success: true, message: 'Already processed' });
 	}
 
-	// Handle payment status
-	if (status === 'success' || status === 'OK') {
-		// Verify with Zarinpal
-		const verifyResult = await ZarinpalService.verifyPayment({
-			authority,
-			amount: payment.amount
-		});
+	const result = await PaymentHandler.completeZarinpalPayment({
+		paymentId: payment_id,
+		authority,
+		status: status === 'OK' || status === 'success' ? 'OK' : String(status ?? 'NOK')
+	});
 
-		if (!verifyResult.success) {
-// @ts-ignore
-			await PaymentHandler.failPayment(payment_id, verifyResult.error || 'Verification failed');
-			return json({ success: false, error: 'Verification failed' });
-		}
-
-		// Complete payment and create reservation
-// @ts-ignore
-		const completeResult = await PaymentHandler.completePayment({
-			paymentId: payment_id,
-			zarinpalAuthority: authority,
-			zarinpalRefId: ref_id
-		});
-
-		if (!completeResult.success) {
-			return json({ success: false, error: completeResult.error });
-		}
-
-		// Transfer platform fee
-		if (payment.feeAmount > 0) {
-// @ts-ignore
-			await ZarinpalService.transferFee({
-				amount: payment.feeAmount,
-				description: `Platform fee for payment ${payment_id}`
-			});
-		}
-
-		return json({
-			success: true,
-			reservationId: completeResult.reservationId
-		});
-	} else {
-		// Payment failed or cancelled
-// @ts-ignore
-		await PaymentHandler.failPayment(payment_id, 'Payment failed or cancelled');
-		return json({ success: false, error: 'Payment failed' });
-	}
+	return json(result);
 }
 
 /**
- * Handle Tether (blockchain) webhook
- * This could be triggered by a blockchain monitoring service
+ * Handle Tether (blockchain) webhook, e.g. from a blockchain monitoring
+ * service. The handler verifies the transaction on chain itself.
  */
-async function handleTetherWebhook(body: any) {
-	const { tx_hash, from_address, to_address, amount, payment_id, confirmations } = body;
+async function handleTetherWebhook(body: Record<string, unknown>) {
+	const { tx_hash, payment_id } = body;
 
-	if (!payment_id || !tx_hash) {
+	if (typeof payment_id !== 'string' || typeof tx_hash !== 'string') {
 		throw error(400, 'Missing required fields');
 	}
 
-	// Get payment record
 	const [payment] = await db.select().from(payments).where(eq(payments.id, payment_id)).limit(1);
 
 	if (!payment) {
 		throw error(404, 'Payment not found');
 	}
 
-	// Check if already processed
 	if (payment.status === 'completed') {
 		return json({ success: true, message: 'Already processed' });
 	}
 
-	// Verify transaction on blockchain
-	const tetherService = new TetherService();
-	const verifyResult = await tetherService.verifyPayment({
-		txHash: tx_hash,
-		expectedAmount: payment.amount,
-		recipientAddress: to_address
-	});
+	const result = await PaymentHandler.verifyTetherPayment({ paymentId: payment_id, txHash: tx_hash });
 
-	if (!verifyResult.success) {
-// @ts-ignore
-		await PaymentHandler.failPayment(
-			payment_id,
-			verifyResult.error || 'Transaction verification failed'
-		);
-		return json({ success: false, error: 'Verification failed' });
-	}
-
-	// Check confirmations (require at least 12 for USDT)
-	if ((verifyResult.confirmations || 0) < 12) {
-		return json({
-			success: false,
-			error: 'Insufficient confirmations',
-			confirmations: verifyResult.confirmations
-		});
-	}
-
-	// Complete payment and create reservation
-// @ts-ignore
-	const completeResult = await PaymentHandler.completePayment({
-		paymentId: payment_id,
-		tetherTxHash: tx_hash,
-		tetherFromAddress: from_address
-	});
-
-	if (!completeResult.success) {
-		return json({ success: false, error: completeResult.error });
-	}
-
-	// Transfer platform fee
-	// Note: In production, you'd want to collect fees in a secure wallet
-	// and process them in batches to save on gas fees
-	if (payment.feeAmount > 0) {
-		// Optional: Transfer fee automatically
-		// In practice, you might want to do this manually in batches
-		console.log(`Fee to collect: ${payment.feeAmount} USDT from payment ${payment_id}`);
-	}
-
-	return json({
-		success: true,
-		reservationId: completeResult.reservationId
-	});
+	return json(result);
 }
 
 /**

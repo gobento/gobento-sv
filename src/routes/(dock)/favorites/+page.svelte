@@ -1,4 +1,3 @@
-// @ts-nocheck
 <!-- src/routes/(dock)/favorites/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
@@ -130,8 +129,7 @@
 							<IconMapPin class="mt-0.5 size-4 shrink-0 text-base-content/60" />
 							<p class="line-clamp-2 text-sm text-base-content/70">
 								{favorite.location.address}, {favorite.location.city}
-// @ts-ignore
-								{#if favorite.location.state}, {favorite.location.state}{/if}
+								{#if favorite.location.province}, {favorite.location.province}{/if}
 							</p>
 						</div>
 

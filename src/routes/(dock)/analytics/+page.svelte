@@ -1,4 +1,3 @@
-// @ts-nocheck
 <!-- /src/routes/(dock)/analytics/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
@@ -199,8 +198,7 @@
 						yDomain={[0, null]}
 						yNice
 						padding={{ left: 16, bottom: 24, top: 8 }}
-// @ts-ignore
-						tooltip={{ mode: 'bisect-x' }}
+						tooltipContext={{ mode: 'bisect-x' }}
 					>
 						<Svg>
 							<Area line={{ class: 'stroke-primary stroke-2' }} fill="transparent" />
@@ -218,13 +216,14 @@
 							/>
 							<Highlight points lines />
 						</Svg>
-// @ts-ignore
-						<Tooltip.Root let:data>
-							<Tooltip.Header>{formatDateLong(data.date)}</Tooltip.Header>
-							<Tooltip.List>
-								<Tooltip.Item label="Reservations" value={data.count} />
-								<Tooltip.Item label="Revenue" value={`€${data.revenue.toFixed(2)}`} />
-							</Tooltip.List>
+						<Tooltip.Root>
+							{#snippet children({ data })}
+								<Tooltip.Header>{formatDateLong(data.date)}</Tooltip.Header>
+								<Tooltip.List>
+									<Tooltip.Item label="Reservations" value={data.count} />
+									<Tooltip.Item label="Revenue" value={`€${data.revenue.toFixed(2)}`} />
+								</Tooltip.List>
+							{/snippet}
 						</Tooltip.Root>
 					</Chart>
 				</div>
@@ -251,8 +250,7 @@
 						yDomain={[0, null]}
 						yNice
 						padding={{ left: 16, bottom: 24, top: 8 }}
-// @ts-ignore
-						tooltip={{ mode: 'bisect-x' }}
+						tooltipContext={{ mode: 'bisect-x' }}
 					>
 						<Svg>
 							<Area line={{ class: 'stroke-success stroke-2' }} fill="transparent" />
@@ -271,12 +269,13 @@
 							/>
 							<Highlight points lines />
 						</Svg>
-// @ts-ignore
-						<Tooltip.Root let:data>
-							<Tooltip.Header>{formatDateLong(data.date)}</Tooltip.Header>
-							<Tooltip.List>
-								<Tooltip.Item label="Revenue" value={`€${data.revenue.toFixed(2)}`} />
-							</Tooltip.List>
+						<Tooltip.Root>
+							{#snippet children({ data })}
+								<Tooltip.Header>{formatDateLong(data.date)}</Tooltip.Header>
+								<Tooltip.List>
+									<Tooltip.Item label="Revenue" value={`€${data.revenue.toFixed(2)}`} />
+								</Tooltip.List>
+							{/snippet}
 						</Tooltip.Root>
 					</Chart>
 				</div>
@@ -310,8 +309,7 @@
 						yDomain={[0, null]}
 						yNice
 						padding={{ left: 16, bottom: 24, top: 8, right: 8 }}
-// @ts-ignore
-						tooltip={{ mode: 'bisect-x' }}
+						tooltipContext={{ mode: 'bisect-x' }}
 					>
 						<Svg>
 							<Area line={{ class: 'stroke-info stroke-2' }} fill="transparent" />
@@ -328,12 +326,13 @@
 							/>
 							<Highlight points lines />
 						</Svg>
-// @ts-ignore
-						<Tooltip.Root let:data>
-							<Tooltip.Header>{data.hour}</Tooltip.Header>
-							<Tooltip.List>
-								<Tooltip.Item label="Pickups" value={data.pickups} />
-							</Tooltip.List>
+						<Tooltip.Root>
+							{#snippet children({ data })}
+								<Tooltip.Header>{data.hour}</Tooltip.Header>
+								<Tooltip.List>
+									<Tooltip.Item label="Pickups" value={data.pickups} />
+								</Tooltip.List>
+							{/snippet}
 						</Tooltip.Root>
 					</Chart>
 				</div>

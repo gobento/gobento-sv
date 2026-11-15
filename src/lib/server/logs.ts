@@ -31,7 +31,6 @@ export async function log(statusCode: number, event: RequestEvent) {
 				referer = refererUrl.pathname;
 			}
 		} else {
-// @ts-ignore
 			referer = null;
 		}
 

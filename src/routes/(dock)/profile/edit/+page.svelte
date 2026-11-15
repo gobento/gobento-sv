@@ -1,4 +1,3 @@
-// @ts-nocheck
 <!-- src/routes/(dock)/profile/edit/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
@@ -31,66 +30,47 @@
 	let fileInputError = $state<string | null>(null);
 	let formError = $state<string | null>(null);
 
+	// Businesses keep payment details in their wallet, users in their profile;
+	// charities have none.
+	const payment =
+		data.account.accountType === 'business'
+			? data.wallet
+			: data.profile && 'ibanEnabled' in data.profile
+				? data.profile
+				: null;
+	const orgProfile = data.profile && 'name' in data.profile ? data.profile : null;
+
 	// Form fields
-// @ts-ignore
-	let editName = $state(data.profile?.name || '');
-// @ts-ignore
-	let editDescription = $state(data.profile?.description || '');
+	let editName = $state(orgProfile?.name || '');
+	let editDescription = $state(orgProfile?.description || '');
 
 	// Payment fields
 	let ibanEnabled = $state(
-		data.account.accountType === 'business'
-			? data.wallet?.ibanEnabled || false
-// @ts-ignore
-			: data.profile?.ibanEnabled || false
+		payment?.ibanEnabled || false
 	);
 	let tetherEnabled = $state(
-		data.account.accountType === 'business'
-			? data.wallet?.tetherEnabled || false
-// @ts-ignore
-			: data.profile?.tetherEnabled || false
+		payment?.tetherEnabled || false
 	);
 	let ibanNumber = $state(
-		data.account.accountType === 'business'
-			? data.wallet?.ibanNumber || ''
-// @ts-ignore
-			: data.profile?.ibanNumber || ''
+		payment?.ibanNumber || ''
 	);
 	let tetherAddress = $state(
-		data.account.accountType === 'business'
-			? data.wallet?.tetherAddress || ''
-// @ts-ignore
-			: data.profile?.tetherAddress || ''
+		payment?.tetherAddress || ''
 	);
 	let preferredPaymentMethod = $state<'iban' | 'tether'>(
-		data.account.accountType === 'business'
-			? data.wallet?.preferredPaymentMethod || 'iban'
-// @ts-ignore
-			: data.profile?.preferredPaymentMethod || 'iban'
+		payment?.preferredPaymentMethod || 'iban'
 	);
 
 	// Confirmation state of the currently stored payment methods. A test payment
 	// runs on save whenever an enabled method is unconfirmed or its details change.
 	const initialIbanConfirmed =
-		data.account.accountType === 'business'
-			? data.wallet?.ibanConfirmed || false
-// @ts-ignore
-			: data.profile?.ibanConfirmed || false;
+		payment?.ibanConfirmed || false;
 	const initialTetherConfirmed =
-		data.account.accountType === 'business'
-			? data.wallet?.tetherConfirmed || false
-// @ts-ignore
-			: data.profile?.tetherConfirmed || false;
+		payment?.tetherConfirmed || false;
 	const initialIbanNumber =
-		data.account.accountType === 'business'
-			? data.wallet?.ibanNumber || ''
-// @ts-ignore
-			: data.profile?.ibanNumber || '';
+		payment?.ibanNumber || '';
 	const initialTetherAddress =
-		data.account.accountType === 'business'
-			? data.wallet?.tetherAddress || ''
-// @ts-ignore
-			: data.profile?.tetherAddress || '';
+		payment?.tetherAddress || '';
 
 	const ibanNeedsTest = $derived(
 		ibanEnabled &&
@@ -101,8 +81,7 @@
 	);
 	const anyTestRequired = $derived(ibanNeedsTest || tetherNeedsTest);
 
-// @ts-ignore
-	let hasExistingPicture = $state(!!data.profile?.profilePictureId);
+	let hasExistingPicture = $state(!!orgProfile?.profilePictureId);
 	let keepExistingPicture = $state(hasExistingPicture);
 
 	function handleFileSelect(e: Event) {

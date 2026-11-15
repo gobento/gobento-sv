@@ -1,5 +1,5 @@
-import type { SubmitFunction } from '@sveltejs/kit';
-import { toast } from '#lib/components/ui/toast.svelte';
+import type { SubmitFunction } from '$app/forms';
+import { toast } from '#lib/components/ui/toast.svelte.js';
 import { downloadBase64Pdf } from '#lib/util.js';
 
 function isReceipt(value: unknown): value is { base64: string; filename: string } {

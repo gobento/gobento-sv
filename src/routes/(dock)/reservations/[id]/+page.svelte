@@ -26,7 +26,7 @@
 	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';
 	import SuccessCheck from '#lib/components/ui/SuccessCheck.svelte';
 	import Confetti from '#lib/components/motion/Confetti.svelte';
-	import { toast } from '#lib/components/ui/toast.svelte';
+	import { toast } from '#lib/components/ui/toast.svelte.js';
 	import BusinessLogo from '#lib/components/reservations/BusinessLogo.svelte';
 	import {
 		countdownTo,

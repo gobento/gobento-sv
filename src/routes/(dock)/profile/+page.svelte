@@ -1,4 +1,3 @@
-// @ts-nocheck
 <!-- src/routes/(dock)/profile/+page.svelte -->
 <script lang="ts">
 	import type { Component } from 'svelte';
@@ -40,6 +39,15 @@
 	const isCharity = $derived(data.account.accountType === 'charity');
 	const isUser = $derived(data.account.accountType === 'user');
 	const isAdmin = $derived(data.account.accountType === 'admin');
+
+	// The profile's shape depends on the account type.
+	const orgProfile = $derived(data.profile && 'name' in data.profile ? data.profile : null);
+	const businessProfile = $derived(
+		data.profile && 'businessType' in data.profile ? data.profile : null
+	);
+	const userProfile = $derived(
+		data.profile && 'preferredPaymentMethod' in data.profile ? data.profile : null
+	);
 
 	const businessTypeLabels: Record<string, string> = {
 		bakery: 'Bakery',
@@ -145,26 +153,19 @@
 					<p class="text-xs font-medium tracking-wide text-base-content/50 uppercase">
 						Payment Method
 					</p>
-// @ts-ignore
-					{#if data.profile?.preferredPaymentMethod}
-// @ts-ignore
-						{#if data.profile.preferredPaymentMethod === 'iban'}
+					{#if userProfile?.preferredPaymentMethod}
+						{#if userProfile.preferredPaymentMethod === 'iban'}
 							<p class="font-semibold">Bank Transfer (IBAN)</p>
-// @ts-ignore
-							{#if data.profile.ibanNumber}
+							{#if userProfile.ibanNumber}
 								<p class="mt-0.5 font-mono text-xs text-base-content/60">
-// @ts-ignore
-									{formatWalletAddress(data.profile.ibanNumber)}
+									{formatWalletAddress(userProfile.ibanNumber)}
 								</p>
 							{/if}
-// @ts-ignore
-						{:else if data.profile.preferredPaymentMethod === 'tether'}
+						{:else if userProfile.preferredPaymentMethod === 'tether'}
 							<p class="font-semibold">USDT (ERC-20)</p>
-// @ts-ignore
-							{#if data.profile.tetherAddress}
+							{#if userProfile.tetherAddress}
 								<p class="mt-0.5 font-mono text-xs text-base-content/60">
-// @ts-ignore
-									{formatWalletAddress(data.profile.tetherAddress)}
+									{formatWalletAddress(userProfile.tetherAddress)}
 								</p>
 							{/if}
 						{/if}
@@ -384,11 +385,9 @@
 				</div>
 
 				<!-- Name / Title -->
-				{#if hasProfile && data.profile && (isBusiness || isCharity)}
-// @ts-ignore
-					<h1 class="mt-4 text-2xl font-bold sm:text-3xl">{data.profile.name}</h1>
-// @ts-ignore
-					<p class="mt-2 max-w-xl text-base-content/70">{data.profile.description}</p>
+				{#if orgProfile}
+					<h1 class="mt-4 text-2xl font-bold sm:text-3xl">{orgProfile.name}</h1>
+					<p class="mt-2 max-w-xl text-base-content/70">{orgProfile.description}</p>
 				{:else if isAdmin}
 					<h1 class="mt-4 text-2xl font-bold sm:text-3xl">Administrator</h1>
 				{:else if canEdit && (isBusiness || isCharity)}
@@ -426,16 +425,14 @@
 				formatDate(data.account.createdAt)
 			)}
 
-			{#if isBusiness && data.profile}
+			{#if businessProfile}
 				{@render infoItem(
 					FluentBuildingShop24Regular,
 					'Business Type',
-// @ts-ignore
-					businessTypeLabels[data.profile.businessType] || data.profile.businessType || ''
+					businessTypeLabels[businessProfile.businessType] || businessProfile.businessType || ''
 				)}
 
-// @ts-ignore
-				{@render infoItem(IconLocation, 'Country', data.profile.country)}
+				{@render infoItem(IconLocation, 'Country', businessProfile.country)}
 
 				<!-- Payment Provider (Business Only) -->
 				{#if data.wallet && (data.wallet.ibanEnabled || data.wallet.tetherEnabled)}
@@ -468,9 +465,8 @@
 				{/if}
 			{/if}
 
-			{#if isCharity && data.profile}
-// @ts-ignore
-				{@render infoItem(IconLocation, 'Country', data.profile.country)}
+			{#if isCharity && orgProfile}
+				{@render infoItem(IconLocation, 'Country', orgProfile.country)}
 			{/if}
 
 			{#if isAdmin}

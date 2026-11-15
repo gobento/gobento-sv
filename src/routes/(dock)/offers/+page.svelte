@@ -1,4 +1,3 @@
-// @ts-nocheck
 <!-- src/routes/(dock)/offers/+page.svelte -->
 <script lang="ts">
 	import IconTag from '~icons/fluent/tag-24-regular';
@@ -52,20 +51,17 @@
 
 	// Update a single filter and reflect it in the URL (server re-runs the query)
 	function updateFilter(key: string, value: string) {
-// @ts-ignore
 		const params = new URLSearchParams(page.url.search);
 		if (value === '' || value === 'all' || (key === 'sort' && value === 'newest')) {
 			params.delete(key);
 		} else {
 			params.set(key, value);
 		}
-// @ts-ignore
-		goto(`?${params.toString()}`, { replaceState: true, reset: true, noScroll: true });
+		goto(`?${params.toString()}`, { replace: true, reset: false });
 	}
 
 	function clearFilters() {
-// @ts-ignore
-		goto('?', { replaceState: true, reset: true, noScroll: true });
+		goto('?', { replace: true, reset: false });
 	}
 
 	// Delete modal state

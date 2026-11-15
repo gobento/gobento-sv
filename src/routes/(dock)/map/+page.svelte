@@ -1,4 +1,3 @@
-// @ts-nocheck
 <script lang="ts">
 	import type { PageData } from './$types';
 	import IconTimer from '~icons/fluent/timer-24-regular';
@@ -159,7 +158,6 @@
 	}
 
 	function updateUrl() {
-// @ts-ignore
 		const params = new URLSearchParams(page.url.search);
 
 		if (selectedLocation) {
@@ -177,7 +175,6 @@
 			params.delete('types');
 		}
 
-// @ts-ignore
 		goto(`?${params.toString()}`, { replaceState: true, reset: true });
 	}
 
@@ -236,7 +233,7 @@
 	);
 
 	// Calculate map center
-	const mapCenter = $derived.by(() => {
+	const mapCenter = $derived.by((): [number, number] => {
 		if (selectedLocation) {
 			return [selectedLocation.lat, selectedLocation.lon];
 		}
@@ -371,7 +368,6 @@
 			<div class="h-[calc(100vh-280px)] w-full">
 				<Map
 					options={{
-// @ts-ignore
 						center: mapCenter,
 						zoom: selectedLocation ? 13 : 11,
 						minZoom: 1,
@@ -475,7 +471,7 @@
 							<div class="flex-1">
 								<div class="font-medium">{selectedOffer.location.city}</div>
 								<div class="text-sm text-base-content/60">
-									{selectedOffer.location.street}
+									{selectedOffer.location.address}
 								</div>
 							</div>
 							{#if selectedOffer.distance !== null}

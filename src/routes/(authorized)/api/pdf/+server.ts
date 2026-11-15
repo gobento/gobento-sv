@@ -49,7 +49,6 @@ export const GET = async ({ url }) => {
 	// 5️⃣ Save PDF
 	const pdfBytes = await pdfDoc.save();
 
-// @ts-ignore
 	return new Response(pdfBytes as unknown as BodyInit, {
 		headers: {
 			'Content-Type': 'application/pdf',

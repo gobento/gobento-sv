@@ -333,12 +333,10 @@
 							<p class="text-sm font-semibold text-base-content/60">City</p>
 							<p class="text-base">{data.location.city}</p>
 						</div>
-// @ts-ignore
-						{#if data.location.state}
+						{#if data.location.province}
 							<div>
 								<p class="text-sm font-semibold text-base-content/60">State/Province</p>
-// @ts-ignore
-								<p class="text-base">{data.location.state}</p>
+								<p class="text-base">{data.location.province}</p>
 							</div>
 						{/if}
 					</div>

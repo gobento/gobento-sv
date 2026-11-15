@@ -1,4 +1,3 @@
-// @ts-nocheck
 // src/routes/(dock)/admin/payments/+page.server.ts
 import type { PageServerLoad } from './$types';
 import { db } from '#lib/server/db.js';
@@ -7,7 +6,8 @@ import { paymentAttempts, accounts, businessOffers } from '#lib/server/schema.js
 import { alias } from 'drizzle-orm/pg-core';
 import { and, desc, eq, ilike, or, type SQL } from 'drizzle-orm';
 
-const OUTCOMES = ['initiated', 'redirected', 'switched', 'failed', 'cancelled', 'completed'];
+const OUTCOMES = ['initiated', 'redirected', 'switched', 'failed', 'cancelled', 'completed'] as const;
+type Outcome = (typeof OUTCOMES)[number];
 const METHODS = ['iban', 'tether'];
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -21,9 +21,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const bizAcc = alias(accounts, 'biz_acc');
 
 	const conditions: SQL[] = [];
-	if (OUTCOMES.includes(outcome)) {
-// @ts-ignore
-		conditions.push(eq(paymentAttempts.outcome, outcome as (typeof OUTCOMES)[number]));
+	if ((OUTCOMES as readonly string[]).includes(outcome)) {
+		conditions.push(eq(paymentAttempts.outcome, outcome as Outcome));
 	}
 	if (METHODS.includes(method)) {
 		conditions.push(eq(paymentAttempts.paymentMethod, method as 'iban' | 'tether'));

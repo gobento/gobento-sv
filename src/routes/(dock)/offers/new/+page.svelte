@@ -1,4 +1,3 @@
-// @ts-nocheck
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import IconInfo from '~icons/fluent/info-24-regular';
@@ -122,6 +121,9 @@
 		if (isNaN(orig) || isNaN(disc) || orig <= 0 || disc <= 0) return null;
 		return Math.round(((orig - disc) / orig) * 100);
 	});
+
+	// Only validation failures name the field they belong to.
+	const errorField = $derived(form && 'field' in form ? form.field : null);
 </script>
 
 <!-- src/routes/(dock)/offers/new/+page.svelte -->
@@ -195,8 +197,7 @@
 						class:hover:border-primary={!isSubmitting}
 						class:hover:bg-base-200={!isSubmitting && !selectedImage}
 						class:opacity-50={isSubmitting}
-// @ts-ignore
-						class:border-error={form?.field === 'offerImage'}
+						class:border-error={errorField === 'offerImage'}
 					>
 						{#if !selectedImage}
 							<div class="flex min-h-[220px] flex-col items-center justify-center gap-4 p-6">
@@ -289,8 +290,7 @@
 						name="name"
 						bind:value={name}
 						class="input-bordered input w-full"
-// @ts-ignore
-						class:input-error={form?.field === 'name'}
+						class:input-error={errorField === 'name'}
 						placeholder="e.g., Surprise Pastry Bag, Fresh Produce Box"
 						required
 					/>
@@ -307,8 +307,7 @@
 						name="description"
 						bind:value={description}
 						class="textarea-bordered textarea h-28 w-full resize-none"
-// @ts-ignore
-						class:textarea-error={form?.field === 'description'}
+						class:textarea-error={errorField === 'description'}
 						placeholder="Describe what customers can expect..."
 						required></textarea>
 					<span class="mt-1 text-xs text-base-content/60">{description.length} characters</span>
@@ -339,8 +338,7 @@
 						</label>
 						<label
 							class="input-bordered input flex w-full items-center gap-2"
-// @ts-ignore
-							class:input-error={form?.field === 'originalValue'}
+							class:input-error={errorField === 'originalValue'}
 						>
 							<span class="text-sm text-base-content/50">{currency}</span>
 							<input
@@ -364,8 +362,7 @@
 						</label>
 						<label
 							class="input-bordered input flex w-full items-center gap-2"
-// @ts-ignore
-							class:input-error={form?.field === 'price'}
+							class:input-error={errorField === 'price'}
 						>
 							<span class="text-sm text-base-content/50">{currency}</span>
 							<input
@@ -440,8 +437,7 @@
 						name="quantity"
 						bind:value={quantity}
 						class="input-bordered input w-full"
-// @ts-ignore
-						class:input-error={form?.field === 'quantity'}
+						class:input-error={errorField === 'quantity'}
 						min="1"
 						placeholder="1"
 						required
@@ -459,8 +455,7 @@
 						name="locationId"
 						bind:value={locationId}
 						class="select-bordered select w-full"
-// @ts-ignore
-						class:select-error={form?.field === 'locationId'}
+						class:select-error={errorField === 'locationId'}
 					>
 						<option value="">All Locations</option>
 						{#each data.locations as location}
@@ -503,8 +498,7 @@
 							name="pickupTimeFrom"
 							bind:value={pickupTimeFrom}
 							class="input-bordered input w-full"
-// @ts-ignore
-							class:input-error={form?.field === 'pickupTimeFrom'}
+							class:input-error={errorField === 'pickupTimeFrom'}
 							required
 						/>
 					</div>
@@ -520,8 +514,7 @@
 							name="pickupTimeUntil"
 							bind:value={pickupTimeUntil}
 							class="input-bordered input w-full"
-// @ts-ignore
-							class:input-error={form?.field === 'pickupTimeUntil'}
+							class:input-error={errorField === 'pickupTimeUntil'}
 							required
 						/>
 					</div>
@@ -576,8 +569,7 @@
 							name="validUntil"
 							bind:value={validUntil}
 							class="input-bordered input w-full"
-// @ts-ignore
-							class:input-error={form?.field === 'validUntil'}
+							class:input-error={errorField === 'validUntil'}
 						/>
 						<span class="mt-1 text-xs text-base-content/60">Leave empty to default to tomorrow</span
 						>

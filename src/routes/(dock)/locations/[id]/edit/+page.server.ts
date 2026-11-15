@@ -122,8 +122,7 @@ export const actions: Actions = {
 
 			// Handle image removal
 			if (removeImage) {
-// @ts-ignore
-				newImageId = null;
+				return fail(400, { error: 'A location needs an image. Upload a new one to replace it.' });
 			}
 			// Handle new image upload
 			else if (imageFile && imageFile.size > 0) {

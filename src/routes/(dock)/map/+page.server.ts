@@ -1,4 +1,3 @@
-// @ts-nocheck
 // src/routes/(dock)/map/+page.server.ts
 import type { PageServerLoad } from './$types';
 import { db } from '#lib/server/db.js';
@@ -86,8 +85,6 @@ export const load: PageServerLoad = async ({ url }) => {
 							id: row.location.id,
 							name: row.location.name,
 							address: row.location.address,
-// @ts-ignore
-							street: row.location.street,
 							city: row.location.city,
 							latitude: row.location.latitude,
 							longitude: row.location.longitude

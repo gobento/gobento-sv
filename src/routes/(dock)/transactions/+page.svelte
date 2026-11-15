@@ -1,4 +1,3 @@
-// @ts-nocheck
 <!-- src/routes/(dock)/transactions/+page.svelte -->
 <script lang="ts">
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
@@ -72,8 +71,7 @@
 				</div>
 				<div class="stat-title">Pending Bank Transfer</div>
 				<div class="stat-value text-2xl">
-// @ts-ignore
-					{formatCurrency(data.summary.totalPendingIban, data.wallet?.ibanCurrency || 'EUR')}
+					{formatCurrency(data.summary.totalPendingIban, 'EUR')}
 				</div>
 				<div class="stat-desc">{data.summary.pendingSettlements} pending settlements</div>
 			</div>
@@ -99,8 +97,7 @@
 				</div>
 				<div class="stat-title">Total Paid (Bank)</div>
 				<div class="stat-value text-2xl">
-// @ts-ignore
-					{formatCurrency(data.summary.totalPaidIban, data.wallet?.ibanCurrency || 'EUR')}
+					{formatCurrency(data.summary.totalPaidIban, 'EUR')}
 				</div>
 				<div class="stat-desc">All-time bank transfers</div>
 			</div>

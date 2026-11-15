@@ -106,7 +106,6 @@
 	]);
 </script>
 
-// @ts-nocheck
 
 <!-- Header -->
 <div class="space-y-3 text-center">
@@ -228,10 +227,11 @@
 							<IconFood class="size-5 text-primary" />
 							<div>
 								<p class="font-medium">{activity.name}</p>
-								<p class="text-xs opacity-60">
-									// @ts-ignore
-									{new Date(activity.claimedAt).toLocaleDateString()}
-								</p>
+								{#if activity.claimedAt}
+									<p class="text-xs opacity-60">
+										{new Date(activity.claimedAt).toLocaleDateString()}
+									</p>
+								{/if}
 							</div>
 						</div>
 						<div class="badge badge-lg badge-success">
