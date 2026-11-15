@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { isMockEnabled } from '#lib/server/mock/index.js';
+import { isOfflineMode } from '#lib/server/mock/index.js';
 import { safeRedirectPath } from '#lib/navigation.js';
 
 export const load: PageServerLoad = ({ locals, url }) => {
@@ -10,5 +10,5 @@ export const load: PageServerLoad = ({ locals, url }) => {
 		redirect(302, next);
 	}
 
-	return { next, demoAccounts: isMockEnabled() };
+	return { next, demoAccounts: isOfflineMode() };
 };

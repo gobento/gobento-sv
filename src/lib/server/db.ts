@@ -2,7 +2,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { DATABASE_URL } from '$app/env/private';
-import { isMockEnabled } from './mock';
+import { isOfflineMode } from './mock';
 import type { Database } from './mock/database';
 import * as schema from './schema';
 
@@ -28,7 +28,7 @@ async function mockDatabase(): Promise<Database> {
 	return store[key];
 }
 
-export const usesMockDatabase = isMockEnabled() && !DATABASE_URL;
+export const usesMockDatabase = isOfflineMode();
 
 export const db: Database = usesMockDatabase
 	? await mockDatabase()

@@ -10,7 +10,7 @@ import {
 	BACKBLAZE_REGION,
 	BACKBLAZE_ENDPOINT
 } from '$app/env/private';
-import { isMockEnabled } from './mock';
+import { isOfflineMode } from './mock';
 import { mockFileUrl, putMockFile } from './mock/storage';
 
 const s3Client = new S3Client({
@@ -123,7 +123,7 @@ export async function uploadFile(
 			}
 		});
 
-		if (isMockEnabled()) {
+		if (isOfflineMode()) {
 			putMockFile(uniqueKey, { body: processedBuffer, contentType: finalContentType });
 			return { success: true, key: uniqueKey };
 		}
@@ -222,12 +222,12 @@ export async function getSignedDownloadUrl(
 	key: string,
 	expiresIn: number = 604800 // 7 days
 ): Promise<string> {
-	if (isMockEnabled()) return mockFileUrl(key);
+	if (isOfflineMode()) return mockFileUrl(key);
 
 	const command = new GetObjectCommand({
 		Bucket: BACKBLAZE_BUCKET_NAME,
 		Key: key,
-		ResponseCacheControl: 'public, max-age={' + expiresIn + '}, immutable'
+		ResponseCacheControl: `public, max-age=${expiresIn}, immutable`
 	});
 
 	return await getSignedUrl(s3Client, command, { expiresIn });
@@ -239,7 +239,7 @@ export async function getSignedDownloadUrl(
  * @returns Signed URL with 1 hour expiration
  */
 export async function getSignedDownloadUrlShort(key: string): Promise<string> {
-	if (isMockEnabled()) return mockFileUrl(key);
+	if (isOfflineMode()) return mockFileUrl(key);
 
 	const command = new GetObjectCommand({
 		Bucket: BACKBLAZE_BUCKET_NAME,

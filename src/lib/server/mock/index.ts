@@ -1,5 +1,5 @@
 // src/lib/server/mock/index.ts
-import { MOCK, MOCK_PAYMENTS } from '$app/env/private';
+import { DATABASE_URL, MOCK, MOCK_PAYMENTS } from '$app/env/private';
 import { handleMockRequest } from './rest-mock';
 
 export { handleMockRequest, findMockRoute, mockRoutes } from './rest-mock';
@@ -14,6 +14,16 @@ export type { MockRoute } from './rest-mock';
  */
 export function isMockEnabled(): boolean {
 	return MOCK === 'true' || MOCK_PAYMENTS === 'true';
+}
+
+/**
+ * Fully offline mode: mocking is on and no DATABASE_URL is set, so the app
+ * runs on the in-process demo database with in-memory file storage and
+ * demo sign-in. With a real database, files live in the real bucket even
+ * while REST calls (payments) are mocked.
+ */
+export function isOfflineMode(): boolean {
+	return isMockEnabled() && !DATABASE_URL;
 }
 
 /**
