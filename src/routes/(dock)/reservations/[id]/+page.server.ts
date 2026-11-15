@@ -92,9 +92,11 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		(inv) => inv.invitedAccountId === account.id && inv.status === 'accepted'
 	);
 
-	// Handle invite token in URL - just load the invite, don't auto-accept
+	// Handle invite token in URL - just load the invite, don't auto-accept.
+	// Anything that keeps a guest from using the link is explained on /invite/[token].
 	let pendingInviteForUser = null;
-	if (inviteToken && !isOwner) {
+	let ownLinkOpened: { accepted: boolean } | null = null;
+	if (inviteToken) {
 		const [foundInvite] = await db
 			.select()
 			.from(reservationInvites)
@@ -105,33 +107,29 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 				)
 			);
 
-		if (foundInvite) {
-			// Check if invite hasn't expired
-			if (new Date() <= new Date(foundInvite.expiresAt)) {
-				if (foundInvite.status === 'pending') {
-					// Show the user the invite to accept
-					pendingInviteForUser = foundInvite;
-				} else if (
-					foundInvite.status === 'accepted' &&
-					foundInvite.invitedAccountId === account.id
-				) {
-					// User already accepted this invite
-					// Continue to show reservation normally
-				} else if (
-					foundInvite.status === 'accepted' &&
-					foundInvite.invitedAccountId !== account.id
-				) {
-					// Someone else already accepted this invite
-					error(403, 'This invite has already been accepted by another user');
-				}
-			} else {
-				// Mark as expired
+		if (isOwner) {
+			// The sharer opened their own link, e.g. to take the bag back.
+			if (foundInvite && (foundInvite.status === 'pending' || foundInvite.status === 'accepted')) {
+				ownLinkOpened = { accepted: foundInvite.status === 'accepted' };
+			}
+		} else if (!foundInvite) {
+			if (!userInvite) redirect(303, `/invite/${encodeURIComponent(inviteToken)}`);
+		} else if (new Date() > new Date(foundInvite.expiresAt)) {
+			if (foundInvite.status === 'pending') {
 				await db
 					.update(reservationInvites)
 					.set({ status: 'expired' })
 					.where(eq(reservationInvites.id, foundInvite.id));
-				error(410, 'This invite has expired');
 			}
+			if (!userInvite) redirect(303, `/invite/${encodeURIComponent(inviteToken)}`);
+		} else if (foundInvite.status === 'pending') {
+			if (reservation.reservation.status !== 'active') {
+				redirect(303, `/invite/${encodeURIComponent(inviteToken)}`);
+			}
+			pendingInviteForUser = foundInvite;
+		} else if (foundInvite.invitedAccountId !== account.id) {
+			// Accepted by someone else, declined or expired.
+			redirect(303, `/invite/${encodeURIComponent(inviteToken)}`);
 		}
 	}
 
@@ -189,7 +187,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		isOwner,
 		canCollect,
 		canDownloadReceipt: isOwner && !isCharity,
-		hasPendingInvite: !!pendingInviteForUser
+		hasPendingInvite: !!pendingInviteForUser,
+		ownLinkOpened
 	};
 };
 

@@ -229,6 +229,39 @@
 		</div>
 	{/if}
 
+	{#if data.ownLinkOpened}
+		<section class="surface animate-rise-in p-5 text-center">
+			<IconTile icon={IconPeople} tone="secondary" size="xl" class="mx-auto" />
+			<h1 class="mt-4 text-2xl font-extrabold tracking-tight">This is your own invite link</h1>
+			<p class="mt-1 text-base-content/70">
+				{#if data.ownLinkOpened.accepted}
+					A friend accepted it, so they hold the pickup code right now. Take the bag back to
+					collect it yourself — their access ends immediately.
+				{:else}
+					Nobody has accepted it yet. Send it to a friend, or take it back to keep the bag.
+				{/if}
+			</p>
+			<form
+				method="POST"
+				action="?/cancelInvite"
+				class="mt-5"
+				use:enhance={() => {
+					invitePending = 'cancel';
+					return async ({ result, update }) => {
+						if (result.type === 'success') toast.success('The bag is yours again');
+						reportFailure(result, 'Could not take the bag back');
+						await update();
+						invitePending = null;
+					};
+				}}
+			>
+				<Button type="submit" block loading={invitePending === 'cancel'} disabled={invitePending !== null}>
+					Take it back
+				</Button>
+			</form>
+		</section>
+	{/if}
+
 	{#if data.hasPendingInvite}
 		<section class="surface animate-rise-in p-5 text-center">
 			<IconTile icon={IconPersonAdd} size="xl" class="mx-auto animate-float" />
