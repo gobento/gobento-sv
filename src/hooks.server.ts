@@ -137,7 +137,9 @@ const linkPreviewHandle: Handle = async ({ event, resolve }) => {
 	if (
 		!event.locals.account &&
 		event.request.method === 'GET' &&
-		isPreviewBot(event.request.headers.get('user-agent'))
+		isPreviewBot(event.request.headers.get('user-agent')) &&
+		// After the bot check: prerendering forbids reading the query string.
+		!event.url.searchParams.has('app')
 	) {
 		const preview = await linkPreviewResponse(event.url).catch((error) => {
 			console.error('Link preview failed:', error);

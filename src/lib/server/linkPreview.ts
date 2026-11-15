@@ -150,6 +150,11 @@ export async function linkPreviewResponse(url: URL): Promise<Response | null> {
 	// Invite links keep their token, so the preview's link still opens the invite.
 	const canonical =
 		url.origin + url.pathname + (preview.type === 'website' && invite ? url.search : '');
+	// For a person who lands here anyway (an in-app browser that looks like a
+	// crawler): `app=1` always gets the real app, never this page.
+	const appUrl = new URL(canonical);
+	appUrl.searchParams.set('app', '1');
+	const appLink = appUrl.href;
 	const title = escape(`${preview.title} · GoBento`);
 	const description = escape(preview.description);
 	const image = escape(new URL(preview.image, url.origin).href);
@@ -178,8 +183,17 @@ ${ownCard ? '<meta property="og:image:width" content="1200" />\n<meta property="
 <meta name="twitter:description" content="${description}" />
 <meta name="twitter:image" content="${image}" />
 <meta name="twitter:image:alt" content="${alt}" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:16px;box-sizing:border-box;background:#f6f3ee;color:#1c1530;font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{width:100%;max-width:420px;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 10px 30px rgba(28,21,48,.12)}
+img{display:block;width:100%;aspect-ratio:1200/630;object-fit:cover;background:#eee}
+div{padding:20px 22px 24px}h1{margin:0 0 6px;font-size:20px;line-height:1.3}p{margin:0 0 18px;color:#5b5568}
+a{display:block;text-align:center;background:#1c1530;color:#fff;text-decoration:none;font-weight:700;padding:14px;border-radius:16px}
+@media (prefers-color-scheme:dark){body{background:#14111c;color:#f3f0fa}main{background:#1f1a2b}p{color:#b7b0c6}a{background:#f3f0fa;color:#1c1530}}
+</style>
 </head>
-<body><h1>${title}</h1><p>${description}</p><a href="${escape(canonical)}">Open in GoBento</a></body>
+<body><main><img src="${image}" alt="${alt}" /><div><h1>${title}</h1><p>${description}</p><a href="${escape(appLink)}">Open in GoBento</a></div></main></body>
 </html>`;
 
 	return new Response(html, {

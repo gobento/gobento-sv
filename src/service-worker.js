@@ -81,6 +81,23 @@ async function cleanupImageCache() {
 sw.addEventListener('fetch', (event) => {
 	const url = new URL(event.request.url);
 
+	// Invite links: always ask the server. Until the fix of 2026-11-15 the
+	// link-preview page for chat bots was served with a one-day public cache
+	// under the same URL, and browsers may still hold that bare page.
+	if (
+		event.request.mode === 'navigate' &&
+		url.origin === sw.location.origin &&
+		url.pathname.startsWith('/reservations/') &&
+		url.searchParams.has('invite')
+	) {
+		event.respondWith(
+			fetch(url.href, { cache: 'no-store', credentials: 'include', redirect: 'manual' }).catch(
+				() => fetch(event.request)
+			)
+		);
+		return;
+	}
+
 	// Cache images from Backblaze or image endpoints
 	if (
 		event.request.destination === 'image' ||
