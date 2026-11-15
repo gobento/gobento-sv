@@ -252,7 +252,7 @@
 
 	<!-- Search + categories stay reachable while scrolling. -->
 	<div
-		class="sticky top-0 z-20 -mx-4 bg-base-200/85 px-4 pt-2 pb-1 backdrop-blur-lg sm:-mx-6 sm:px-6"
+		class="sticky top-[env(safe-area-inset-top)] z-20 -mx-4 bg-base-200/85 px-4 pt-2 pb-1 backdrop-blur-lg sm:-mx-6 sm:px-6"
 	>
 		<label class="input w-full rounded-full border-base-300/70 shadow-soft">
 			<IconSearch class="size-5 text-base-content/50" />

@@ -183,6 +183,20 @@
 		/* Kill the mobile tap delay and the grey tap flash. */
 		-webkit-tap-highlight-color: transparent;
 		text-rendering: optimizeLegibility;
+		/* In fullscreen the page runs under the status bar and notch. */
+		padding-top: env(safe-area-inset-top);
+	}
+
+	/* Backdrop for the status bar area so scrolled content doesn't show through. */
+	body::before {
+		content: '';
+		position: fixed;
+		inset-inline: 0;
+		top: 0;
+		z-index: 1004;
+		height: env(safe-area-inset-top);
+		background: var(--color-base-200);
+		pointer-events: none;
 	}
 
 	button,
@@ -392,7 +406,7 @@
 	/* Slim top progress bar shown while a client-side navigation is in flight.
 	   Never blocks interaction — the old page stays live underneath. */
 	.nav-progress {
-		@apply pointer-events-none fixed inset-x-0 top-0 z-[1005] h-[3px] overflow-hidden;
+		@apply pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-[1005] h-[3px] overflow-hidden;
 	}
 
 	.nav-progress > span {

@@ -100,7 +100,7 @@
 <!-- Desktop sidebar -->
 <nav
 	aria-label="Main"
-	class="fixed inset-y-0 start-0 z-50 hidden w-60 flex-col border-e border-base-300/70 bg-base-100 p-3 md:flex"
+	class="fixed inset-y-0 start-0 z-50 hidden w-60 flex-col border-e border-base-300/70 bg-base-100 p-3 pt-[calc(0.75rem+env(safe-area-inset-top))] md:flex"
 >
 	<a href="/" class="mb-4 flex items-center gap-2.5 rounded-2xl px-3 py-3">
 		<BentoIcon class="size-8" />
@@ -136,7 +136,7 @@
 <main
 	id="main"
 	tabindex="-1"
-	class="page-view min-h-dvh w-full pb-[calc(4rem+env(safe-area-inset-bottom))] outline-none md:ps-60 md:pb-0"
+	class="page-view min-h-[calc(100dvh-env(safe-area-inset-top))] w-full pb-[calc(4rem+env(safe-area-inset-bottom))] outline-none md:ps-60 md:pb-0"
 >
 	{@render children()}
 </main>
