@@ -71,6 +71,13 @@
       "when": 1783681184528,
       "tag": "0009_company_sso",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783681184529,
+      "tag": "0010_telegram_login",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,8 @@
 // src/routes/(dock)/profile/+page.server.ts
-import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import { error, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { randomBytes } from 'crypto';
+import { PUBLIC_TELEGRAM_LOGIN_BOT } from '$app/env/public';
 import { db } from '#lib/server/db.js';
 import {
 	accounts,
@@ -18,7 +20,9 @@ import { eq, and, inArray, sql } from 'drizzle-orm';
 const CO2_PER_MEAL = 1.25; // kg
 import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 
-export const load: PageServerLoad = async ({ locals }) => {
+const TELEGRAM_PLACEHOLDER = '@telegram.invalid';
+
+export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const accountId = locals.account!.id;
 	const accountType = locals.account!.accountType;
 
@@ -145,11 +149,45 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 	// Admin accounts don't have additional profile data
 
+	// One-time nonce for connecting Telegram from this page (checked in the callback).
+	let telegram = null;
+	if (PUBLIC_TELEGRAM_LOGIN_BOT) {
+		const nonce = randomBytes(18).toString('base64url');
+		if (!account.telegramId) {
+			cookies.set('tg_link', nonce, {
+				path: '/auth/callback/telegram',
+				httpOnly: true,
+				secure: import.meta.env.PROD,
+				sameSite: 'lax',
+				maxAge: 60 * 30
+			});
+		}
+		telegram = {
+			bot: PUBLIC_TELEGRAM_LOGIN_BOT,
+			connected: !!account.telegramId,
+			linkUrl: `/auth/callback/telegram?link=${nonce}`,
+			// Accounts created through Telegram have no other way to sign in.
+			canDisconnect: !account.email.endsWith(TELEGRAM_PLACEHOLDER)
+		};
+	}
+
 	return {
+		telegram,
 		account,
 		profile,
 		profilePictureUrl,
 		wallet,
 		userImpact
 	};
+};
+
+export const actions: Actions = {
+	disconnectTelegram: async ({ locals }) => {
+		const account = locals.account!;
+		if (account.email.endsWith(TELEGRAM_PLACEHOLDER)) {
+			return fail(400, { telegram: { error: 'Telegram is the only way to sign in to this account.' } });
+		}
+		await db.update(accounts).set({ telegramId: null }).where(eq(accounts.id, account.id));
+		return { telegram: { disconnected: true } };
+	}
 };

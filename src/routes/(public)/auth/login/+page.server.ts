@@ -10,5 +10,12 @@ export const load: PageServerLoad = ({ locals, url }) => {
 		redirect(302, next);
 	}
 
-	return { next, demoAccounts: isOfflineMode() };
+	return {
+		next,
+		demoAccounts: isOfflineMode(),
+		error:
+			url.searchParams.get('error') === 'telegram'
+				? 'Telegram sign-in could not be verified or took too long. Please try again.'
+				: null
+	};
 };

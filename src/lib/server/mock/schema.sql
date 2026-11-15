@@ -2,8 +2,10 @@ CREATE TABLE "accounts" (
 	"id" text PRIMARY KEY NOT NULL,
 	"email" text NOT NULL,
 	"account_type" text NOT NULL,
+	"telegram_id" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "accounts_email_unique" UNIQUE("email")
+	CONSTRAINT "accounts_email_unique" UNIQUE("email"),
+	CONSTRAINT "accounts_telegram_id_unique" UNIQUE("telegram_id")
 );
 
 CREATE TABLE "admin_profiles" (

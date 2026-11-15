@@ -29,5 +29,8 @@ export const variables = defineEnvVars({
 	MAIL_USER: { static: true },
 	MAIL_PASS: { static: true },
 	// Encrypts the client secrets of company SSO connections (any long random string)
-	SSO_SECRET_KEY: { schema: (input) => input ?? '' }
+	SSO_SECRET_KEY: { schema: (input) => input ?? '' },
+	// Telegram login: the bot's token (verifies logins) and its username (shows the button)
+	TELEGRAM_BOT_TOKEN: { schema: (input) => input ?? '' },
+	PUBLIC_TELEGRAM_LOGIN_BOT: { public: true, schema: (input) => input ?? '' }
 });

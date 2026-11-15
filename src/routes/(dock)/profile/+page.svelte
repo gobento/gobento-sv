@@ -1,5 +1,6 @@
 <!-- src/routes/(dock)/profile/+page.svelte -->
 <script lang="ts">
+	import TelegramConnect from '#lib/components/account/TelegramConnect.svelte';
 	import { resolve } from '$app/paths';
 	import type { Component } from 'svelte';
 	import type { PageData } from './$types';
@@ -261,6 +262,10 @@
 			</section>
 		{/if}
 
+		{#if data.telegram}
+			<TelegramConnect telegram={data.telegram} />
+		{/if}
+
 		<!-- More -->
 		<section class="space-y-1">
 			<h2 class="px-1 pb-2 text-xs font-semibold tracking-wide text-base-content/50 uppercase">
@@ -481,6 +486,10 @@
 				<IconEdit class="size-5" />
 				Complete Profile
 			</a>
+		{/if}
+
+		{#if data.telegram}
+			<TelegramConnect telegram={data.telegram} />
 		{/if}
 
 		<!-- Footer Links -->

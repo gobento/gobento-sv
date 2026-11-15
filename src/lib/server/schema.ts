@@ -20,6 +20,8 @@ export const accounts = pgTable('accounts', {
 	accountType: text('account_type', {
 		enum: ['user', 'moderator', 'business', 'charity', 'admin', 'employee']
 	}).notNull(),
+	// Telegram user id, once the account signs in with or connects Telegram
+	telegramId: text('telegram_id').unique(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
 

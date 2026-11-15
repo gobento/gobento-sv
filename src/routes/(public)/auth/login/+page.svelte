@@ -13,6 +13,8 @@
 	import IconSettings from '~icons/fluent/settings-24-regular';
 	import IconBeaker from '~icons/fluent/beaker-24-regular';
 	import IconBuilding from '~icons/fluent/building-24-regular';
+	import TelegramLogin from '#lib/components/account/TelegramLogin.svelte';
+	import { PUBLIC_TELEGRAM_LOGIN_BOT } from '$app/env/public';
 	import Spinner from '#lib/components/ui/Spinner.svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -85,6 +87,18 @@
 			{/if}
 			Continue with Google
 		</a>
+
+		{#if PUBLIC_TELEGRAM_LOGIN_BOT}
+			<div class="mt-3">
+				<TelegramLogin
+					bot={PUBLIC_TELEGRAM_LOGIN_BOT}
+					authUrl="/auth/callback/telegram?next={encodeURIComponent(data.next)}"
+				/>
+			</div>
+		{/if}
+		{#if data.error}
+			<p class="mt-3 rounded-xl bg-error/10 p-3 text-sm text-error" role="alert">{data.error}</p>
+		{/if}
 
 		<a
 			href="/auth/sso?next={encodeURIComponent(data.next)}"
