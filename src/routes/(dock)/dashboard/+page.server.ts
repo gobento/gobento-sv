@@ -10,7 +10,7 @@ import {
 	recurringGifts,
 	charityProfiles
 } from '#lib/server/schema.js';
-import { eq, and, gte, sql, desc, inArray } from 'drizzle-orm';
+import { eq, and, gte, sql, desc, inArray, lte } from 'drizzle-orm';
 import { materializeDueGifts } from '#lib/server/recurringGifts.js';
 import { error } from '@sveltejs/kit';
 
@@ -148,7 +148,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				eq(pickupRequests.businessAccountId, account.id),
 				eq(pickupRequests.status, 'accepted'),
 				gte(pickupRequests.proposedPickupUntil, now),
-				sql`${pickupRequests.proposedPickupFrom} <= ${weekAhead}`
+				lte(pickupRequests.proposedPickupFrom, weekAhead)
 			)
 		)
 		.orderBy(pickupRequests.proposedPickupFrom)
@@ -185,7 +185,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				eq(businessOffers.businessAccountId, account.id),
 				eq(reservations.status, 'active'),
 				gte(reservations.pickupUntil, now),
-				sql`${reservations.pickupFrom} <= ${dayAhead}`
+				lte(reservations.pickupFrom, dayAhead)
 			)
 		);
 

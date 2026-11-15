@@ -10,7 +10,7 @@ import {
 	recurringGifts,
 	files
 } from '#lib/server/schema.js';
-import { eq, and, desc, sql, inArray } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray, gt } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 import { notifyAccount } from '#lib/server/notifications.js';
@@ -239,7 +239,7 @@ export const actions: Actions = {
 				and(
 					eq(pickupRequests.recurringGiftId, gift.id),
 					eq(pickupRequests.status, 'accepted'),
-					sql`${pickupRequests.proposedPickupFrom} > ${now}`
+					gt(pickupRequests.proposedPickupFrom, now)
 				)
 			);
 
