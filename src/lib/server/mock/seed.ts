@@ -47,23 +47,25 @@ export async function seedMockDatabase(db: Database, now = new Date()): Promise<
 		createdAt: at(-daysAgo * DAY)
 	});
 
-	await db.insert(t.accounts).values([
-		account(DEMO_ACCOUNTS.user, 'user', 90),
-		account('user-lena', 'user', 45),
-		account('user-omid', 'user', 12),
-		account(DEMO_ACCOUNTS.business, 'business', 120),
-		account('biz-sakura', 'business', 80),
-		account('biz-morgenrot', 'business', 70),
-		account('biz-korb', 'business', 64),
-		account('biz-forno', 'business', 40),
-		account('biz-lindenhof', 'business', 30),
-		account('biz-suppe', 'business', 2),
-		account(DEMO_ACCOUNTS.charity, 'charity', 100),
-		account('charity-mahlzeit', 'charity', 50),
-		account('charity-alle', 'charity', 1),
-		account(DEMO_ACCOUNTS.moderator, 'moderator', 150),
-		account(DEMO_ACCOUNTS.admin, 'admin', 200)
-	]);
+	await db
+		.insert(t.accounts)
+		.values([
+			account(DEMO_ACCOUNTS.user, 'user', 90),
+			account('user-lena', 'user', 45),
+			account('user-omid', 'user', 12),
+			account(DEMO_ACCOUNTS.business, 'business', 120),
+			account('biz-sakura', 'business', 80),
+			account('biz-morgenrot', 'business', 70),
+			account('biz-korb', 'business', 64),
+			account('biz-forno', 'business', 40),
+			account('biz-lindenhof', 'business', 30),
+			account('biz-suppe', 'business', 2),
+			account(DEMO_ACCOUNTS.charity, 'charity', 100),
+			account('charity-mahlzeit', 'charity', 50),
+			account('charity-alle', 'charity', 1),
+			account(DEMO_ACCOUNTS.moderator, 'moderator', 150),
+			account(DEMO_ACCOUNTS.admin, 'admin', 200)
+		]);
 
 	await db.insert(t.adminProfiles).values({ accountId: DEMO_ACCOUNTS.admin });
 
@@ -81,7 +83,10 @@ export async function seedMockDatabase(db: Database, now = new Date()): Promise<
 
 	// --- Files (placeholder artwork) ----------------------------------------
 	const fileRows: (typeof t.files.$inferInsert)[] = [];
-	const image = (id: string, kind: 'logo' | 'photo', icon: string, hue: number, owner: string) => {
+	// `?raw` icon imports are SVG strings at runtime, but the icon plugin's
+	// typings describe every `~icons/*` module as a component.
+	const image = (id: string, kind: 'logo' | 'photo', svg: unknown, hue: number, owner: string) => {
+		const icon = svg as string;
 		const key = `mock/${id}.svg`;
 		const body = kind === 'logo' ? logoSvg(icon, hue) : photoSvg(icon, hue);
 		putMockFile(key, { body, contentType: 'image/svg+xml' });
@@ -338,127 +343,129 @@ export async function seedMockDatabase(db: Database, now = new Date()): Promise<
 		...extra
 	});
 
-	await db.insert(t.businessOffers).values([
-		offer(
-			'offer-pastry-bag',
-			B,
-			'loc-kiez-kreuzberg',
-			img.pastryBag,
-			'Surprise pastry bag',
-			'Croissants, cinnamon rolls and whatever else is left on the counter at closing time. Usually 5–6 pieces.',
-			14,
-			4.5,
-			['18:00', '19:30'],
-			{ quantity: 8 }
-		),
-		offer(
-			'offer-bread-box',
-			B,
-			'loc-kiez-prenzlauer',
-			img.breadBox,
-			'Bread of the day box',
-			'Two loaves of sourdough or rye plus a handful of rolls from today’s bake.',
-			11,
-			3.9,
-			['17:30', '19:00']
-		),
-		offer(
-			'offer-old-stollen',
-			B,
-			'loc-kiez-kreuzberg',
-			img.breadBox,
-			'Weekend stollen special',
-			'Paused seasonal offer.',
-			18,
-			6,
-			['16:00', '18:00'],
-			{ isActive: false, isRecurring: false, validUntil: at(-3 * DAY) }
-		),
-		offer(
-			'offer-bento',
-			'biz-sakura',
-			'loc-sakura',
-			img.bentoBox,
-			'Bento surprise box',
-			'A full bento with rice, a main, pickles and two sides — the chef picks what’s left from lunch service.',
-			16.5,
-			5.9,
-			['20:30', '21:30'],
-			{ quantity: 6 }
-		),
-		offer(
-			'offer-curry',
-			'biz-sakura',
-			'loc-sakura',
-			img.curryBowl,
-			'Japanese curry bowl',
-			'Katsu or vegetable curry with rice. Bring your own container for a bigger portion.',
-			12,
-			4.5,
-			['21:00', '21:45'],
-			{ quantity: 3, isRecurring: false, validUntil: at(2 * DAY) }
-		),
-		offer(
-			'offer-cake',
-			'biz-morgenrot',
-			'loc-morgenrot',
-			img.cakeBundle,
-			'Cake & coffee bundle',
-			'Three slices of today’s cakes and a filter coffee to go.',
-			15,
-			5,
-			['17:00', '18:00'],
-			{ quantity: 4 }
-		),
-		offer(
-			'offer-veggie',
-			'biz-korb',
-			'loc-korb',
-			img.veggieCrate,
-			'Veggie rescue crate',
-			'Around 4 kg of seasonal vegetables that are perfectly good but no longer shelf-pretty.',
-			20,
-			6.5,
-			['18:30', '19:30'],
-			{ quantity: 10 }
-		),
-		offer(
-			'offer-fruit',
-			'biz-korb',
-			'loc-korb',
-			img.fruitBasket,
-			'Ripe fruit basket',
-			'Bananas, apples and soft fruit at peak ripeness — ideal for smoothies and baking.',
-			12,
-			3.5,
-			['18:30', '19:30'],
-			{ quantity: 2 }
-		),
-		offer(
-			'offer-pizza',
-			'biz-forno',
-			'loc-forno',
-			img.pizzaBox,
-			'Pizza slice box',
-			'Six mixed slices from the evening’s pies, boxed and ready to reheat.',
-			18,
-			5.5,
-			['22:00', '22:45'],
-			{ quantity: 5 }
-		),
-		offer(
-			'offer-breakfast',
-			'biz-lindenhof',
-			'loc-lindenhof',
-			img.breakfastBox,
-			'Breakfast buffet box',
-			'Rolls, cheese, cold cuts, fruit and pastries from the morning buffet.',
-			22,
-			6.9,
-			['10:30', '11:30'],
-			{ quantity: 7 }
-		)
-	]);
+	await db
+		.insert(t.businessOffers)
+		.values([
+			offer(
+				'offer-pastry-bag',
+				B,
+				'loc-kiez-kreuzberg',
+				img.pastryBag,
+				'Surprise pastry bag',
+				'Croissants, cinnamon rolls and whatever else is left on the counter at closing time. Usually 5–6 pieces.',
+				14,
+				4.5,
+				['18:00', '19:30'],
+				{ quantity: 8 }
+			),
+			offer(
+				'offer-bread-box',
+				B,
+				'loc-kiez-prenzlauer',
+				img.breadBox,
+				'Bread of the day box',
+				'Two loaves of sourdough or rye plus a handful of rolls from today’s bake.',
+				11,
+				3.9,
+				['17:30', '19:00']
+			),
+			offer(
+				'offer-old-stollen',
+				B,
+				'loc-kiez-kreuzberg',
+				img.breadBox,
+				'Weekend stollen special',
+				'Paused seasonal offer.',
+				18,
+				6,
+				['16:00', '18:00'],
+				{ isActive: false, isRecurring: false, validUntil: at(-3 * DAY) }
+			),
+			offer(
+				'offer-bento',
+				'biz-sakura',
+				'loc-sakura',
+				img.bentoBox,
+				'Bento surprise box',
+				'A full bento with rice, a main, pickles and two sides — the chef picks what’s left from lunch service.',
+				16.5,
+				5.9,
+				['20:30', '21:30'],
+				{ quantity: 6 }
+			),
+			offer(
+				'offer-curry',
+				'biz-sakura',
+				'loc-sakura',
+				img.curryBowl,
+				'Japanese curry bowl',
+				'Katsu or vegetable curry with rice. Bring your own container for a bigger portion.',
+				12,
+				4.5,
+				['21:00', '21:45'],
+				{ quantity: 3, isRecurring: false, validUntil: at(2 * DAY) }
+			),
+			offer(
+				'offer-cake',
+				'biz-morgenrot',
+				'loc-morgenrot',
+				img.cakeBundle,
+				'Cake & coffee bundle',
+				'Three slices of today’s cakes and a filter coffee to go.',
+				15,
+				5,
+				['17:00', '18:00'],
+				{ quantity: 4 }
+			),
+			offer(
+				'offer-veggie',
+				'biz-korb',
+				'loc-korb',
+				img.veggieCrate,
+				'Veggie rescue crate',
+				'Around 4 kg of seasonal vegetables that are perfectly good but no longer shelf-pretty.',
+				20,
+				6.5,
+				['18:30', '19:30'],
+				{ quantity: 10 }
+			),
+			offer(
+				'offer-fruit',
+				'biz-korb',
+				'loc-korb',
+				img.fruitBasket,
+				'Ripe fruit basket',
+				'Bananas, apples and soft fruit at peak ripeness — ideal for smoothies and baking.',
+				12,
+				3.5,
+				['18:30', '19:30'],
+				{ quantity: 2 }
+			),
+			offer(
+				'offer-pizza',
+				'biz-forno',
+				'loc-forno',
+				img.pizzaBox,
+				'Pizza slice box',
+				'Six mixed slices from the evening’s pies, boxed and ready to reheat.',
+				18,
+				5.5,
+				['22:00', '22:45'],
+				{ quantity: 5 }
+			),
+			offer(
+				'offer-breakfast',
+				'biz-lindenhof',
+				'loc-lindenhof',
+				img.breakfastBox,
+				'Breakfast buffet box',
+				'Rolls, cheese, cold cuts, fruit and pastries from the morning buffet.',
+				22,
+				6.9,
+				['10:30', '11:30'],
+				{ quantity: 7 }
+			)
+		]);
 
 	// --- Favourites ---------------------------------------------------------
 	await db.insert(t.favoriteLocations).values([

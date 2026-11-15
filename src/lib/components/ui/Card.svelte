@@ -31,16 +31,15 @@
 	const PADDING = {
 		none: '',
 		sm: 'p-4',
-		md: 'p-6',
-		lg: 'p-8'
+		md: 'p-5',
+		lg: 'p-6 sm:p-8'
 	};
 
 	const classes = $derived(
 		cx(
-			'card border border-base-300 shadow-sm',
-			surface === 'muted' ? 'bg-base-200' : 'bg-base-100',
-			(interactive || href) &&
-				'transition-all duration-300 ease-spring motion-safe:hover:-translate-y-1 motion-safe:hover:border-primary/40 motion-safe:hover:shadow-md',
+			'card border border-base-300/70 shadow-soft',
+			surface === 'muted' ? 'bg-base-300/40' : 'bg-base-100',
+			(interactive || href) && 'pressable hover:border-primary/30',
 			className
 		)
 	);

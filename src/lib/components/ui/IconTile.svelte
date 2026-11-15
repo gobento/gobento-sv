@@ -12,8 +12,13 @@
 		class?: string;
 	}
 
-	let { icon, tone = 'primary', variant = 'soft', size = 'md', class: className = '' }: Props =
-		$props();
+	let {
+		icon,
+		tone = 'primary',
+		variant = 'soft',
+		size = 'md',
+		class: className = ''
+	}: Props = $props();
 
 	const BOX: Record<NonNullable<Props['size']>, string> = {
 		sm: 'size-8 rounded-lg',

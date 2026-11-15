@@ -7,16 +7,28 @@
 		title: string;
 		description?: string;
 		icon?: Component;
-		children: Snippet;
+		backHref?: string;
+		backLabel?: string;
+		/** `narrow` suits forms and single-column detail pages. */
+		width?: 'default' | 'narrow';
+		actions?: Snippet;
+		children?: Snippet;
 	}
 
-	let { title, description, icon, children }: Props = $props();
+	let {
+		title,
+		description,
+		icon,
+		backHref,
+		backLabel,
+		width = 'default',
+		actions,
+		children
+	}: Props = $props();
 </script>
 
-<div class="p-6">
-	<div class="animate-rise-in">
-		<PageHeader {title} {description} {icon} />
-	</div>
+<div class={width === 'narrow' ? 'page-narrow' : 'page'}>
+	<PageHeader {title} {description} {icon} {backHref} {backLabel} {actions} />
 
 	{@render children?.()}
 </div>

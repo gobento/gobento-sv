@@ -45,6 +45,7 @@
 	function burst() {
 		const element = canvas;
 		if (!element) return;
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 		const ctx = element.getContext('2d');
 		if (!ctx) return;
 
@@ -120,4 +121,8 @@
 	});
 </script>
 
-<canvas bind:this={canvas} class="pointer-events-none fixed inset-0 z-[100] h-full w-full" aria-hidden="true"></canvas>
+<canvas
+	bind:this={canvas}
+	class="pointer-events-none fixed inset-0 z-[2200] h-full w-full"
+	aria-hidden="true"
+></canvas>

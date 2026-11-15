@@ -35,12 +35,10 @@
 	}: Props = $props();
 </script>
 
-<Card padding="none" class={className}>
-	<div
-		class="card-body items-center text-center {size === 'sm' ? 'gap-3 py-10' : 'gap-4 py-16'}"
-	>
-		<IconTile {icon} {tone} size={size === 'sm' ? 'lg' : 'xl'} class="mb-2" />
-		<h3 class={size === 'sm' ? 'text-base font-bold' : 'text-xl font-bold'}>{title}</h3>
+<Card padding="none" class="animate-rise-in {className}">
+	<div class="card-body items-center text-center {size === 'sm' ? 'gap-3 py-10' : 'gap-4 py-16'}">
+		<IconTile {icon} {tone} size={size === 'sm' ? 'lg' : 'xl'} class="mb-2 animate-float" />
+		<h3 class={size === 'sm' ? 'text-base font-extrabold' : 'text-xl font-extrabold'}>{title}</h3>
 		{#if description}
 			<p class="max-w-md text-base-content/60">{description}</p>
 		{/if}

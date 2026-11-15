@@ -1,57 +1,56 @@
 <!-- src/lib/components/PriceDisplay.svelte -->
 <script lang="ts">
-	import { get } from 'lodash-es';
 	import { formatPrice } from '#lib/util.js';
 
 	interface Props {
 		originalValue: number;
 		price: number;
-		country: string;
-
+		/** Business country; decides the display currency when none is given. */
+		country?: string;
+		currency?: string;
 		size?: 'sm' | 'lg';
 		/** Hide the "-X%" badge when the discount is already shown elsewhere. */
 		showDiscountBadge?: boolean;
 	}
 
-	let { originalValue, price, country, size = 'lg', showDiscountBadge = true }: Props = $props();
+	let {
+		originalValue,
+		price,
+		country = '',
+		currency,
+		size = 'lg',
+		showDiscountBadge = true
+	}: Props = $props();
 
-	const discountPercent = $derived(Math.round(((originalValue - price) / originalValue) * 100));
-
-	// Size-dependent classes
-	const badgeClass = $derived(size === 'sm' ? 'badge-sm px-2 py-2' : 'badge-lg px-3 py-3');
-	const originalPriceClass = $derived(size === 'sm' ? 'text-sm' : 'text-lg');
-	const mainPriceClass = $derived(size === 'sm' ? 'text-xl' : 'text-3xl');
-
-	// todo: create a big map with country codes and currencies
-	function getCurrencyFromCountry(country: string) {
-		if (country === 'Iran') {
-			return 'IRR';
-		} else {
-			return 'EUR';
-		}
-	}
-
-	const currency = getCurrencyFromCountry(country);
+	const discountPercent = $derived(
+		originalValue > 0 ? Math.round(((originalValue - price) / originalValue) * 100) : 0
+	);
+	const displayCurrency = $derived(currency ?? (country === 'Iran' ? 'IRR' : 'EUR'));
 </script>
 
-<div class="flex flex-col items-end gap-2">
-	<!-- Discount Badge & Original Value -->
-	<div class="flex items-center gap-{size === 'sm' ? '2' : '3'}">
-		<!-- Discount Badge -->
-		{#if showDiscountBadge}
-			<div class="badge badge-primary {badgeClass} font-bold shadow-md">
+<div class="flex flex-col items-end {size === 'sm' ? 'gap-0.5' : 'gap-1'}">
+	<div class="flex items-center {size === 'sm' ? 'gap-1.5' : 'gap-2'}">
+		{#if showDiscountBadge && discountPercent > 0}
+			<span
+				class="rounded-full bg-secondary font-extrabold text-secondary-content {size === 'sm'
+					? 'px-1.5 py-0.5 text-[11px]'
+					: 'px-2.5 py-1 text-sm'}"
+			>
 				-{discountPercent}%
-			</div>
+			</span>
 		{/if}
-
-		<!-- Original Value (Crossed Out) -->
-		<div class="{originalPriceClass} text-base-content/50 line-through">
-			{formatPrice(originalValue, currency)}
-		</div>
+		<span
+			class="tabular text-base-content/50 line-through {size === 'sm' ? 'text-xs' : 'text-base'}"
+		>
+			{formatPrice(originalValue, displayCurrency)}
+		</span>
 	</div>
 
-	<!-- Offer Price -->
-	<div class="{mainPriceClass} font-bold text-primary">
-		{formatPrice(price, currency)}
-	</div>
+	<span
+		class="tabular leading-none font-extrabold tracking-tight text-primary {size === 'sm'
+			? 'text-xl'
+			: 'text-3xl'}"
+	>
+		{formatPrice(price, displayCurrency)}
+	</span>
 </div>
