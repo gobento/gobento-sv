@@ -10,7 +10,7 @@ import {
 	pushSubscriptions,
 	complaints
 } from '#lib/server/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
@@ -109,10 +109,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const logoUrl = await getSignedDownloadUrl(business.logo!.key);
 
+	const [{ count: businessLocationCount }] = await db
+		.select({ count: sql<number>`count(*)::int` })
+		.from(businessLocations)
+		.where(eq(businessLocations.businessAccountId, location.businessAccountId));
+
 	return {
 		location: { ...location, logo: { url: locationImage?.url } },
 		offers,
 		business: { ...business, logo: { url: logoUrl } },
+		businessLocationCount,
 		locationImage,
 		isOwner,
 		isUser,

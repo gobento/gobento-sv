@@ -37,6 +37,10 @@
 		}
 	});
 
+	const businessHref = $derived(
+		`${resolve('/(dock)/business/[id]', { id: data.location.businessAccountId })}?from=${encodeURIComponent(data.location.id)}`
+	);
+
 	// Create description for OG tags
 	const locationDescription = `${data.business.name} at ${data.location.address}, ${data.location.city}. ${data.offers.length} ${data.offers.length === 1 ? 'offer' : 'offers'} available.`;
 </script>
@@ -71,7 +75,11 @@
 		<div class="absolute inset-0 bg-linear-to-t from-base-100/60 to-transparent"></div>
 
 		<!-- Business Logo Overlay -->
-		<div class="absolute bottom-0 left-8 translate-y-1/2">
+		<a
+			href={businessHref}
+			class="absolute bottom-0 left-8 translate-y-1/2 rounded-2xl transition-transform hover:scale-105"
+			aria-label="All locations of {data.business.name}"
+		>
 			<OptimizedLogoImage
 				src={data.business.logo.url}
 				alt={data.business.name}
@@ -79,7 +87,7 @@
 				shape="square"
 				priority={true}
 			/>
-		</div>
+		</a>
 
 		<!-- Action Buttons (Top Right) -->
 		<div class="absolute top-4 right-4 flex items-center gap-3">
@@ -144,7 +152,18 @@
 	<div class="card-body p-8 pt-20">
 		<div class="flex items-start justify-between gap-6">
 			<div class="min-w-0 flex-1">
-				<h1 class="mb-4 text-lg font-bold tracking-tight">{data.business.name}</h1>
+				<h1 class="mb-1 text-lg font-bold tracking-tight">
+					<a href={businessHref} class="link-hover">{data.business.name}</a>
+				</h1>
+				<a
+					href={businessHref}
+					class="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+				>
+					{data.businessLocationCount > 1
+						? `All ${data.businessLocationCount} locations`
+						: 'About this business'}
+					<IconArrowRight class="size-4 rtl:rotate-180" />
+				</a>
 
 				<!-- Stats -->
 				<div class="flex flex-wrap items-center gap-6">
