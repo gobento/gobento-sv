@@ -96,25 +96,14 @@ export const actions: Actions = {
 			return fail(403, { error: 'Unauthorized' });
 		}
 
-		// Extract form data
-		const name = formData.get('name') as string;
-		const address = formData.get('address') as string;
-		const city = formData.get('city') as string;
-		const province = formData.get('province') as string;
-		const zipCode = formData.get('zipCode') as string;
-		const country = formData.get('country') as string;
-		const latitude = parseFloat(formData.get('latitude') as string);
-		const longitude = parseFloat(formData.get('longitude') as string);
-		const imageFile = formData.get('image') as File;
+		// Only the name and the image are edited here; the page shows the address
+		// read-only, so it is kept as stored instead of being expected in the form.
+		const name = String(formData.get('name') ?? '').trim();
+		const imageFile = formData.get('image') as File | null;
 		const removeImage = formData.get('removeImage') === 'true';
 
-		// Validate required fields
-		if (!name || !address || !city || !zipCode || !country) {
-			return fail(400, { error: 'Missing required fields' });
-		}
-
-		if (isNaN(latitude) || isNaN(longitude)) {
-			return fail(400, { error: 'Invalid coordinates' });
+		if (!name) {
+			return fail(400, { error: 'Enter a name for the location' });
 		}
 
 		try {
@@ -165,17 +154,7 @@ export const actions: Actions = {
 			// Update location
 			await db
 				.update(businessLocations)
-				.set({
-					name,
-					address,
-					city,
-					province: province || null,
-					zipCode,
-					country,
-					latitude,
-					longitude,
-					imageId: newImageId
-				})
+				.set({ name, imageId: newImageId })
 				.where(eq(businessLocations.id, params.id));
 
 			return { success: true };
