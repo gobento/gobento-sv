@@ -18,6 +18,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const now = new Date();
 	const thirtyDaysAgo = new Date(now);
 	thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+	// Raw SQL gets an ISO string: postgres-js can't send a Date in a raw query.
+	const since30d = thirtyDaysAgo.toISOString();
 
 	// --- Active users (three complementary definitions) ---
 	const activeSessionUsers = await db
@@ -35,9 +37,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Distinct users who reserved or paid in the last 30 days.
 	const recentRows = (await db.execute(sql`
 		SELECT COUNT(*)::int AS count FROM (
-			SELECT user_account_id FROM reservations WHERE reserved_at >= ${thirtyDaysAgo}
+			SELECT user_account_id FROM reservations WHERE reserved_at >= ${since30d}::timestamptz
 			UNION
-			SELECT user_account_id FROM payments WHERE created_at >= ${thirtyDaysAgo}
+			SELECT user_account_id FROM payments WHERE created_at >= ${since30d}::timestamptz
 		) AS active_users
 	`)) as unknown as Array<{ count: number }>;
 	const recentlyActiveUsers = Number(recentRows[0]?.count ?? 0);
@@ -45,11 +47,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// --- Platform activity: growth, food rescued, supply ---
 	const [platform] = (await db.execute(sql`
 		SELECT
-			(SELECT COUNT(*) FROM accounts WHERE created_at >= ${thirtyDaysAgo})::int AS signups_30d,
-			(SELECT COUNT(*) FROM reservations WHERE reserved_at >= ${thirtyDaysAgo})::int AS reservations_30d,
+			(SELECT COUNT(*) FROM accounts WHERE created_at >= ${since30d}::timestamptz)::int AS signups_30d,
+			(SELECT COUNT(*) FROM reservations WHERE reserved_at >= ${since30d}::timestamptz)::int AS reservations_30d,
 			(SELECT COUNT(*) FROM reservations WHERE status IN ('completed', 'claimed'))::int AS rescued_total,
 			(SELECT COUNT(*) FROM reservations
-				WHERE status IN ('completed', 'claimed') AND reserved_at >= ${thirtyDaysAgo})::int AS rescued_30d,
+				WHERE status IN ('completed', 'claimed') AND reserved_at >= ${since30d}::timestamptz)::int AS rescued_30d,
 			(SELECT COUNT(*) FROM business_offers
 				WHERE is_active AND (valid_until IS NULL OR valid_until > now()))::int AS live_offers,
 			(SELECT COUNT(*) FROM business_profiles WHERE verification_status = 'verified')::int AS verified_businesses,
@@ -63,7 +65,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		SELECT day::date::text AS day,
 			(SELECT COUNT(*) FROM accounts WHERE created_at >= day AND created_at < day + interval '1 day')::int AS signups,
 			(SELECT COUNT(*) FROM reservations WHERE reserved_at >= day AND reserved_at < day + interval '1 day')::int AS reservations
-		FROM generate_series(date_trunc('day', ${thirtyDaysAgo}::timestamptz), date_trunc('day', now()), interval '1 day') AS day
+		FROM generate_series(date_trunc('day', ${since30d}::timestamptz), date_trunc('day', now()), interval '1 day') AS day
 		ORDER BY day
 	`)) as unknown as Array<{ day: string; signups: number; reservations: number }>;
 

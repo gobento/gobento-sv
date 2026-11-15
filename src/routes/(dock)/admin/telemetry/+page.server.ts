@@ -26,6 +26,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const range: Range = requested in RANGES ? (requested as Range) : '24h';
 	const { hours, bucket } = RANGES[range];
 	const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+	// Raw SQL gets an ISO string: postgres-js can't send a Date in a raw query.
+	const sinceIso = since.toISOString();
 
 	await pruneTelemetry().catch((error) => console.error('Telemetry prune failed:', error));
 
@@ -37,7 +39,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			percentile_cont(0.5) WITHIN GROUP (ORDER BY duration_ms) AS p50,
 			percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms) AS p95
 		FROM telemetry_events
-		WHERE kind = 'request' AND created_at >= ${since}
+		WHERE kind = 'request' AND created_at >= ${sinceIso}::timestamptz
 	`);
 
 	const [errorCounts] = await rows<Record<string, unknown>>(sql`
@@ -45,7 +47,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			COUNT(*) FILTER (WHERE kind = 'server_error' AND status >= 500)::int AS crashes,
 			COUNT(*) FILTER (WHERE kind = 'client_error')::int AS browser_errors
 		FROM telemetry_events
-		WHERE kind IN ('server_error', 'client_error') AND created_at >= ${since}
+		WHERE kind IN ('server_error', 'client_error') AND created_at >= ${sinceIso}::timestamptz
 	`);
 
 	const timeline = await rows<Record<string, unknown>>(sql`
@@ -55,7 +57,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			COUNT(*) FILTER (WHERE status >= 500)::int AS errors,
 			percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms) AS p95
 		FROM telemetry_events
-		WHERE kind = 'request' AND created_at >= ${since}
+		WHERE kind = 'request' AND created_at >= ${sinceIso}::timestamptz
 		GROUP BY 1
 		ORDER BY 1
 	`);
@@ -68,7 +70,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			percentile_cont(0.5) WITHIN GROUP (ORDER BY duration_ms) AS p50,
 			percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms) AS p95
 		FROM telemetry_events
-		WHERE kind = 'request' AND created_at >= ${since}
+		WHERE kind = 'request' AND created_at >= ${sinceIso}::timestamptz
 		GROUP BY route
 		ORDER BY requests DESC
 		LIMIT 25
@@ -80,7 +82,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			COUNT(*)::int AS samples,
 			percentile_cont(0.75) WITHIN GROUP (ORDER BY value) AS p75
 		FROM telemetry_events
-		WHERE kind = 'vital' AND created_at >= ${since}
+		WHERE kind = 'vital' AND created_at >= ${sinceIso}::timestamptz
 		GROUP BY name
 	`);
 
@@ -90,7 +92,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			COUNT(*)::int AS samples,
 			percentile_cont(0.75) WITHIN GROUP (ORDER BY value) AS p75
 		FROM telemetry_events
-		WHERE kind = 'vital' AND name = 'lcp' AND created_at >= ${since}
+		WHERE kind = 'vital' AND name = 'lcp' AND created_at >= ${sinceIso}::timestamptz
 		GROUP BY route
 		ORDER BY p75 DESC
 		LIMIT 10
@@ -107,7 +109,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			(ARRAY_AGG(error_id ORDER BY created_at DESC))[1] AS error_id,
 			(ARRAY_AGG(stack ORDER BY created_at DESC))[1] AS stack
 		FROM telemetry_events
-		WHERE created_at >= ${since}
+		WHERE created_at >= ${sinceIso}::timestamptz
 			AND (kind = 'client_error' OR (kind = 'server_error' AND status >= 500))
 		GROUP BY kind, message
 		ORDER BY last_seen DESC
@@ -120,7 +122,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			COALESCE(device, 'desktop') AS device,
 			COUNT(*)::int AS requests
 		FROM telemetry_events
-		WHERE kind = 'request' AND created_at >= ${since}
+		WHERE kind = 'request' AND created_at >= ${sinceIso}::timestamptz
 		GROUP BY 1, 2
 	`);
 
