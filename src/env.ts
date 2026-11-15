@@ -26,6 +26,6 @@ export const variables = defineEnvVars({
 	ZARINPAL_SANDBOX: { static: true },
 	MOCK: { schema: (input) => input ?? '' },
 	MOCK_PAYMENTS: { schema: (input) => input ?? '' },
-	MAIL_USER: { static: true },
-	MAIL_PASS: { static: true }
+	MAIL_USER: { schema: (input) => input ?? '' },
+	MAIL_PASS: { schema: (input) => input ?? '' }
 });
