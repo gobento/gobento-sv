@@ -3,6 +3,9 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { materializeDueGifts } from '#lib/server/recurringGifts.js';
 
+// Dynamic: the (public) group prerenders by default.
+export const prerender = false;
+
 /**
  * Daily job (see vercel.json) that books the upcoming pickups of every active
  * regular gift. Pages that show gifts do the same lazily, so a missed run only

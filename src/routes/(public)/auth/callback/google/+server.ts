@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 import { accounts, userProfiles } from '#lib/server/schema.js';
 import { safeRedirectPath } from '#lib/navigation.js';
+import { ssoRequiredFor } from '#lib/server/sso.js';
 
 function decodeRedirect(encoded: string | undefined): string {
 	if (!encoded) return '/';
@@ -73,6 +74,13 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			await db.insert(userProfiles).values({ accountId: account.id });
 
 			redirectTo = '/welcome';
+		}
+
+		// Staff of a team that requires company sign-in can't bypass it with Google.
+		if (await ssoRequiredFor(account)) {
+			cookies.delete('google_oauth_state', { path: '/' });
+			cookies.delete('google_code_verifier', { path: '/' });
+			return new Response(null, { status: 302, headers: { Location: '/auth/sso?error=required' } });
 		}
 
 		const sessionToken = generateSessionToken();

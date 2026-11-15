@@ -27,5 +27,7 @@ export const variables = defineEnvVars({
 	MOCK: { schema: (input) => input ?? '' },
 	MOCK_PAYMENTS: { schema: (input) => input ?? '' },
 	MAIL_USER: { static: true },
-	MAIL_PASS: { static: true }
+	MAIL_PASS: { static: true },
+	// Encrypts the client secrets of company SSO connections (any long random string)
+	SSO_SECRET_KEY: { schema: (input) => input ?? '' }
 });

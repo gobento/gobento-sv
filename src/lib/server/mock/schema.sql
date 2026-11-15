@@ -112,6 +112,7 @@ CREATE TABLE "employees" (
 	"employer_account_id" text NOT NULL,
 	"location_id" text,
 	"name" text NOT NULL,
+	"sso_subject" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -312,6 +313,17 @@ CREATE TABLE "settlement_payments" (
 	CONSTRAINT "settlement_payments_payment_id_unique" UNIQUE("payment_id")
 );
 
+CREATE TABLE "sso_connections" (
+	"employer_account_id" text PRIMARY KEY NOT NULL,
+	"issuer" text NOT NULL,
+	"client_id" text NOT NULL,
+	"client_secret_encrypted" text NOT NULL,
+	"enabled" boolean DEFAULT true NOT NULL,
+	"require_sso" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE "telemetry_events" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"kind" text NOT NULL,
@@ -401,6 +413,7 @@ ALTER TABLE "reservations" ADD CONSTRAINT "reservations_claimed_by_accounts_id_f
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "settlement_payments" ADD CONSTRAINT "settlement_payments_settlement_id_monthly_settlements_id_fk" FOREIGN KEY ("settlement_id") REFERENCES "public"."monthly_settlements"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "settlement_payments" ADD CONSTRAINT "settlement_payments_payment_id_payments_id_fk" FOREIGN KEY ("payment_id") REFERENCES "public"."payments"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "sso_connections" ADD CONSTRAINT "sso_connections_employer_account_id_accounts_id_fk" FOREIGN KEY ("employer_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;
 CREATE UNIQUE INDEX "pickup_requests_gift_occurrence_idx" ON "pickup_requests" USING btree ("recurring_gift_id","proposed_pickup_from");
 CREATE INDEX "telemetry_events_kind_created_idx" ON "telemetry_events" USING btree ("kind","created_at");

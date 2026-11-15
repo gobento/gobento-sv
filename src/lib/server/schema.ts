@@ -361,7 +361,26 @@ export const employees = pgTable('employees', {
 		.references(() => accounts.id, { onDelete: 'cascade' }),
 	locationId: text('location_id').references(() => businessLocations.id, { onDelete: 'cascade' }),
 	name: text('name').notNull(),
+	// Subject (`sub`) of the company identity first used to sign in with SSO;
+	// later SSO sign-ins must present the same one.
+	ssoSubject: text('sso_subject'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+// Company single sign-on (OpenID Connect) for an organisation's staff
+export const ssoConnections = pgTable('sso_connections', {
+	employerAccountId: text('employer_account_id')
+		.primaryKey()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	issuer: text('issuer').notNull(),
+	clientId: text('client_id').notNull(),
+	// AES-256-GCM, see lib/server/secretBox.ts
+	clientSecretEncrypted: text('client_secret_encrypted').notNull(),
+	enabled: boolean('enabled').notNull().default(true),
+	// Staff may then only sign in through SSO (not with Google)
+	requireSso: boolean('require_sso').notNull().default(false),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
 // Admin-specific data
@@ -602,6 +621,7 @@ export type CharityFoodPreference = typeof charityFoodPreferences.$inferSelect;
 export type PickupRequest = typeof pickupRequests.$inferSelect;
 export type RecurringGift = typeof recurringGifts.$inferSelect;
 export type Employee = typeof employees.$inferSelect;
+export type SsoConnection = typeof ssoConnections.$inferSelect;
 export type AdminProfile = typeof adminProfiles.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type PaymentAttempt = typeof paymentAttempts.$inferSelect;

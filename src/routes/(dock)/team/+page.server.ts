@@ -6,7 +6,15 @@
  */
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '#lib/server/db.js';
-import { accounts, businessLocations, employees, sessions } from '#lib/server/schema.js';
+import {
+	accounts,
+	businessLocations,
+	employees,
+	sessions,
+	ssoConnections
+} from '#lib/server/schema.js';
+import { canStoreSecrets, sealSecret } from '#lib/server/secretBox.js';
+import { discover, normaliseIssuer } from '#lib/server/sso.js';
 import { and, eq } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
@@ -21,7 +29,7 @@ function requireOwner(locals: App.Locals) {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const owner = requireOwner(locals);
 
 	const team = await db
@@ -42,13 +50,35 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const locations =
 		owner.accountType === 'business'
 			? await db
-					.select({ id: businessLocations.id, name: businessLocations.name, city: businessLocations.city })
+					.select({
+						id: businessLocations.id,
+						name: businessLocations.name,
+						city: businessLocations.city
+					})
 					.from(businessLocations)
 					.where(eq(businessLocations.businessAccountId, owner.id))
 					.orderBy(businessLocations.name)
 			: [];
 
-	return { team, locations, ownerType: owner.accountType };
+	const [sso] = await db
+		.select({
+			issuer: ssoConnections.issuer,
+			clientId: ssoConnections.clientId,
+			enabled: ssoConnections.enabled,
+			requireSso: ssoConnections.requireSso
+		})
+		.from(ssoConnections)
+		.where(eq(ssoConnections.employerAccountId, owner.id))
+		.limit(1);
+
+	return {
+		team,
+		locations,
+		ownerType: owner.accountType,
+		sso: sso ?? null,
+		ssoRedirectUri: `${url.origin}/auth/callback/sso`,
+		ssoAvailable: canStoreSecrets()
+	};
 };
 
 export const actions: Actions = {
@@ -56,7 +86,9 @@ export const actions: Actions = {
 		const owner = requireOwner(locals);
 		const formData = await request.formData();
 		const name = String(formData.get('name') ?? '').trim();
-		const email = String(formData.get('email') ?? '').trim().toLowerCase();
+		const email = String(formData.get('email') ?? '')
+			.trim()
+			.toLowerCase();
 		const locationIdRaw = String(formData.get('locationId') ?? '');
 
 		if (name.length < 2) return fail(400, { add: { error: 'Enter a name' } });
@@ -68,7 +100,10 @@ export const actions: Actions = {
 				.select({ id: businessLocations.id })
 				.from(businessLocations)
 				.where(
-					and(eq(businessLocations.id, locationIdRaw), eq(businessLocations.businessAccountId, owner.id))
+					and(
+						eq(businessLocations.id, locationIdRaw),
+						eq(businessLocations.businessAccountId, owner.id)
+					)
 				)
 				.limit(1);
 			if (!location) return fail(400, { add: { error: 'Choose the location they work at' } });
@@ -114,7 +149,9 @@ export const actions: Actions = {
 		const [location] = await db
 			.select({ id: businessLocations.id })
 			.from(businessLocations)
-			.where(and(eq(businessLocations.id, locationId), eq(businessLocations.businessAccountId, owner.id)))
+			.where(
+				and(eq(businessLocations.id, locationId), eq(businessLocations.businessAccountId, owner.id))
+			)
 			.limit(1);
 		if (!location) return fail(400, { team: { error: 'Unknown location' } });
 
@@ -123,6 +160,67 @@ export const actions: Actions = {
 			.set({ locationId })
 			.where(and(eq(employees.accountId, accountId), eq(employees.employerAccountId, owner.id)));
 		return { team: { success: true } };
+	},
+
+	saveSso: async ({ request, locals }) => {
+		const owner = requireOwner(locals);
+		if (!canStoreSecrets()) {
+			return fail(503, { sso: { error: 'Company sign-in is not available on this server yet.' } });
+		}
+		const formData = await request.formData();
+		const issuer = normaliseIssuer(String(formData.get('issuer') ?? ''));
+		const clientId = String(formData.get('clientId') ?? '').trim();
+		const clientSecret = String(formData.get('clientSecret') ?? '').trim();
+		const enabled = formData.get('enabled') === 'on';
+		const requireSso = formData.get('requireSso') === 'on';
+
+		if (!issuer) {
+			return fail(400, { sso: { error: 'Enter the issuer URL of your provider (https://…).' } });
+		}
+		if (!clientId) return fail(400, { sso: { error: 'Enter the client ID' } });
+
+		const [existing] = await db
+			.select({ secret: ssoConnections.clientSecretEncrypted })
+			.from(ssoConnections)
+			.where(eq(ssoConnections.employerAccountId, owner.id))
+			.limit(1);
+		if (!clientSecret && !existing) return fail(400, { sso: { error: 'Enter the client secret' } });
+
+		// Prove the provider is reachable and really is this issuer before saving.
+		try {
+			await discover(issuer);
+		} catch (err) {
+			return fail(400, {
+				sso: {
+					error: `Could not read the provider's OpenID configuration: ${err instanceof Error ? err.message : 'unknown error'}`
+				}
+			});
+		}
+
+		const values = {
+			issuer,
+			clientId,
+			clientSecretEncrypted: clientSecret ? sealSecret(clientSecret) : existing!.secret,
+			enabled,
+			requireSso: enabled && requireSso,
+			updatedAt: new Date()
+		};
+		await db
+			.insert(ssoConnections)
+			.values({ employerAccountId: owner.id, ...values })
+			.onConflictDoUpdate({ target: ssoConnections.employerAccountId, set: values });
+		return { sso: { success: true } };
+	},
+
+	removeSso: async ({ locals }) => {
+		const owner = requireOwner(locals);
+		await db.delete(ssoConnections).where(eq(ssoConnections.employerAccountId, owner.id));
+		// Pinned identities belong to the old provider.
+		await db
+			.update(employees)
+			.set({ ssoSubject: null })
+			.where(eq(employees.employerAccountId, owner.id));
+		return { sso: { success: true } };
 	},
 
 	remove: async ({ request, locals }) => {

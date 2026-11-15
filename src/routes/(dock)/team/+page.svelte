@@ -11,10 +11,13 @@
 	import IconCheck from '~icons/fluent/checkmark-circle-24-regular';
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconShield from '~icons/fluent/shield-24-regular';
+	import IconKey from '~icons/fluent/key-24-regular';
+	import CopyField from '#lib/components/account/CopyField.svelte';
 
 	let { data }: { data: PageData } = $props();
 
 	let adding = $state(false);
+	let savingSso = $state(false);
 	let busyId = $state<string | null>(null);
 	const isBusiness = $derived(data.ownerType === 'business');
 </script>
@@ -38,12 +41,16 @@
 				<div class="rounded-2xl border border-dashed border-base-300 bg-base-100 p-8 text-center">
 					<IconPeople class="mx-auto mb-2 size-10 opacity-30" />
 					<p class="font-medium">No team members yet</p>
-					<p class="text-sm text-base-content/60">Add the people who {isBusiness ? 'hand out orders' : 'collect donations'}.</p>
+					<p class="text-sm text-base-content/60">
+						Add the people who {isBusiness ? 'hand out orders' : 'collect donations'}.
+					</p>
 				</div>
 			{:else}
 				<ul class="space-y-2">
 					{#each data.team as member (member.accountId)}
-						<li class="flex flex-wrap items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-3">
+						<li
+							class="flex flex-wrap items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-3"
+						>
 							<div class="avatar avatar-placeholder">
 								<div class="w-10 rounded-full bg-primary/10 text-primary">
 									<span class="font-bold">{member.name.slice(0, 1).toUpperCase()}</span>
@@ -85,7 +92,11 @@
 								}}
 							>
 								<input type="hidden" name="accountId" value={member.accountId} />
-								<button class="btn btn-square btn-ghost btn-sm" aria-label="Remove {member.name}" disabled={busyId === member.accountId}>
+								<button
+									class="btn btn-square btn-ghost btn-sm"
+									aria-label="Remove {member.name}"
+									disabled={busyId === member.accountId}
+								>
 									<IconDelete class="size-4" />
 								</button>
 							</form>
@@ -98,7 +109,9 @@
 		<div class="space-y-6 lg:col-span-2">
 			<SectionCard title="Add someone" icon={IconPersonAdd} bodyClass="gap-4">
 				{#if isBusiness && data.locations.length === 0}
-					<p class="text-sm text-base-content/70">Add a location first — staff always work at one location.</p>
+					<p class="text-sm text-base-content/70">
+						Add a location first — staff always work at one location.
+					</p>
 				{:else}
 					<form
 						method="POST"
@@ -114,16 +127,33 @@
 					>
 						<label class="block">
 							<span class="mb-1 block text-sm font-medium">Name</span>
-							<input name="name" class="input-bordered input w-full" required minlength="2" disabled={adding} />
+							<input
+								name="name"
+								class="input-bordered input w-full"
+								required
+								minlength="2"
+								disabled={adding}
+							/>
 						</label>
 						<label class="block">
 							<span class="mb-1 block text-sm font-medium">Google email</span>
-							<input name="email" type="email" class="input-bordered input w-full" required disabled={adding} />
+							<input
+								name="email"
+								type="email"
+								class="input-bordered input w-full"
+								required
+								disabled={adding}
+							/>
 						</label>
 						{#if isBusiness}
 							<label class="block">
 								<span class="mb-1 block text-sm font-medium">Works at</span>
-								<select name="locationId" class="select-bordered select w-full" required disabled={adding}>
+								<select
+									name="locationId"
+									class="select-bordered select w-full"
+									required
+									disabled={adding}
+								>
 									{#each data.locations as loc (loc.id)}
 										<option value={loc.id}>{loc.name} — {loc.city}</option>
 									{/each}
@@ -131,11 +161,11 @@
 							</label>
 						{/if}
 						{#if page.form?.add?.error}
-							<div class="alert alert-error text-sm">
+							<div class="alert text-sm alert-error">
 								<IconInfo class="size-5 shrink-0" /><span>{page.form.add.error}</span>
 							</div>
 						{:else if page.form?.add?.success}
-							<div class="alert alert-success text-sm">
+							<div class="alert text-sm alert-success">
 								<IconCheck class="size-5 shrink-0" />
 								<span>Added. They can now sign in with Google as {page.form.add.email}.</span>
 							</div>
@@ -144,6 +174,105 @@
 							<IconPersonAdd class="size-4" /> Add to team
 						</button>
 					</form>
+				{/if}
+			</SectionCard>
+
+			<SectionCard
+				title="Company sign-in (SSO)"
+				description="Let staff sign in with your company accounts via OpenID Connect"
+				icon={IconKey}
+				tone="secondary"
+				bodyClass="gap-4"
+			>
+				{#if !data.ssoAvailable}
+					<p class="text-sm text-base-content/70">Company sign-in is not available on this server yet.</p>
+				{:else}
+					<div class="space-y-1 text-sm text-base-content/70">
+						<p>
+							Register Go Bento as a web app in your identity provider (Microsoft Entra ID, Okta,
+							Google Workspace, Keycloak, …) with this redirect URI:
+						</p>
+						<CopyField value={data.ssoRedirectUri} label="Redirect URI" />
+						<p>
+							Staff then choose <strong>Company sign-in</strong> and use the email you added them with.
+							Their first sign-in links the company identity to their staff account.
+						</p>
+					</div>
+					<form
+						method="POST"
+						action="?/saveSso"
+						class="space-y-3"
+						use:enhance={() => {
+							savingSso = true;
+							return async ({ update }) => {
+								await update({ reset: false });
+								savingSso = false;
+							};
+						}}
+					>
+						<label class="block">
+							<span class="mb-1 block text-sm font-medium">Issuer URL</span>
+							<input
+								name="issuer"
+								type="url"
+								class="input-bordered input w-full"
+								placeholder="https://login.microsoftonline.com/<tenant-id>/v2.0"
+								value={data.sso?.issuer ?? ''}
+								required
+							/>
+						</label>
+						<label class="block">
+							<span class="mb-1 block text-sm font-medium">Client ID</span>
+							<input name="clientId" class="input-bordered input w-full" value={data.sso?.clientId ?? ''} required />
+						</label>
+						<label class="block">
+							<span class="mb-1 block text-sm font-medium">Client secret</span>
+							<input
+								name="clientSecret"
+								type="password"
+								autocomplete="off"
+								class="input-bordered input w-full"
+								placeholder={data.sso ? 'Saved — leave empty to keep' : ''}
+								required={!data.sso}
+							/>
+						</label>
+						<label class="flex items-center gap-2 text-sm">
+							<input type="checkbox" name="enabled" class="toggle toggle-sm" checked={data.sso?.enabled ?? true} />
+							Enabled
+						</label>
+						<label class="flex items-start gap-2 text-sm">
+							<input type="checkbox" name="requireSso" class="toggle toggle-sm mt-0.5" checked={data.sso?.requireSso ?? false} />
+							<span>
+								Require company sign-in
+								<span class="block text-xs text-base-content/60">
+									Staff can't use Google or Telegram, so removing someone in your provider ends their access.
+								</span>
+							</span>
+						</label>
+						{#if page.form?.sso?.error}
+							<div class="alert alert-error text-sm">
+								<IconInfo class="size-5 shrink-0" /><span>{page.form.sso.error}</span>
+							</div>
+						{:else if page.form?.sso?.success}
+							<div class="alert alert-success text-sm">
+								<IconCheck class="size-5 shrink-0" /><span>Saved.</span>
+							</div>
+						{/if}
+						<button class="btn btn-block btn-secondary" disabled={savingSso}>
+							{data.sso ? 'Save changes' : 'Connect provider'}
+						</button>
+					</form>
+					{#if data.sso}
+						<form
+							method="POST"
+							action="?/removeSso"
+							use:enhance={({ cancel }) => {
+								if (!confirm('Disconnect company sign-in? Staff will need another way to sign in.')) cancel();
+							}}
+						>
+							<button class="btn btn-block btn-ghost btn-sm">Disconnect</button>
+						</form>
+					{/if}
 				{/if}
 			</SectionCard>
 

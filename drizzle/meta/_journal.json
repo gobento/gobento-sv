@@ -64,6 +64,13 @@
       "when": 1783681184527,
       "tag": "0008_telemetry_events",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783681184528,
+      "tag": "0009_company_sso",
+      "breakpoints": true
     }
   ]
 }

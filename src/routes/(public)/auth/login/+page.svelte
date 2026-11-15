@@ -12,6 +12,7 @@
 	import IconShield from '~icons/fluent/shield-24-regular';
 	import IconSettings from '~icons/fluent/settings-24-regular';
 	import IconBeaker from '~icons/fluent/beaker-24-regular';
+	import IconBuilding from '~icons/fluent/building-24-regular';
 	import Spinner from '#lib/components/ui/Spinner.svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -83,6 +84,14 @@
 				<GoogleLogo class="size-5" />
 			{/if}
 			Continue with Google
+		</a>
+
+		<a
+			href="/auth/sso?next={encodeURIComponent(data.next)}"
+			class="btn mt-2 btn-block gap-2 rounded-2xl btn-ghost text-sm font-semibold text-base-content/70"
+		>
+			<IconBuilding class="size-4" />
+			Company sign-in (SSO)
 		</a>
 
 		<p class="mt-4 text-xs text-base-content/60">
