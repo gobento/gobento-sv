@@ -42,6 +42,31 @@ export const load: PageServerLoad = async ({ locals }) => {
 	`)) as unknown as Array<{ count: number }>;
 	const recentlyActiveUsers = Number(recentRows[0]?.count ?? 0);
 
+	// --- Platform activity: growth, food rescued, supply ---
+	const [platform] = (await db.execute(sql`
+		SELECT
+			(SELECT COUNT(*) FROM accounts WHERE created_at >= ${thirtyDaysAgo})::int AS signups_30d,
+			(SELECT COUNT(*) FROM reservations WHERE reserved_at >= ${thirtyDaysAgo})::int AS reservations_30d,
+			(SELECT COUNT(*) FROM reservations WHERE status IN ('completed', 'claimed'))::int AS rescued_total,
+			(SELECT COUNT(*) FROM reservations
+				WHERE status IN ('completed', 'claimed') AND reserved_at >= ${thirtyDaysAgo})::int AS rescued_30d,
+			(SELECT COUNT(*) FROM business_offers
+				WHERE is_active AND (valid_until IS NULL OR valid_until > now()))::int AS live_offers,
+			(SELECT COUNT(*) FROM business_profiles WHERE verification_status = 'verified')::int AS verified_businesses,
+			(SELECT COUNT(*) FROM business_profiles WHERE verification_status = 'pending')::int AS pending_businesses,
+			(SELECT COUNT(*) FROM charity_profiles WHERE verification_status = 'verified')::int AS verified_charities,
+			(SELECT COUNT(*) FROM charity_profiles WHERE verification_status = 'pending')::int AS pending_charities
+	`)) as unknown as Array<Record<string, number>>;
+
+	// Daily sign-ups and reservations over the last 30 days.
+	const dailyRows = (await db.execute(sql`
+		SELECT day::date::text AS day,
+			(SELECT COUNT(*) FROM accounts WHERE created_at >= day AND created_at < day + interval '1 day')::int AS signups,
+			(SELECT COUNT(*) FROM reservations WHERE reserved_at >= day AND reserved_at < day + interval '1 day')::int AS reservations
+		FROM generate_series(date_trunc('day', ${thirtyDaysAgo}::timestamptz), date_trunc('day', now()), interval '1 day') AS day
+		ORDER BY day
+	`)) as unknown as Array<{ day: string; signups: number; reservations: number }>;
+
 	// --- Account counts by type ---
 	const accountRows = await db
 		.select({ type: accounts.accountType, count: sql<number>`COUNT(*)::int` })
@@ -119,6 +144,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 			activeSessions: activeSessionUsers,
 			activeReservations: activeReservationUsers,
 			recent30d: recentlyActiveUsers
+		},
+		platform: {
+			signups30d: Number(platform?.signups_30d ?? 0),
+			reservations30d: Number(platform?.reservations_30d ?? 0),
+			rescuedTotal: Number(platform?.rescued_total ?? 0),
+			rescued30d: Number(platform?.rescued_30d ?? 0),
+			liveOffers: Number(platform?.live_offers ?? 0),
+			verifiedBusinesses: Number(platform?.verified_businesses ?? 0),
+			pendingBusinesses: Number(platform?.pending_businesses ?? 0),
+			verifiedCharities: Number(platform?.verified_charities ?? 0),
+			pendingCharities: Number(platform?.pending_charities ?? 0),
+			daily: dailyRows.map((row) => ({
+				day: row.day,
+				signups: Number(row.signups),
+				reservations: Number(row.reservations)
+			}))
 		},
 		accounts: {
 			total: totalAccounts,

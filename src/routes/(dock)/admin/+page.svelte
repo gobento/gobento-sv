@@ -1,6 +1,8 @@
 <!-- src/routes/(dock)/admin/+page.svelte -->
 <script lang="ts">
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import DailyBars from '#lib/components/admin/DailyBars.svelte';
+	import IconLeaf from '~icons/fluent/leaf-two-24-regular';
 	import IconDataBar from '~icons/fluent/data-bar-vertical-24-filled';
 	import IconPeople from '~icons/fluent/people-24-regular';
 	import IconMoneyHand from '~icons/fluent/money-hand-24-regular';
@@ -47,7 +49,8 @@
 		business: 'Businesses',
 		charity: 'Charities',
 		moderator: 'Moderators',
-		admin: 'Admins'
+		admin: 'Admins',
+		employee: 'Staff'
 	};
 </script>
 
@@ -56,6 +59,56 @@
 	description="Platform-wide activity, revenue and payment health"
 	icon={IconDataBar}
 >
+	<!-- Platform activity -->
+	<h2 class="mb-3 flex items-center gap-2 text-lg font-semibold">
+		<IconLeaf class="size-5 text-primary" /> Platform activity
+	</h2>
+	<div class="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+		<div class="stats shadow">
+			<div class="stat">
+				<div class="stat-title">Bags rescued</div>
+				<div class="stat-value text-2xl">{data.platform.rescuedTotal}</div>
+				<div class="stat-desc">{data.platform.rescued30d} in the last 30 days</div>
+			</div>
+		</div>
+		<div class="stats shadow">
+			<div class="stat">
+				<div class="stat-title">Live offers</div>
+				<div class="stat-value text-2xl">{data.platform.liveOffers}</div>
+				<div class="stat-desc">Active and not expired</div>
+			</div>
+		</div>
+		<div class="stats shadow">
+			<div class="stat">
+				<div class="stat-title">Verified businesses</div>
+				<div class="stat-value text-2xl">{data.platform.verifiedBusinesses}</div>
+				<div class="stat-desc">{data.platform.pendingBusinesses} awaiting review</div>
+			</div>
+		</div>
+		<div class="stats shadow">
+			<div class="stat">
+				<div class="stat-title">Verified charities</div>
+				<div class="stat-value text-2xl">{data.platform.verifiedCharities}</div>
+				<div class="stat-desc">{data.platform.pendingCharities} awaiting review</div>
+			</div>
+		</div>
+	</div>
+	<div class="mb-8 grid gap-4 lg:grid-cols-2">
+		<DailyBars
+			label="Sign-ups"
+			unit="accounts"
+			rows={data.platform.daily.map((row) => ({ day: row.day, value: row.signups }))}
+		/>
+		<DailyBars
+			label="Reservations"
+			unit="reservations"
+			rows={data.platform.daily.map((row) => ({ day: row.day, value: row.reservations }))}
+		/>
+	</div>
+	<p class="-mt-4 mb-8 text-sm">
+		<a href="/admin/telemetry" class="link link-primary">Response times, errors and page speed →</a>
+	</p>
+
 	<!-- Active users -->
 	<h2 class="mb-3 flex items-center gap-2 text-lg font-semibold">
 		<IconPeople class="size-5 text-primary" /> Active users
