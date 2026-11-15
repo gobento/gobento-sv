@@ -4,6 +4,7 @@ import type { RequestHandler } from './$types';
 import { createSession, generateSessionToken } from '#lib/server/auth.js';
 import { isOfflineMode } from '#lib/server/mock/index.js';
 import { DEMO_ACCOUNTS, type DemoRole } from '#lib/server/mock/demo-accounts.js';
+import { safeRedirectPath } from '#lib/navigation.js';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
 	if (!isOfflineMode()) throw error(404, 'Not found');
@@ -22,5 +23,5 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		path: '/'
 	});
 
-	redirect(303, '/');
+	redirect(303, safeRedirectPath(url.searchParams.get('next')));
 };

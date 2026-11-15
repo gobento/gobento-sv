@@ -112,7 +112,7 @@
 					{@const Icon = demo.icon}
 					<li class="last:odd:col-span-full">
 						<a
-							href="/auth/login/demo?as={demo.role}"
+							href="/auth/login/demo?as={demo.role}&next={encodeURIComponent(data.next)}"
 							data-sveltekit-reload
 							class="pressable flex min-h-14 items-center gap-3 rounded-2xl bg-base-200/60 px-3 py-2 hover:bg-primary/10"
 						>

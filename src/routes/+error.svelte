@@ -57,8 +57,12 @@
 	// Straight into the Telegram support chat, hello and error reference prefilled.
 	const contactUrl = $derived(supportUrl(errorId));
 
+	// Opened straight from a link (chat, mail, bookmark) there is no page of
+	// ours to go back to, and history.back() would do nothing or leave the app.
 	function goBack() {
-		history.back();
+		const cameFromApp = document.referrer.startsWith(location.origin);
+		if (cameFromApp && history.length > 1) history.back();
+		else location.assign('/');
 	}
 
 	function retry() {
@@ -70,7 +74,10 @@
 	<title>{config.title} · GoBento</title>
 </svelte:head>
 
-<div class="flex min-h-[85dvh] items-center justify-center px-4 py-10">
+<!-- Rendered outside the app shell, so it owns the whole viewport. -->
+<div
+	class="flex min-h-dvh items-center justify-center px-4 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]"
+>
 	<div class="w-full max-w-sm text-center">
 		<div class="relative mx-auto mb-6 w-fit">
 			<div

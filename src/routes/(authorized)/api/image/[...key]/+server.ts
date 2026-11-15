@@ -1,4 +1,4 @@
-import { error, redirect } from '@sveltejs/kit';
+import { error, redirect, isRedirect, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '#lib/server/db.js';
 import { files } from '#lib/server/schema.js';
@@ -29,9 +29,8 @@ export const GET: RequestHandler = async ({ params }) => {
 		// Signed bucket URLs (or the mock-file route) are on another origin.
 		throw redirect(302, signedUrl, { external: true });
 	} catch (err) {
-		if (err instanceof Error && 'status' in err) {
-			throw err; // Re-throw SvelteKit errors
-		}
+		// SvelteKit's redirect() and error() don't throw Error instances.
+		if (isRedirect(err) || isHttpError(err)) throw err;
 		console.error('Error generating signed URL:', err);
 		throw error(500, 'Failed to retrieve file');
 	}
