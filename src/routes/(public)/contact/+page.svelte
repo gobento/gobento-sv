@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import PublicPage from '#lib/components/account/PublicPage.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 	import CopyField from '#lib/components/account/CopyField.svelte';
 	import Alert from '#lib/components/Alert.svelte';
 	import IconSend from '~icons/fluent/send-24-regular';
@@ -31,10 +32,7 @@
 	];
 </script>
 
-<svelte:head>
-	<title>Contact · GoBento</title>
-	<meta name="description" content="Get in touch with the GoBento team." />
-</svelte:head>
+<Seo title="Contact · GoBento" description="Get in touch with the GoBento team." />
 
 <PublicPage title="Contact us" description="Questions, feedback or a problem? We are happy to help.">
 	<div class="space-y-6">

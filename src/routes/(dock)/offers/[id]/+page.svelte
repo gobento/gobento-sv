@@ -8,6 +8,7 @@
 
 	import OfferStatusCard from './OfferStatusCard.svelte';
 	import PriceDisplay from '#lib/components/PriceDisplay.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
 	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
 	import LocationCard from '#lib/components/maps/LocationCard.svelte';
@@ -72,10 +73,6 @@
 		alert('Delete functionality to be implemented');
 	};
 
-	// Construct full URL for og:url
-	const baseUrl = 'https://yourapp.com'; // Replace with your actual domain
-	const offerUrl = `${baseUrl}/offers/${data.offer.id}`;
-
 	// Create description for OG tags
 	const offerDescription = data.offer.description
 		? data.offer.description
@@ -97,19 +94,15 @@
 		: 'Multiple locations';
 </script>
 
+<Seo
+	title="{data.offer.name} - Save up to {savingsPercent}%"
+	description={offerDescription}
+	image={ogImage}
+	imageAlt="{data.offer.name} at {data.business.name}"
+	type="product"
+/>
+
 <svelte:head>
-	<title>{data.offer.name} - {data.business.name}</title>
-	<meta name="description" content={offerDescription} />
-
-	<!-- Open Graph Meta Tags -->
-	<meta property="og:title" content="{data.offer.name} - Save up to {savingsPercent}%" />
-	<meta property="og:site_name" content="YourAppName" />
-	<meta property="og:url" content={offerUrl} />
-	<meta property="og:description" content={offerDescription} />
-	<meta property="og:type" content="product" />
-	<meta property="og:image" content={ogImage} />
-	<meta property="og:image:alt" content="{data.offer.name} at {data.business.name}" />
-
 	<!-- Product-specific OG tags -->
 	<meta property="product:price:amount" content={data.offer.displayPrice.toString()} />
 	<meta
@@ -123,7 +116,6 @@
 	<meta property="product:condition" content="new" />
 
 	<!-- Additional metadata -->
-	<meta property="og:locale" content="en_US" />
 	{#if data.location}
 		<meta property="og:locality" content={data.location.city} />
 		<meta property="og:country-name" content={data.location.country} />

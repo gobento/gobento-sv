@@ -14,6 +14,7 @@
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-regular';
 	import LocationCard from '#lib/components/maps/LocationCard.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
 	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
 	import ComplaintModal from '#lib/components/ComplaintModal.svelte';
@@ -35,27 +36,19 @@
 		}
 	});
 
-	// Construct full URL for og:url
-	const baseUrl = 'https://yourapp.com'; // Replace with your actual domain
-	const locationUrl = `${baseUrl}/locations/${data.location.id}`;
-
 	// Create description for OG tags
 	const locationDescription = `${data.business.name} at ${data.location.address}, ${data.location.city}. ${data.offers.length} ${data.offers.length === 1 ? 'offer' : 'offers'} available.`;
 </script>
 
+<Seo
+	title="{data.business.name} - {data.location.name}"
+	description={locationDescription}
+	image={data.locationImage.url}
+	imageAlt="{data.business.name} location"
+	type="business.business"
+/>
+
 <svelte:head>
-	<title>{data.business.name} - {data.location.name}</title>
-	<meta name="description" content={locationDescription} />
-
-	<!-- Open Graph Meta Tags -->
-	<meta property="og:title" content="{data.business.name} - {data.location.name}" />
-	<meta property="og:site_name" content="YourAppName" />
-	<meta property="og:url" content={locationUrl} />
-	<meta property="og:description" content={locationDescription} />
-	<meta property="og:type" content="business.business" />
-	<meta property="og:image" content={data.locationImage.url} />
-	<meta property="og:image:alt" content="{data.business.name} location" />
-
 	<!-- Additional Business-specific OG tags -->
 	<meta property="business:contact_data:street_address" content={data.location.address} />
 	<meta property="business:contact_data:locality" content={data.location.city} />

@@ -1,11 +1,12 @@
 <script lang="ts">
 	import PublicPage from '#lib/components/account/PublicPage.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 </script>
 
-<svelte:head>
-	<title>Terms of service · GoBento</title>
-	<meta name="description" content="The rules for using GoBento to offer and rescue surplus food." />
-</svelte:head>
+<Seo
+	title="Terms of service · GoBento"
+	description="The rules for using GoBento to offer and rescue surplus food."
+/>
 
 <PublicPage
 	eyebrow="Legal"

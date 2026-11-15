@@ -3,6 +3,7 @@ import { error } from '@sveltejs/kit';
 // src/hooks.server.ts
 import { validateSessionToken } from '#lib/server/auth.js';
 import { TokenBucket } from '#lib/server/rate-limit.js';
+import { isPreviewBot, linkPreviewResponse } from '#lib/server/linkPreview.js';
 import { sequence, type HandleServerError, type Handle } from '@sveltejs/kit/hooks';
 import { log } from '#lib/server/logs.js';
 import '@valibot/i18n/de/schema';
@@ -104,4 +105,20 @@ export const handleError: HandleServerError = async (input) => {
 	return expected ? { errorId } : { message: 'An unexpected error occurred.', errorId };
 };
 
-export const handle = sequence(timerHandle, rateLimitHandle, authHandle);
+/** Signed-out preview crawlers get the shared offer's or location's own card. */
+const linkPreviewHandle: Handle = async ({ event, resolve }) => {
+	if (
+		!event.locals.account &&
+		event.request.method === 'GET' &&
+		isPreviewBot(event.request.headers.get('user-agent'))
+	) {
+		const preview = await linkPreviewResponse(event.url).catch((error) => {
+			console.error('Link preview failed:', error);
+			return null;
+		});
+		if (preview) return preview;
+	}
+	return resolve(event);
+};
+
+export const handle = sequence(timerHandle, rateLimitHandle, authHandle, linkPreviewHandle);

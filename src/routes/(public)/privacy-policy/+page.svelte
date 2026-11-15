@@ -1,11 +1,12 @@
 <script lang="ts">
 	import PublicPage from '#lib/components/account/PublicPage.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 </script>
 
-<svelte:head>
-	<title>Privacy policy · GoBento</title>
-	<meta name="description" content="How GoBento collects, uses and protects your personal data." />
-</svelte:head>
+<Seo
+	title="Privacy policy · GoBento"
+	description="How GoBento collects, uses and protects your personal data."
+/>
 
 <PublicPage
 	eyebrow="Legal"

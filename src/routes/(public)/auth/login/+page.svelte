@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import Seo from '#lib/components/Seo.svelte';
 	import BentoBox from '~icons/fluent-emoji-flat/bento-box';
 	import GoogleLogo from '~icons/logos/google-icon';
 	import IconTag from '~icons/fluent/tag-24-regular';
@@ -36,10 +37,7 @@
 
 <svelte:window onpageshow={() => (leaving = false)} />
 
-<svelte:head>
-	<title>Sign in · GoBento</title>
-	<meta name="description" content="Sign in to GoBento and rescue surplus food near you." />
-</svelte:head>
+<Seo title="Sign in · GoBento" description="Sign in to GoBento and rescue surplus food near you." />
 
 <div class="mx-auto flex w-full max-w-sm flex-col items-center text-center">
 	<div class="animate-pop-in">

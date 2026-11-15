@@ -1,5 +1,6 @@
 <script lang="ts">
 	import PublicPage from '#lib/components/account/PublicPage.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 	import BentoBox from '~icons/fluent-emoji-flat/bento-box';
 	import IconBook from '~icons/fluent/book-24-regular';
 	import IconShield from '~icons/fluent/shield-24-regular';
@@ -37,10 +38,7 @@
 	];
 </script>
 
-<svelte:head>
-	<title>About · GoBento</title>
-	<meta name="description" content="GoBento fights food waste, one bento at a time." />
-</svelte:head>
+<Seo title="About · GoBento" description="GoBento fights food waste, one bento at a time." />
 
 <PublicPage title="About GoBento" description="Fighting food waste, one bento at a time.">
 	<div class="space-y-6">
