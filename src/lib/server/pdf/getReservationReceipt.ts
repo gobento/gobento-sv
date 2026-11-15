@@ -1,6 +1,12 @@
 // src/lib/server/pdf/getReservationReceipt.ts
 import { db } from '#lib/server/db.js';
-import { reservations, payments, businessOffers, accounts } from '#lib/server/schema.js';
+import {
+	reservations,
+	payments,
+	businessOffers,
+	accounts,
+	businessProfiles
+} from '#lib/server/schema.js';
 import { and, desc, eq } from 'drizzle-orm';
 import { createPaymentReceipt } from './createPaymentReceipt';
 
@@ -60,15 +66,21 @@ export async function getReservationReceipt(
 	const [user] = await db.select().from(accounts).where(eq(accounts.id, payment.userAccountId));
 
 	const [business] = await db
-		.select()
-		.from(accounts)
-		.where(eq(accounts.id, payment.businessAccountId));
+		.select({ name: businessProfiles.name })
+		.from(businessProfiles)
+		.where(eq(businessProfiles.accountId, payment.businessAccountId));
 
 	if (!offer || !user || !business) {
 		return { ok: false, status: 404, message: 'Receipt data is incomplete' };
 	}
 
-	const pdfBuffer = await createPaymentReceipt({ payment, user, business, offer });
+	const pdfBuffer = await createPaymentReceipt({
+		payment,
+		user,
+		offer,
+		businessName: business.name,
+		reservation
+	});
 
 	return {
 		ok: true,
