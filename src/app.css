@@ -1,51 +1,228 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
-@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/forms' {
+	strategy: 'class';
+}
 @plugin 'daisyui' {
-	themes:
-		light --default,
-		dark --prefersdark;
+	themes: false;
 }
 
-html {
-	color-scheme: light dark;
+/* ---------------------------------------------------------------------------
+   Brand themes. The palette comes straight from the app icon: the aubergine
+   bento box (primary), the tangerine shrimp (secondary) and the lettuce green
+   (accent), on warm paper-like surfaces.
+   --------------------------------------------------------------------------- */
+@plugin 'daisyui/theme' {
+	name: 'bento';
+	default: true;
+	color-scheme: light;
+
+	--color-base-100: oklch(99.2% 0.005 85);
+	--color-base-200: oklch(96.6% 0.011 85);
+	--color-base-300: oklch(91.5% 0.016 85);
+	--color-base-content: oklch(26% 0.04 290);
+
+	--color-primary: oklch(50% 0.2 287);
+	--color-primary-content: oklch(98.5% 0.01 287);
+	--color-secondary: oklch(72% 0.175 48);
+	--color-secondary-content: oklch(24% 0.06 48);
+	--color-accent: oklch(76% 0.17 138);
+	--color-accent-content: oklch(24% 0.07 138);
+	--color-neutral: oklch(29% 0.045 290);
+	--color-neutral-content: oklch(96% 0.01 290);
+
+	--color-info: oklch(66% 0.13 238);
+	--color-info-content: oklch(99% 0.01 238);
+	--color-success: oklch(62% 0.16 152);
+	--color-success-content: oklch(99% 0.01 152);
+	--color-warning: oklch(80% 0.155 78);
+	--color-warning-content: oklch(27% 0.07 78);
+	--color-error: oklch(61% 0.21 22);
+	--color-error-content: oklch(99% 0.01 22);
+
+	--radius-selector: 1rem;
+	--radius-field: 0.875rem;
+	--radius-box: 1.25rem;
+	--size-selector: 0.25rem;
+	--size-field: 0.275rem;
+	--border: 1px;
+	--depth: 0;
+	--noise: 0;
 }
 
-body {
-	/* Kill the mobile tap delay and the grey tap flash. */
-	-webkit-tap-highlight-color: transparent;
-}
+@plugin 'daisyui/theme' {
+	name: 'bento-dark';
+	prefersdark: true;
+	color-scheme: dark;
 
-button,
-a {
-	touch-action: manipulation;
-}
+	--color-base-100: oklch(22.5% 0.028 290);
+	--color-base-200: oklch(19% 0.026 290);
+	--color-base-300: oklch(30% 0.034 290);
+	--color-base-content: oklch(93.5% 0.012 290);
 
-:global(.leaflet-popup-content-wrapper) {
-	@apply rounded-lg bg-base-100 shadow-lg;
-}
+	--color-primary: oklch(74% 0.15 290);
+	--color-primary-content: oklch(20% 0.06 290);
+	--color-secondary: oklch(76% 0.16 52);
+	--color-secondary-content: oklch(22% 0.06 52);
+	--color-accent: oklch(79% 0.17 138);
+	--color-accent-content: oklch(22% 0.07 138);
+	--color-neutral: oklch(33% 0.04 290);
+	--color-neutral-content: oklch(94% 0.012 290);
 
-.leaflet-popup-content {
-	@apply m-0;
-}
+	--color-info: oklch(74% 0.12 238);
+	--color-info-content: oklch(20% 0.05 238);
+	--color-success: oklch(74% 0.16 152);
+	--color-success-content: oklch(20% 0.06 152);
+	--color-warning: oklch(83% 0.15 80);
+	--color-warning-content: oklch(24% 0.07 80);
+	--color-error: oklch(70% 0.19 22);
+	--color-error-content: oklch(19% 0.06 22);
 
-:global(.leaflet-popup-tip) {
-	@apply bg-base-100;
-}
-
-:global(.leaflet-container a.leaflet-popup-close-button) {
-	@apply text-base-content/60 hover:text-base-content;
+	--radius-selector: 1rem;
+	--radius-field: 0.875rem;
+	--radius-box: 1.25rem;
+	--size-selector: 0.25rem;
+	--size-field: 0.275rem;
+	--border: 1px;
+	--depth: 0;
+	--noise: 0;
 }
 
 @theme {
-	--font-sans: 'Harmattan', system-ui, sans-serif;
-	--font-serif: 'Zarid', system-ui, serif;
+	/* Nunito carries Latin text; Harmattan only loads when Arabic-script glyphs
+	   are actually on the page (see the unicode-range on its @font-face). */
+	--font-sans: 'Nunito', 'Harmattan', ui-rounded, system-ui, sans-serif;
+	--font-serif: 'Zarid', ui-serif, serif;
+
 	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 	--ease-spring-soft: cubic-bezier(0.22, 1.2, 0.36, 1);
+	--ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+	/* Soft, slightly tinted elevation instead of grey drop shadows. */
+	--shadow-soft: 0 1px 2px oklch(26% 0.04 290 / 0.04), 0 4px 16px oklch(26% 0.04 290 / 0.06);
+	--shadow-lift: 0 2px 4px oklch(26% 0.04 290 / 0.05), 0 12px 32px oklch(26% 0.04 290 / 0.12);
+	--shadow-glow: 0 8px 24px oklch(50% 0.2 287 / 0.28);
+
+	--animate-pop-in: pop-in 0.5s var(--ease-spring) both;
+	--animate-rise-in: rise-in 0.55s var(--ease-spring-soft) both;
+	--animate-fade-in: fade-in 0.3s ease-out both;
+	--animate-burst: celebrate-burst 0.6s var(--ease-spring) both;
+	--animate-float: float-y 3s ease-in-out infinite;
+	--animate-wiggle: wiggle 0.6s var(--ease-spring) both;
+	--animate-heart: heart-beat 0.45s var(--ease-spring) both;
+	--animate-shimmer: shimmer 1.6s linear infinite;
+	--animate-sheet-up: sheet-up 0.38s var(--ease-out-quint) both;
+	--animate-toast-in: toast-in 0.45s var(--ease-spring-soft) both;
 }
 
-/* Joyful motion: overshooting springs for entrances and celebrations.
-   All of it collapses to nothing for prefers-reduced-motion. */
+@layer base {
+	@font-face {
+		font-family: 'Nunito';
+		src: url('/fonts/Nunito-latin.woff2') format('woff2');
+		font-weight: 400 800;
+		font-style: normal;
+		font-display: swap;
+		unicode-range:
+			U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+			U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+	}
+
+	@font-face {
+		font-family: 'Nunito';
+		src: url('/fonts/Nunito-latin-ext.woff2') format('woff2');
+		font-weight: 400 800;
+		font-style: normal;
+		font-display: swap;
+		unicode-range:
+			U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F,
+			U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+	}
+
+	@font-face {
+		font-family: 'Harmattan';
+		src: url('/fonts/Harmattan-Regular.ttf') format('truetype');
+		font-weight: 400;
+		font-style: normal;
+		font-display: swap;
+		unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
+	}
+
+	@font-face {
+		font-family: 'Harmattan';
+		src: url('/fonts/Harmattan-SemiBold.ttf') format('truetype');
+		font-weight: 600;
+		font-style: normal;
+		font-display: swap;
+		unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
+	}
+
+	@font-face {
+		font-family: 'Harmattan';
+		src: url('/fonts/Harmattan-Bold.ttf') format('truetype');
+		font-weight: 700;
+		font-style: normal;
+		font-display: swap;
+		unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
+	}
+
+	@font-face {
+		font-family: 'Zarid';
+		src: url('/fonts/Zarid.woff2') format('woff2');
+		font-weight: 400;
+		font-style: normal;
+		font-display: swap;
+	}
+
+	html {
+		-webkit-text-size-adjust: 100%;
+		scrollbar-gutter: stable;
+	}
+
+	body {
+		@apply bg-base-200 font-sans text-base-content antialiased;
+		/* Kill the mobile tap delay and the grey tap flash. */
+		-webkit-tap-highlight-color: transparent;
+		text-rendering: optimizeLegibility;
+	}
+
+	button,
+	a,
+	label,
+	summary {
+		touch-action: manipulation;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4 {
+		text-wrap: balance;
+	}
+
+	p {
+		text-wrap: pretty;
+	}
+
+	/* Numbers that change or line up in columns shouldn't jiggle. */
+	.tabular,
+	table {
+		font-variant-numeric: tabular-nums;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 2px;
+	}
+
+	::selection {
+		background: color-mix(in oklab, var(--color-primary) 22%, transparent);
+	}
+}
+
+/* ---------------------------------------------------------------------------
+   Motion. Overshooting springs for entrances and celebrations; everything
+   collapses to (almost) nothing for prefers-reduced-motion at the bottom.
+   --------------------------------------------------------------------------- */
 @keyframes pop-in {
 	0% {
 		opacity: 0;
@@ -69,6 +246,15 @@ a {
 	to {
 		opacity: 1;
 		transform: translateY(0);
+	}
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
 	}
 }
 
@@ -97,14 +283,63 @@ a {
 	}
 }
 
-@keyframes page-enter {
+@keyframes wiggle {
+	0%,
+	100% {
+		transform: rotate(0);
+	}
+	25% {
+		transform: rotate(-9deg);
+	}
+	60% {
+		transform: rotate(7deg);
+	}
+	80% {
+		transform: rotate(-3deg);
+	}
+}
+
+@keyframes heart-beat {
+	0% {
+		transform: scale(1);
+	}
+	35% {
+		transform: scale(1.35);
+	}
+	60% {
+		transform: scale(0.92);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+@keyframes shimmer {
+	from {
+		background-position: 200% 0;
+	}
+	to {
+		background-position: -200% 0;
+	}
+}
+
+@keyframes sheet-up {
+	from {
+		transform: translateY(100%);
+	}
+	to {
+		transform: translateY(0);
+	}
+}
+
+@keyframes toast-in {
 	from {
 		opacity: 0;
-		transform: translateY(8px);
+		transform: translateY(16px) scale(0.94);
 	}
 	to {
 		opacity: 1;
-		transform: translateY(0);
+		transform: translateY(0) scale(1);
 	}
 }
 
@@ -117,25 +352,43 @@ a {
 	}
 }
 
-@layer utilities {
-	.animate-pop-in {
-		animation: pop-in 0.5s var(--ease-spring) both;
-	}
-	.animate-rise-in {
-		animation: rise-in 0.55s var(--ease-spring-soft) both;
-	}
-	.animate-page-enter {
-		animation: page-enter 0.28s var(--ease-spring-soft) both;
-	}
-	.animate-burst {
-		animation: celebrate-burst 0.6s var(--ease-spring) both;
-	}
-	.animate-float {
-		animation: float-y 3s ease-in-out infinite;
+@keyframes draw-check {
+	to {
+		stroke-dashoffset: 0;
 	}
 }
 
+/* Cross-fade between routes (see the navigation hook in the root layout). */
+@keyframes vt-out {
+	to {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
+}
+
+@keyframes vt-in {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+}
+
+::view-transition-old(page) {
+	animation: vt-out 0.14s ease-in both;
+}
+
+::view-transition-new(page) {
+	animation: vt-in 0.26s var(--ease-out-quint) both;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation: none;
+}
+
 @layer components {
+	/* --- App shell ------------------------------------------------------- */
+
 	/* Slim top progress bar shown while a client-side navigation is in flight.
 	   Never blocks interaction — the old page stays live underneath. */
 	.nav-progress {
@@ -143,91 +396,168 @@ a {
 	}
 
 	.nav-progress > span {
-		@apply block h-full w-1/3 rounded-r-full bg-primary;
+		@apply block h-full w-1/3 rounded-e-full bg-primary;
 		animation: nav-progress-slide 1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+	}
+
+	.page-view {
+		view-transition-name: page;
+	}
+
+	/* Standard page container: readable measure, comfortable gutters. */
+	.page {
+		@apply mx-auto w-full max-w-5xl px-4 pt-5 pb-10 sm:px-6 md:pt-8;
+	}
+
+	.page-narrow {
+		@apply mx-auto w-full max-w-2xl px-4 pt-5 pb-10 sm:px-6 md:pt-8;
 	}
 
 	/* Desktop sidebar link */
 	.nav-item {
-		@apply flex items-center gap-3 rounded-lg px-4 py-3 text-base-content/70 transition-colors duration-150 hover:bg-base-200 active:scale-[0.98];
+		@apply flex items-center gap-3 rounded-2xl px-3.5 py-2.5 font-semibold text-base-content/65 transition-[background-color,color,transform] duration-150 hover:bg-base-200 hover:text-base-content active:scale-[0.98];
 	}
 
 	.nav-item-active {
-		@apply bg-primary text-primary-content hover:bg-primary;
+		@apply bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary;
 	}
 
-	/* Mobile bottom dock */
-	.dock {
-		@apply fixed inset-x-0 bottom-0 z-[1001] flex border-t border-base-300 bg-base-100/85 backdrop-blur-lg;
+	/* Mobile bottom tab bar. Named `tabbar` so it never collides with
+	   daisyUI's own `.dock` component. */
+	.tabbar {
+		@apply fixed inset-x-0 bottom-0 z-[1001] flex border-t border-base-300/70 bg-base-100/85 backdrop-blur-xl;
 		height: calc(4rem + env(safe-area-inset-bottom));
 		padding-bottom: env(safe-area-inset-bottom);
 	}
 
-	.dock-item {
-		@apply relative flex flex-1 flex-col items-center justify-center gap-1 text-base-content/50 transition-colors duration-150 select-none active:scale-95;
+	.tabbar-item {
+		@apply relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-base-content/55 transition-colors duration-150 select-none;
 	}
 
-	.dock-item-active {
+	.tabbar-item:active .tabbar-icon {
+		transform: scale(0.88);
+	}
+
+	.tabbar-item-active {
 		@apply text-primary;
 	}
 
-	.dock-icon {
-		@apply flex size-10 items-center justify-center rounded-2xl transition-colors duration-200;
+	.tabbar-icon {
+		@apply flex h-8 w-14 items-center justify-center rounded-full transition-[background-color,transform] duration-200 ease-spring;
 	}
 
-	.dock-item-active .dock-icon {
-		@apply bg-primary/10;
+	.tabbar-item-active .tabbar-icon {
+		@apply bg-primary/12;
 	}
 
-	.dock-label {
-		@apply text-[11px] leading-none font-medium;
+	.tabbar-label {
+		@apply max-w-full truncate px-1 text-[11px] leading-tight font-bold;
 	}
+
+	/* --- Surfaces -------------------------------------------------------- */
+
+	.surface {
+		@apply rounded-box border border-base-300/70 bg-base-100 shadow-soft;
+	}
+
+	/* Anything tappable that is not a plain button: springs down on press. */
+	.pressable {
+		@apply transition-[transform,box-shadow,border-color,background-color] duration-200 ease-spring select-none;
+	}
+
+	@media (hover: hover) {
+		.pressable:hover {
+			@apply -translate-y-0.5 shadow-lift;
+		}
+	}
+
+	.pressable:active {
+		@apply translate-y-0 scale-[0.975] shadow-soft;
+	}
+
+	/* Section eyebrow, e.g. "ACCOUNT" above a group of rows. */
+	.eyebrow {
+		@apply text-xs font-extrabold tracking-wider text-base-content/50 uppercase;
+	}
+
+	/* Horizontal scroller that bleeds to the screen edge and snaps. */
+	.rail {
+		@apply -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:scroll-px-6 sm:px-6;
+		scrollbar-width: none;
+	}
+
+	.rail::-webkit-scrollbar {
+		display: none;
+	}
+
+	.rail > * {
+		@apply shrink-0 snap-start;
+	}
+
+	/* Loading placeholder with a travelling highlight. */
+	.skeleton-shimmer {
+		@apply animate-shimmer rounded-xl;
+		background: linear-gradient(
+			100deg,
+			var(--color-base-300) 30%,
+			color-mix(in oklab, var(--color-base-300) 55%, var(--color-base-100)) 50%,
+			var(--color-base-300) 70%
+		);
+		background-size: 200% 100%;
+	}
+
+	/* Success tick that draws itself. */
+	.check-draw path {
+		stroke-dasharray: 32;
+		stroke-dashoffset: 32;
+		animation: draw-check 0.5s 0.25s var(--ease-out-quint) forwards;
+	}
+
+	/* --- Leaflet --------------------------------------------------------- */
+
+	.leaflet-container {
+		@apply font-sans;
+	}
+
+	.leaflet-popup-content-wrapper {
+		@apply rounded-2xl bg-base-100 text-base-content shadow-lift;
+	}
+
+	.leaflet-popup-content {
+		@apply m-0;
+	}
+
+	.leaflet-popup-tip {
+		@apply bg-base-100;
+	}
+
+	.leaflet-container a.leaflet-popup-close-button {
+		@apply text-base-content/60 hover:text-base-content;
+	}
+}
+
+@utility safe-bottom {
+	padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@utility stagger {
+	/* Use with an inline `--i` index: delays an entrance animation per item. */
+	animation-delay: calc(var(--i, 0) * 55ms);
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.animate-pop-in,
-	.animate-rise-in,
-	.animate-page-enter,
-	.animate-burst,
-	.animate-float {
+	*,
+	*::before,
+	*::after {
 		animation-duration: 0.01ms !important;
 		animation-delay: 0ms !important;
 		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
 	}
 
-	.nav-progress > span {
+	::view-transition-old(page),
+	::view-transition-new(page) {
 		animation: none;
-	}
-}
-
-@layer base {
-	@font-face {
-		font-family: 'Zarid';
-		src:
-			url('/fonts/Zarid.woff2') format('woff2'),
-			url('/fonts/Zarid.woff') format('woff'),
-			url('/fonts/Zarid.ttf') format('truetype');
-
-		font-weight: 400;
-		font-style: normal;
-		font-display: swap;
-	}
-
-	@font-face {
-		font-family: 'Harmattan';
-		src: url('/fonts/Harmattan-Bold.ttf') format('truetype');
-
-		font-weight: 700;
-		font-style: normal;
-		font-display: swap;
-	}
-
-	@font-face {
-		font-family: 'Harmattan';
-		src: url('/fonts/Harmattan-Regular.ttf') format('truetype');
-
-		font-weight: 400;
-		font-style: normal;
-		font-display: swap;
 	}
 }
