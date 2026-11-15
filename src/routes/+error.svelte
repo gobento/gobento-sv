@@ -67,7 +67,7 @@
 	<div class="w-full max-w-md">
 		<!-- Icon -->
 		<div class="mb-8 flex justify-center">
-			<div class="flex size-24 items-center justify-center rounded-full bg-base-200">
+			<div class="animate-pop-in flex size-24 items-center justify-center rounded-full bg-base-200">
 				<config.icon class="size-16" />
 			</div>
 		</div>

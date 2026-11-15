@@ -14,7 +14,7 @@
 	let { icon, title, description, actionLabel, actionHref, actionIcon }: Props = $props();
 </script>
 
-<div class="card rounded-lg bg-base-200">
+<div class="animate-pop-in card rounded-lg bg-base-200">
 	<div class="card-body items-center py-20 text-center">
 		<div class="mb-6 flex size-20 items-center justify-center rounded-full bg-primary/10">
 			<svelte:component this={icon} class="size-12 text-primary/60" />

@@ -1,7 +1,7 @@
 <!-- src/routes/(dock)/+layout.svelte -->
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import type { LayoutData } from './$types';
-	import { goto } from '$app/navigation';
 	import { page, navigating } from '$app/state';
 	import { m } from '#paraglide/messages';
 
@@ -38,7 +38,7 @@
 	import ShieldFilledIcon from '~icons/fluent/shield-task-24-filled';
 
 	interface Props {
-		children: any;
+		children: Snippet;
 		data: LayoutData;
 	}
 
@@ -217,62 +217,74 @@
 		}
 	});
 
+	// Highlight an item for its own path and any route beneath it
+	// (e.g. /offers/123 keeps "Offers" active).
 	function isActive(path: string) {
-		return page.url.pathname === path;
-	}
-
-	function navigateTo(path: string) {
-		goto(path);
+		return page.url.pathname === path || page.url.pathname.startsWith(path + '/');
 	}
 </script>
 
+<!-- Slim progress bar at the very top while a client-side navigation loads.
+     The current page stays interactive underneath, so navigation feels instant. -->
+{#if navigating.to}
+	<div class="nav-progress" aria-hidden="true"><span></span></div>
+{/if}
+
 <!-- Desktop Sidebar (fixed to left or right based on RTL) -->
 <nav
-	class="fixed inset-y-0 start-0 z-50 hidden w-56 flex-col gap-2 border-e border-base-300 bg-base-100 p-4 md:flex"
+	class="fixed inset-y-0 start-0 z-50 hidden w-56 flex-col gap-1 border-e border-base-300 bg-base-100 p-3 md:flex"
 >
-	{#each navigation() as item}
-		<button
-			onclick={() => navigateTo(item.path)}
-			class="flex items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-base-200"
-			class:bg-primary={isActive(item.path)}
-			class:text-primary-content={isActive(item.path)}
+	{#each navigation() as item (item.path)}
+		<a
+			href={item.path}
+			data-sveltekit-preload-data="hover"
+			aria-current={isActive(item.path) ? 'page' : undefined}
+			class="nav-item"
+			class:nav-item-active={isActive(item.path)}
 		>
 			{#if isActive(item.path)}
-				<item.filledIcon class="size-6" />
+				<item.filledIcon class="animate-pop-in size-6" />
 			{:else}
 				<item.icon class="size-6" />
 			{/if}
 			<span class="font-medium">{item.label}</span>
-		</button>
+		</a>
 	{/each}
 </nav>
 
 <!-- Main Content (with padding for sidebar on desktop) -->
 
-<main class="h-dvh w-full max-w-full overflow-x-hidden pb-16 md:ps-58">
-	{#if navigating.to}
-		<div class="fixed inset-0 z-50 flex items-center justify-center">
-			<span class="loading loading-lg loading-spinner text-primary"></span>
+<main
+	class="h-dvh w-full max-w-full overflow-x-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] md:ps-58 md:pb-0"
+>
+	{#key page.url.pathname}
+		<div class="animate-page-enter">
+			{@render children()}
 		</div>
-	{:else}
-		{@render children()}
-	{/if}
+	{/key}
 </main>
 
 <!-- Mobile Bottom Dock -->
-<div class="dock z-1001 dock-md md:hidden">
-	{#each navigation() as item}
-		<button
-			onclick={() => navigateTo(item.path)}
-			class:bg-primary={isActive(item.path)}
-			class:text-primary-content={isActive(item.path)}
+<div class="dock md:hidden">
+	{#each navigation() as item (item.path)}
+		<a
+			href={item.path}
+			data-sveltekit-preload-code="viewport"
+			data-sveltekit-preload-data="tap"
+			aria-current={isActive(item.path) ? 'page' : undefined}
+			class="dock-item"
+			class:dock-item-active={isActive(item.path)}
 		>
-			{#if isActive(item.path)}
-				<item.filledIcon class="size-6" />
-			{:else}
-				<item.icon class="size-6" />
-			{/if}
+			<span class="dock-icon">
+				{#key isActive(item.path)}
+					{#if isActive(item.path)}
+						<item.filledIcon class="animate-pop-in size-6" />
+					{:else}
+						<item.icon class="size-6" />
+					{/if}
+				{/key}
+			</span>
 			<span class="dock-label">{item.label}</span>
-		</button>
+		</a>
 	{/each}
 </div>
