@@ -3,12 +3,12 @@
 	import { enhance } from '$app/forms';
 	import IconHeart from '~icons/fluent/heart-24-regular';
 	import IconHeartFilled from '~icons/fluent/heart-24-filled';
-	import { toast } from '#lib/components/ui/toast.svelte';
+	import { toast } from '#lib/components/ui/toast.svelte.js';
 
 	interface Props {
 		locationId: string;
 		favorite: boolean;
-		/** Name used in the toast and the accessible label. */
+		/** Name used in the accessible label. */
 		name?: string;
 		size?: 'sm' | 'md';
 		onchange?: (favorite: boolean) => void;
@@ -42,7 +42,7 @@
 		return async ({ result }) => {
 			pending = false;
 			if (result.type === 'success') {
-				toast.success(favorite ? `Saved ${name} to favourites` : `Removed ${name} from favourites`);
+				// The filled heart is the confirmation; only failures get a toast.
 				onchange?.(favorite);
 			} else {
 				favorite = previous;
