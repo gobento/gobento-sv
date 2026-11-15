@@ -17,7 +17,9 @@ export default defineConfig({
 			// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
 			// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
 			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-			adapter: adapter()
+			adapter: adapter(),
+			// Look for a new deploy every 5 minutes (plus on focus and on responses).
+			version: { pollInterval: 5 * 60 * 1000 }
 		}),
 		paraglideVitePlugin({
 			project: './project.inlang',

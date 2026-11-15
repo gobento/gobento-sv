@@ -22,16 +22,12 @@
     }
   ],
   "orientation": "portrait",
-  "display": "fullscreen",
+  "display": "standalone",
   "dir": "auto",
   "lang": "en",
   "name": "GoBento",
   "short_name": "GoBento",
   "description": "Save food, one bento at a time.",
   "start_url": "/",
-  "scope": "/",
-  "display_override": [
-    "fullscreen",
-    "standalone"
-  ]
+  "scope": "/"
 }

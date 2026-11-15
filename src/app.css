@@ -183,7 +183,7 @@
 		/* Kill the mobile tap delay and the grey tap flash. */
 		-webkit-tap-highlight-color: transparent;
 		text-rendering: optimizeLegibility;
-		/* In fullscreen the page runs under the status bar and notch. */
+		/* On iOS the installed app runs under the (translucent) status bar. */
 		padding-top: env(safe-area-inset-top);
 	}
 

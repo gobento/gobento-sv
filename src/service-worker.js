@@ -331,10 +331,15 @@ sw.addEventListener('notificationclick', (event) => {
 	);
 });
 
-// Clean up old caches on activation
+// A new worker takes over right away instead of waiting for every tab to close.
+sw.addEventListener('install', () => {
+	sw.skipWaiting();
+});
+
+// Clean up old caches on activation and control open pages immediately
 sw.addEventListener('activate', (event) => {
 	event.waitUntil(
-		caches.keys().then((cacheNames) => {
+		sw.clients.claim().then(() => caches.keys()).then((cacheNames) => {
 			return Promise.all(
 				cacheNames.map((cacheName) => {
 					// Keep current image cache, delete old versions
