@@ -36,7 +36,7 @@ Gap analysis against the current codebase (verified 2026-11-14). Grouped by prio
 
 ## Cleanup / tech debt (unblocks the above)
 
-- [ ] Finish SvelteKit 3 migration tasks in `MIGRATION_TASKS.md` (goto options, `refreshAll`, `handleError`, deprecated `json()`).
+- [ ] Finish SvelteKit 3 migration tasks in `docs/MIGRATION_TASKS.md` (goto options, `refreshAll`, `handleError`, deprecated `json()`).
 - [ ] Remove debug `console.log('result', result)` in `src/routes/(dock)/offers/[id]/+page.server.ts:163`.
 - [ ] Resolve `// todo: rethink validUntil, recurring and quantity` in `src/routes/(dock)/offers/new/+page.svelte:565`.
 - [ ] Reduce `@ts-nocheck` / `@ts-ignore` suppression; get `bun run check` clean.
