@@ -95,7 +95,9 @@
 					<div class="space-y-4 p-5">
 						<div class="flex flex-wrap items-center justify-between gap-3">
 							<div class="flex items-center gap-3">
-								<div class="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+								<div
+									class="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"
+								>
 									<IconCalendar class="size-5" />
 								</div>
 								<div>
@@ -196,8 +198,16 @@
 									{#each settlement.payments as payment (payment.id)}
 										<tr>
 											<td class="font-mono text-xs">{payment.paymentId.slice(0, 8)}</td>
-											<td><StatusBadge map={PAYMENT_METHOD} status={payment.paymentMethod} outline /></td>
-											<td class="font-semibold">{money(payment.businessAmount, payment.currency)}</td>
+											<td
+												><StatusBadge
+													map={PAYMENT_METHOD}
+													status={payment.paymentMethod}
+													outline
+												/></td
+											>
+											<td class="font-semibold"
+												>{money(payment.businessAmount, payment.currency)}</td
+											>
 											<td class="text-xs">
 												{payment.completedAt ? formatDateTime(payment.completedAt) : '—'}
 											</td>

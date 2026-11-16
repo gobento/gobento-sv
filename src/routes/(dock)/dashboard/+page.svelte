@@ -113,48 +113,50 @@
 
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 		<div id="pickups" class="scroll-mt-4">
-		<SectionCard
-			title="Next 24 hours"
-			description="Bags your customers and charities will collect"
-			icon={IconBag}
-			bodyClass="gap-3"
-		>
-			{#snippet actions()}
-				<span class="badge badge-primary badge-sm">{data.pickupsNextDay} total</span>
-			{/snippet}
+			<SectionCard
+				title="Next 24 hours"
+				description="Bags your customers and charities will collect"
+				icon={IconBag}
+				bodyClass="gap-3"
+			>
+				{#snippet actions()}
+					<span class="badge badge-sm badge-primary">{data.pickupsNextDay} total</span>
+				{/snippet}
 
-			{#if data.upcomingPickups.length === 0}
-				<p class="rounded-xl border border-dashed border-base-300 p-4 text-sm text-base-content/60">
-					No pickups due. Enjoy the quiet — the next orders will show up here automatically.
-				</p>
-			{:else}
-				<ul class="space-y-2">
-					{#each data.upcomingPickups as pickup (pickup.id)}
-						<li>
-							<a
-								href={resolve('/(dock)/offers/[id]', { id: pickup.offerId })}
-								class="pressable flex items-center gap-3 rounded-xl border border-base-300 p-3 hover:border-primary/30"
-							>
-								<div class="min-w-0 flex-1">
-									<p class="truncate text-sm font-semibold">{pickup.offerName}</p>
-									<p class="truncate text-xs text-base-content/60">
-										{formatPickupWindow(pickup.from, pickup.until)}{pickup.locationName
-											? ` · ${pickup.locationName}`
-											: ''}
-									</p>
-								</div>
-								<IconArrow class="size-4 shrink-0 text-base-content/40 rtl:rotate-180" />
-							</a>
-						</li>
-					{/each}
-				</ul>
-				{#if data.pickupsNextDay > data.upcomingPickups.length}
-					<p class="text-xs text-base-content/50">
-						+ {data.pickupsNextDay - data.upcomingPickups.length} more in the next 24 hours
+				{#if data.upcomingPickups.length === 0}
+					<p
+						class="rounded-xl border border-dashed border-base-300 p-4 text-sm text-base-content/60"
+					>
+						No pickups due. Enjoy the quiet — the next orders will show up here automatically.
 					</p>
+				{:else}
+					<ul class="space-y-2">
+						{#each data.upcomingPickups as pickup (pickup.id)}
+							<li>
+								<a
+									href={resolve('/(dock)/offers/[id]', { id: pickup.offerId })}
+									class="pressable flex items-center gap-3 rounded-xl border border-base-300 p-3 hover:border-primary/30"
+								>
+									<div class="min-w-0 flex-1">
+										<p class="truncate text-sm font-semibold">{pickup.offerName}</p>
+										<p class="truncate text-xs text-base-content/60">
+											{formatPickupWindow(pickup.from, pickup.until)}{pickup.locationName
+												? ` · ${pickup.locationName}`
+												: ''}
+										</p>
+									</div>
+									<IconArrow class="size-4 shrink-0 text-base-content/40 rtl:rotate-180" />
+								</a>
+							</li>
+						{/each}
+					</ul>
+					{#if data.pickupsNextDay > data.upcomingPickups.length}
+						<p class="text-xs text-base-content/50">
+							+ {data.pickupsNextDay - data.upcomingPickups.length} more in the next 24 hours
+						</p>
+					{/if}
 				{/if}
-			{/if}
-		</SectionCard>
+			</SectionCard>
 		</div>
 
 		<SectionCard

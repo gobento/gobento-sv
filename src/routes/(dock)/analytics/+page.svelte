@@ -322,7 +322,8 @@
 									<span class="block font-semibold text-base-content tabular-nums"
 										>€{euro(offer.revenue)}</span
 									>
-									{offer.reservations} {offer.reservations === 1 ? 'booking' : 'bookings'}
+									{offer.reservations}
+									{offer.reservations === 1 ? 'booking' : 'bookings'}
 								</span>
 							</a>
 						</li>
@@ -345,10 +346,14 @@
 								<th class="text-xs tracking-wide text-base-content/60 uppercase">Location</th>
 								<th class="text-xs tracking-wide text-base-content/60 uppercase">Bookings</th>
 								<th class="text-xs tracking-wide text-base-content/60 uppercase">Revenue</th>
-								<th class="hidden text-xs tracking-wide text-base-content/60 uppercase sm:table-cell">
+								<th
+									class="hidden text-xs tracking-wide text-base-content/60 uppercase sm:table-cell"
+								>
 									Completed
 								</th>
-								<th class="hidden text-xs tracking-wide text-base-content/60 uppercase sm:table-cell">
+								<th
+									class="hidden text-xs tracking-wide text-base-content/60 uppercase sm:table-cell"
+								>
 									Favorites
 								</th>
 							</tr>

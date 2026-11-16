@@ -125,247 +125,246 @@
 	<Segmented options={tabs} bind:value={tab} label="Charity sections" class="mb-6" />
 
 	{#if tab === 'gifts'}
-	<!-- Regular gifts -->
-	<section>
-		<div class="mb-3 flex items-end justify-between gap-3">
-			<div>
-				<h2 class="flex items-center gap-2 text-lg font-semibold">
-					<IconRepeat class="size-5 text-primary" />
-					Regular gifts
-				</h2>
-				<p class="text-sm text-base-content/60">
-					Give to a charity on a fixed schedule. Once they accept, every pickup is booked for you
-					three days ahead.
-				</p>
+		<!-- Regular gifts -->
+		<section>
+			<div class="mb-3 flex items-end justify-between gap-3">
+				<div>
+					<h2 class="flex items-center gap-2 text-lg font-semibold">
+						<IconRepeat class="size-5 text-primary" />
+						Regular gifts
+					</h2>
+					<p class="text-sm text-base-content/60">
+						Give to a charity on a fixed schedule. Once they accept, every pickup is booked for you
+						three days ahead.
+					</p>
+				</div>
 			</div>
+
+			{#if page.form?.gift?.success}
+				<div class="mb-4 alert alert-success">
+					<IconCheck class="size-5 shrink-0" />
+					<span>Your regular gift was sent. The charity will be notified to accept it.</span>
+				</div>
+			{/if}
+			{#if page.form?.giftAction?.error}
+				<div class="mb-4 alert alert-error">
+					<IconInfo class="size-5 shrink-0" />
+					<span>{page.form.giftAction.error}</span>
+				</div>
+			{/if}
+
+			{#if openGifts.length === 0}
+				<EmptyState
+					icon={IconRepeat}
+					title="No regular gifts yet"
+					description="Give surplus food on a fixed schedule. Once a charity accepts, every pickup is booked for you three days ahead."
+				>
+					{#snippet actions()}
+						<button class="btn gap-2 btn-primary btn-sm" onclick={() => (tab = 'find')}>
+							<IconSearch class="size-4" /> Find a charity
+						</button>
+					{/snippet}
+				</EmptyState>
+			{:else}
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+					{#each openGifts as gift (gift.id)}
+						<Card bodyClass="gap-3">
+							<div>
+								<div class="flex items-center gap-3">
+									<div class="avatar">
+										<div class="w-10 rounded-xl ring ring-base-300">
+											<img src={gift.logoUrl} alt={gift.charityName} />
+										</div>
+									</div>
+									<div class="min-w-0 flex-1">
+										<h3 class="truncate font-semibold">{gift.charityName}</h3>
+										<p class="truncate text-sm text-base-content/70">{gift.schedule}</p>
+									</div>
+									<StatusBadge map={GIFT_STATUS} status={gift.status} />
+								</div>
+								<div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/60">
+									{#if gift.locationName}<span>{gift.locationName}</span>{/if}
+									{#if gift.foodType}<span>{FOOD_TYPE_LABELS[gift.foodType]}</span>{/if}
+									{#if gift.status === 'active' && gift.nextOccurrenceAt}
+										<span>Next to be booked: {formatMoment(gift.nextOccurrenceAt)}</span>
+									{/if}
+									<span>{gift.pickups} {gift.pickups === 1 ? 'pickup' : 'pickups'} so far</span>
+								</div>
+								<div class="card-actions justify-end">
+									{#each giftActions(gift.status) as action (action)}
+										<form
+											method="POST"
+											action="?/{action}"
+											use:enhance={({ cancel }) => {
+												if (
+													action === 'endGift' &&
+													!confirm(
+														gift.status === 'proposed'
+															? 'Withdraw this regular gift?'
+															: 'End this regular gift? Upcoming pickups are called off.'
+													)
+												) {
+													cancel();
+													return;
+												}
+												giftActionId = gift.id;
+												return async ({ update }) => {
+													giftActionId = null;
+													await update();
+												};
+											}}
+										>
+											<input type="hidden" name="giftId" value={gift.id} />
+											<button
+												class="btn gap-1.5 btn-sm {action === 'endGift'
+													? 'btn-ghost'
+													: 'btn-outline'}"
+												disabled={giftActionId === gift.id}
+											>
+												{#if action === 'pauseGift'}
+													<IconPause class="size-4" /> Pause
+												{:else if action === 'resumeGift'}
+													<IconPlay class="size-4" /> Resume
+												{:else}
+													<IconDismiss class="size-4" />
+													{gift.status === 'proposed' ? 'Withdraw' : 'End'}
+												{/if}
+											</button>
+										</form>
+									{/each}
+								</div>
+							</div>
+						</Card>
+					{/each}
+				</div>
+			{/if}
+
+			{#if pastGifts.length > 0}
+				<details class="mt-3 text-sm">
+					<summary class="cursor-pointer text-base-content/60">
+						{pastGifts.length} past {pastGifts.length === 1 ? 'gift' : 'gifts'}
+					</summary>
+					<ul class="mt-2 space-y-1">
+						{#each pastGifts as gift (gift.id)}
+							<li class="flex flex-wrap items-center gap-2 text-base-content/70">
+								<StatusBadge map={GIFT_STATUS} status={gift.status} />
+								<span class="font-medium">{gift.charityName}</span>
+								<span>{gift.schedule}</span>
+								<span>· {gift.pickups} pickups</span>
+								{#if gift.status === 'declined' && gift.notes}<span>· “{gift.notes}”</span>{/if}
+							</li>
+						{/each}
+					</ul>
+				</details>
+			{/if}
+		</section>
+	{:else}
+		<!-- Find charities -->
+		<div class="mb-6 flex flex-wrap items-end gap-3">
+			<div class="form-control">
+				<label class="mb-1 block text-sm font-medium" for="foodType">Food type</label>
+				<select id="foodType" class="select-bordered select" bind:value={foodType}>
+					<option value="">Any food type</option>
+					{#each FOOD_TYPES as type (type)}
+						<option value={type}>{FOOD_TYPE_LABELS[type]}</option>
+					{/each}
+				</select>
+			</div>
+
+			<div class="form-control">
+				<label class="mb-1 block text-sm font-medium" for="country">Country</label>
+				<select id="country" class="select-bordered select" bind:value={country}>
+					<option value="">Any country</option>
+					{#each data.countries as c (c)}
+						<option value={c}>{c}</option>
+					{/each}
+				</select>
+			</div>
+
+			<button class="btn gap-2 btn-primary" onclick={applyFilters}>
+				<IconSearch class="size-4" />
+				Search
+			</button>
 		</div>
 
-		{#if page.form?.gift?.success}
-			<div class="mb-4 alert alert-success">
+		{#if page.form?.request?.success}
+			<div class="mb-6 alert alert-success">
 				<IconCheck class="size-5 shrink-0" />
-				<span>Your regular gift was sent. The charity will be notified to accept it.</span>
-			</div>
-		{/if}
-		{#if page.form?.giftAction?.error}
-			<div class="mb-4 alert alert-error">
-				<IconInfo class="size-5 shrink-0" />
-				<span>{page.form.giftAction.error}</span>
+				<span>Your pickup request has been sent.</span>
 			</div>
 		{/if}
 
-		{#if openGifts.length === 0}
+		{#if data.charities.length === 0}
 			<EmptyState
-				icon={IconRepeat}
-				title="No regular gifts yet"
-				description="Give surplus food on a fixed schedule. Once a charity accepts, every pickup is booked for you three days ahead."
-			>
-				{#snippet actions()}
-					<button class="btn gap-2 btn-primary btn-sm" onclick={() => (tab = 'find')}>
-						<IconSearch class="size-4" /> Find a charity
-					</button>
-				{/snippet}
-			</EmptyState>
+				icon={IconHeart}
+				title="No charities match your search"
+				description="Try widening the food type or country filters."
+			/>
 		{:else}
-			<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-				{#each openGifts as gift (gift.id)}
-					<Card bodyClass="gap-3">
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+				{#each data.charities as charity (charity.accountId)}
+					<Card bodyClass="gap-4">
 						<div>
 							<div class="flex items-center gap-3">
 								<div class="avatar">
-									<div class="w-10 rounded-xl ring ring-base-300">
-										<img src={gift.logoUrl} alt={gift.charityName} />
+									<div class="w-12 rounded-xl ring ring-base-300">
+										<img src={charity.logoUrl} alt={charity.name} />
 									</div>
 								</div>
 								<div class="min-w-0 flex-1">
-									<h3 class="truncate font-semibold">{gift.charityName}</h3>
-									<p class="truncate text-sm text-base-content/70">{gift.schedule}</p>
+									<h2 class="truncate font-semibold">{charity.name}</h2>
+									<p class="text-xs text-base-content/60">{charity.country}</p>
 								</div>
-								<StatusBadge map={GIFT_STATUS} status={gift.status} />
 							</div>
-							<div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/60">
-								{#if gift.locationName}<span>{gift.locationName}</span>{/if}
-								{#if gift.foodType}<span>{FOOD_TYPE_LABELS[gift.foodType]}</span>{/if}
-								{#if gift.status === 'active' && gift.nextOccurrenceAt}
-									<span>Next to be booked: {formatMoment(gift.nextOccurrenceAt)}</span>
-								{/if}
-								<span>{gift.pickups} {gift.pickups === 1 ? 'pickup' : 'pickups'} so far</span>
+
+							<p class="line-clamp-3 text-sm text-base-content/70">{charity.description}</p>
+
+							{#if charity.foodTypes.length > 0}
+								<div class="flex flex-wrap gap-1.5">
+									{#each charity.foodTypes as type (type)}
+										<span class="badge badge-outline badge-sm">{FOOD_TYPE_LABELS[type]}</span>
+									{/each}
+								</div>
+							{:else}
+								<p class="text-xs text-base-content/50 italic">No food preferences set</p>
+							{/if}
+
+							<div class="flex items-center gap-1.5 text-xs text-base-content/60">
+								<IconMail class="size-4" />
+								<a class="link" href="mailto:{charity.contactEmail}">{charity.contactEmail}</a>
 							</div>
-							<div class="card-actions justify-end">
-								{#each giftActions(gift.status) as action (action)}
-									<form
-										method="POST"
-										action="?/{action}"
-										use:enhance={({ cancel }) => {
-											if (
-												action === 'endGift' &&
-												!confirm(
-													gift.status === 'proposed'
-														? 'Withdraw this regular gift?'
-														: 'End this regular gift? Upcoming pickups are called off.'
-												)
-											) {
-												cancel();
-												return;
-											}
-											giftActionId = gift.id;
-											return async ({ update }) => {
-												giftActionId = null;
-												await update();
-											};
-										}}
+
+							<div class="card-actions items-center justify-between">
+								{#if charity.lastRequestStatus}
+									<span class="badge badge-ghost badge-sm"
+										>{statusLabels[charity.lastRequestStatus] ?? charity.lastRequestStatus}</span
 									>
-										<input type="hidden" name="giftId" value={gift.id} />
-										<button
-											class="btn gap-1.5 btn-sm {action === 'endGift'
-												? 'btn-ghost'
-												: 'btn-outline'}"
-											disabled={giftActionId === gift.id}
-										>
-											{#if action === 'pauseGift'}
-												<IconPause class="size-4" /> Pause
-											{:else if action === 'resumeGift'}
-												<IconPlay class="size-4" /> Resume
-											{:else}
-												<IconDismiss class="size-4" />
-												{gift.status === 'proposed' ? 'Withdraw' : 'End'}
-											{/if}
+								{:else}
+									<span></span>
+								{/if}
+								<div class="flex flex-wrap justify-end gap-2">
+									{#if charity.giftStatus}
+										<span class="badge gap-1 badge-outline badge-sm badge-primary">
+											<IconRepeat class="size-3" />
+											{charity.giftStatus === 'proposed' ? 'Regular gift proposed' : 'Regular gift'}
+										</span>
+									{:else}
+										<button class="btn gap-2 btn-outline btn-sm" onclick={() => openGift(charity)}>
+											<IconRepeat class="size-4" />
+											Give regularly
 										</button>
-									</form>
-								{/each}
+									{/if}
+									<button class="btn gap-2 btn-primary btn-sm" onclick={() => openRequest(charity)}>
+										<IconSend class="size-4" />
+										Request pickup
+									</button>
+								</div>
 							</div>
 						</div>
 					</Card>
 				{/each}
 			</div>
 		{/if}
-
-		{#if pastGifts.length > 0}
-			<details class="mt-3 text-sm">
-				<summary class="cursor-pointer text-base-content/60">
-					{pastGifts.length} past {pastGifts.length === 1 ? 'gift' : 'gifts'}
-				</summary>
-				<ul class="mt-2 space-y-1">
-					{#each pastGifts as gift (gift.id)}
-						<li class="flex flex-wrap items-center gap-2 text-base-content/70">
-							<StatusBadge map={GIFT_STATUS} status={gift.status} />
-							<span class="font-medium">{gift.charityName}</span>
-							<span>{gift.schedule}</span>
-							<span>· {gift.pickups} pickups</span>
-							{#if gift.status === 'declined' && gift.notes}<span>· “{gift.notes}”</span>{/if}
-						</li>
-					{/each}
-				</ul>
-			</details>
-		{/if}
-	</section>
-
-	{:else}
-	<!-- Find charities -->
-	<div class="mb-6 flex flex-wrap items-end gap-3">
-		<div class="form-control">
-			<label class="mb-1 block text-sm font-medium" for="foodType">Food type</label>
-			<select id="foodType" class="select-bordered select" bind:value={foodType}>
-				<option value="">Any food type</option>
-				{#each FOOD_TYPES as type (type)}
-					<option value={type}>{FOOD_TYPE_LABELS[type]}</option>
-				{/each}
-			</select>
-		</div>
-
-		<div class="form-control">
-			<label class="mb-1 block text-sm font-medium" for="country">Country</label>
-			<select id="country" class="select-bordered select" bind:value={country}>
-				<option value="">Any country</option>
-				{#each data.countries as c (c)}
-					<option value={c}>{c}</option>
-				{/each}
-			</select>
-		</div>
-
-		<button class="btn gap-2 btn-primary" onclick={applyFilters}>
-			<IconSearch class="size-4" />
-			Search
-		</button>
-	</div>
-
-	{#if page.form?.request?.success}
-		<div class="mb-6 alert alert-success">
-			<IconCheck class="size-5 shrink-0" />
-			<span>Your pickup request has been sent.</span>
-		</div>
-	{/if}
-
-	{#if data.charities.length === 0}
-		<EmptyState
-			icon={IconHeart}
-			title="No charities match your search"
-			description="Try widening the food type or country filters."
-		/>
-	{:else}
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-			{#each data.charities as charity (charity.accountId)}
-				<Card bodyClass="gap-4">
-					<div>
-						<div class="flex items-center gap-3">
-							<div class="avatar">
-								<div class="w-12 rounded-xl ring ring-base-300">
-									<img src={charity.logoUrl} alt={charity.name} />
-								</div>
-							</div>
-							<div class="min-w-0 flex-1">
-								<h2 class="truncate font-semibold">{charity.name}</h2>
-								<p class="text-xs text-base-content/60">{charity.country}</p>
-							</div>
-						</div>
-
-						<p class="line-clamp-3 text-sm text-base-content/70">{charity.description}</p>
-
-						{#if charity.foodTypes.length > 0}
-							<div class="flex flex-wrap gap-1.5">
-								{#each charity.foodTypes as type (type)}
-									<span class="badge badge-outline badge-sm">{FOOD_TYPE_LABELS[type]}</span>
-								{/each}
-							</div>
-						{:else}
-							<p class="text-xs text-base-content/50 italic">No food preferences set</p>
-						{/if}
-
-						<div class="flex items-center gap-1.5 text-xs text-base-content/60">
-							<IconMail class="size-4" />
-							<a class="link" href="mailto:{charity.contactEmail}">{charity.contactEmail}</a>
-						</div>
-
-						<div class="card-actions items-center justify-between">
-							{#if charity.lastRequestStatus}
-								<span class="badge badge-ghost badge-sm"
-									>{statusLabels[charity.lastRequestStatus] ?? charity.lastRequestStatus}</span
-								>
-							{:else}
-								<span></span>
-							{/if}
-							<div class="flex flex-wrap justify-end gap-2">
-								{#if charity.giftStatus}
-									<span class="badge gap-1 badge-outline badge-sm badge-primary">
-										<IconRepeat class="size-3" />
-										{charity.giftStatus === 'proposed' ? 'Regular gift proposed' : 'Regular gift'}
-									</span>
-								{:else}
-									<button class="btn gap-2 btn-outline btn-sm" onclick={() => openGift(charity)}>
-										<IconRepeat class="size-4" />
-										Give regularly
-									</button>
-								{/if}
-								<button class="btn gap-2 btn-primary btn-sm" onclick={() => openRequest(charity)}>
-									<IconSend class="size-4" />
-									Request pickup
-								</button>
-							</div>
-						</div>
-					</div>
-				</Card>
-			{/each}
-		</div>
-	{/if}
 	{/if}
 </BaseLayout>
 

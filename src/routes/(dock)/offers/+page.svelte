@@ -249,7 +249,7 @@
 						</button>
 					</form>
 					<button
-						class="btn btn-square btn-ghost btn-sm text-error"
+						class="btn btn-square btn-ghost text-error btn-sm"
 						aria-label="Delete offer"
 						onclick={() => requestDelete(offer)}
 					>

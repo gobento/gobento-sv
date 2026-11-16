@@ -112,7 +112,9 @@
 		{#each items as item, index (item.path)}
 			{@const isActive = item.path === active}
 			{#if item.section && items[index - 1]?.section !== item.section}
-				<p class="px-3.5 pt-3 pb-1 text-xs font-semibold tracking-wide text-base-content/40 uppercase">
+				<p
+					class="px-3.5 pt-3 pb-1 text-xs font-semibold tracking-wide text-base-content/40 uppercase"
+				>
 					{item.section}
 				</p>
 			{/if}

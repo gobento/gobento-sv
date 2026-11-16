@@ -197,9 +197,7 @@ export async function getAnalyticsData(
 			avgPerDay: count / days,
 			activeOffers: activeOffers?.count ?? 0,
 			completionRate:
-				count > 0
-					? Math.round(((totalReservations?.completedCount ?? 0) / count) * 100)
-					: 0,
+				count > 0 ? Math.round(((totalReservations?.completedCount ?? 0) / count) * 100) : 0,
 			favoriteCount: favorites?.count ?? 0
 		}
 	};

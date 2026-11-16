@@ -140,7 +140,7 @@
 						<h2 class="mb-3 flex items-center gap-2 text-lg font-semibold">
 							<IconRepeat class="size-5 text-primary" />
 							Regular gifts offered to you
-							<span class="badge badge-primary badge-sm">{giftOffers.length}</span>
+							<span class="badge badge-sm badge-primary">{giftOffers.length}</span>
 						</h2>
 						<div class="space-y-4">
 							{#each giftOffers as gift (gift.id)}
@@ -182,13 +182,19 @@
 											use:enhance={busy(gift.id, 'Decline this regular gift?')}
 										>
 											<input type="hidden" name="giftId" value={gift.id} />
-											<button class="btn gap-2 btn-ghost btn-sm" disabled={processingId === gift.id}>
+											<button
+												class="btn gap-2 btn-ghost btn-sm"
+												disabled={processingId === gift.id}
+											>
 												<IconDismiss class="size-4" /> Decline
 											</button>
 										</form>
 										<form method="POST" action="?/acceptGift" use:enhance={busy(gift.id)}>
 											<input type="hidden" name="giftId" value={gift.id} />
-											<button class="btn gap-2 btn-primary btn-sm" disabled={processingId === gift.id}>
+											<button
+												class="btn gap-2 btn-primary btn-sm"
+												disabled={processingId === gift.id}
+											>
 												<IconCheck class="size-4" /> Accept schedule
 											</button>
 										</form>
@@ -203,7 +209,7 @@
 					<section>
 						<h2 class="mb-3 text-lg font-semibold">
 							Pickup requests
-							<span class="badge badge-primary badge-sm">{pending.length}</span>
+							<span class="badge badge-sm badge-primary">{pending.length}</span>
 						</h2>
 						<div class="space-y-4">
 							{#each pending as req (req.id)}
@@ -216,7 +222,9 @@
 										</div>
 										<div class="min-w-0 flex-1">
 											<h3 class="font-semibold">{req.businessName}</h3>
-											<p class="text-xs text-base-content/60">Requested {formatDate(req.createdAt)}</p>
+											<p class="text-xs text-base-content/60">
+												Requested {formatDate(req.createdAt)}
+											</p>
 										</div>
 										<StatusBadge map={PICKUP_STATUS} status={req.status} />
 									</div>
@@ -382,7 +390,9 @@
 								use:enhance={busy(gift.id, `Stop collecting from ${gift.businessName}?`)}
 							>
 								<input type="hidden" name="giftId" value={gift.id} />
-								<button class="btn btn-ghost btn-xs" disabled={processingId === gift.id}>Stop</button>
+								<button class="btn btn-ghost btn-xs" disabled={processingId === gift.id}
+									>Stop</button
+								>
 							</form>
 						</div>
 					</Card>

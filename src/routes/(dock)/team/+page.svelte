@@ -51,57 +51,57 @@
 				<ul class="space-y-2">
 					{#each data.team as member (member.accountId)}
 						<li>
-						<Card padding="sm" class="flex flex-wrap items-center gap-3">
-							<div class="avatar avatar-placeholder">
-								<div class="w-10 rounded-full bg-primary/10 text-primary">
-									<span class="font-bold">{member.name.slice(0, 1).toUpperCase()}</span>
+							<Card padding="sm" class="flex flex-wrap items-center gap-3">
+								<div class="avatar avatar-placeholder">
+									<div class="w-10 rounded-full bg-primary/10 text-primary">
+										<span class="font-bold">{member.name.slice(0, 1).toUpperCase()}</span>
+									</div>
 								</div>
-							</div>
-							<div class="min-w-0 flex-1">
-								<p class="truncate font-semibold">{member.name}</p>
-								<p class="truncate text-xs text-base-content/60">{member.email}</p>
-							</div>
-							{#if isBusiness}
-								<form method="POST" action="?/move" use:enhance>
-									<input type="hidden" name="accountId" value={member.accountId} />
-									<select
-										name="locationId"
-										class="select-bordered select select-sm"
-										value={member.locationId ?? ''}
-										onchange={(e) => e.currentTarget.form?.requestSubmit()}
-										aria-label="Location of {member.name}"
-									>
-										{#each data.locations as loc (loc.id)}
-											<option value={loc.id}>{loc.name}</option>
-										{/each}
-									</select>
-								</form>
-							{/if}
-							<form
-								method="POST"
-								action="?/remove"
-								use:enhance={({ cancel }) => {
-									if (!confirm(`Remove ${member.name}? They are signed out immediately.`)) {
-										cancel();
-										return;
-									}
-									busyId = member.accountId;
-									return async ({ update }) => {
-										busyId = null;
-										await update();
-									};
-								}}
-							>
-								<input type="hidden" name="accountId" value={member.accountId} />
-								<button
-									class="btn btn-square btn-ghost btn-sm"
-									aria-label="Remove {member.name}"
-									disabled={busyId === member.accountId}
+								<div class="min-w-0 flex-1">
+									<p class="truncate font-semibold">{member.name}</p>
+									<p class="truncate text-xs text-base-content/60">{member.email}</p>
+								</div>
+								{#if isBusiness}
+									<form method="POST" action="?/move" use:enhance>
+										<input type="hidden" name="accountId" value={member.accountId} />
+										<select
+											name="locationId"
+											class="select-bordered select select-sm"
+											value={member.locationId ?? ''}
+											onchange={(e) => e.currentTarget.form?.requestSubmit()}
+											aria-label="Location of {member.name}"
+										>
+											{#each data.locations as loc (loc.id)}
+												<option value={loc.id}>{loc.name}</option>
+											{/each}
+										</select>
+									</form>
+								{/if}
+								<form
+									method="POST"
+									action="?/remove"
+									use:enhance={({ cancel }) => {
+										if (!confirm(`Remove ${member.name}? They are signed out immediately.`)) {
+											cancel();
+											return;
+										}
+										busyId = member.accountId;
+										return async ({ update }) => {
+											busyId = null;
+											await update();
+										};
+									}}
 								>
-									<IconDelete class="size-4" />
-								</button>
-							</form>
-						</Card>
+									<input type="hidden" name="accountId" value={member.accountId} />
+									<button
+										class="btn btn-square btn-ghost btn-sm"
+										aria-label="Remove {member.name}"
+										disabled={busyId === member.accountId}
+									>
+										<IconDelete class="size-4" />
+									</button>
+								</form>
+							</Card>
 						</li>
 					{/each}
 				</ul>
@@ -187,98 +187,119 @@
 				bodyClass="gap-4"
 			>
 				{#if !data.ssoAvailable}
-					<p class="text-sm text-base-content/70">Company sign-in is not available on this server yet.</p>
+					<p class="text-sm text-base-content/70">
+						Company sign-in is not available on this server yet.
+					</p>
 				{:else}
 					<details class="group">
 						<summary class="cursor-pointer text-sm font-semibold text-primary">
 							{data.sso ? 'Edit provider settings' : 'Set up company sign-in'}
 						</summary>
-					<div class="space-y-1 pt-4 text-sm text-base-content/70">
-						<p>
-							Register Go Bento as a web app in your identity provider (Microsoft Entra ID, Okta,
-							Google Workspace, Keycloak, …) with this redirect URI:
-						</p>
-						<CopyField value={data.ssoRedirectUri} label="Redirect URI" />
-						<p>
-							Staff then choose <strong>Company sign-in</strong> and use the email you added them with.
-							Their first sign-in links the company identity to their staff account.
-						</p>
-					</div>
-					<form
-						method="POST"
-						action="?/saveSso"
-						class="space-y-3"
-						use:enhance={() => {
-							savingSso = true;
-							return async ({ update }) => {
-								await update({ reset: false });
-								savingSso = false;
-							};
-						}}
-					>
-						<label class="block">
-							<span class="mb-1 block text-sm font-medium">Issuer URL</span>
-							<input
-								name="issuer"
-								type="url"
-								class="input-bordered input w-full"
-								placeholder="https://login.microsoftonline.com/<tenant-id>/v2.0"
-								value={data.sso?.issuer ?? ''}
-								required
-							/>
-						</label>
-						<label class="block">
-							<span class="mb-1 block text-sm font-medium">Client ID</span>
-							<input name="clientId" class="input-bordered input w-full" value={data.sso?.clientId ?? ''} required />
-						</label>
-						<label class="block">
-							<span class="mb-1 block text-sm font-medium">Client secret</span>
-							<input
-								name="clientSecret"
-								type="password"
-								autocomplete="off"
-								class="input-bordered input w-full"
-								placeholder={data.sso ? 'Saved — leave empty to keep' : ''}
-								required={!data.sso}
-							/>
-						</label>
-						<label class="flex items-center gap-2 text-sm">
-							<input type="checkbox" name="enabled" class="toggle toggle-sm" checked={data.sso?.enabled ?? true} />
-							Enabled
-						</label>
-						<label class="flex items-start gap-2 text-sm">
-							<input type="checkbox" name="requireSso" class="toggle toggle-sm mt-0.5" checked={data.sso?.requireSso ?? false} />
-							<span>
-								Require company sign-in
-								<span class="block text-xs text-base-content/60">
-									Staff can't use Google or Telegram, so removing someone in your provider ends their access.
-								</span>
-							</span>
-						</label>
-						{#if page.form?.sso?.error}
-							<div class="alert alert-error text-sm">
-								<IconInfo class="size-5 shrink-0" /><span>{page.form.sso.error}</span>
-							</div>
-						{:else if page.form?.sso?.success}
-							<div class="alert alert-success text-sm">
-								<IconCheck class="size-5 shrink-0" /><span>Saved.</span>
-							</div>
-						{/if}
-						<button class="btn btn-block btn-secondary" disabled={savingSso}>
-							{data.sso ? 'Save changes' : 'Connect provider'}
-						</button>
-					</form>
-					{#if data.sso}
+						<div class="space-y-1 pt-4 text-sm text-base-content/70">
+							<p>
+								Register Go Bento as a web app in your identity provider (Microsoft Entra ID, Okta,
+								Google Workspace, Keycloak, …) with this redirect URI:
+							</p>
+							<CopyField value={data.ssoRedirectUri} label="Redirect URI" />
+							<p>
+								Staff then choose <strong>Company sign-in</strong> and use the email you added them with.
+								Their first sign-in links the company identity to their staff account.
+							</p>
+						</div>
 						<form
 							method="POST"
-							action="?/removeSso"
-							use:enhance={({ cancel }) => {
-								if (!confirm('Disconnect company sign-in? Staff will need another way to sign in.')) cancel();
+							action="?/saveSso"
+							class="space-y-3"
+							use:enhance={() => {
+								savingSso = true;
+								return async ({ update }) => {
+									await update({ reset: false });
+									savingSso = false;
+								};
 							}}
 						>
-							<button class="btn btn-block btn-ghost btn-sm">Disconnect</button>
+							<label class="block">
+								<span class="mb-1 block text-sm font-medium">Issuer URL</span>
+								<input
+									name="issuer"
+									type="url"
+									class="input-bordered input w-full"
+									placeholder="https://login.microsoftonline.com/<tenant-id>/v2.0"
+									value={data.sso?.issuer ?? ''}
+									required
+								/>
+							</label>
+							<label class="block">
+								<span class="mb-1 block text-sm font-medium">Client ID</span>
+								<input
+									name="clientId"
+									class="input-bordered input w-full"
+									value={data.sso?.clientId ?? ''}
+									required
+								/>
+							</label>
+							<label class="block">
+								<span class="mb-1 block text-sm font-medium">Client secret</span>
+								<input
+									name="clientSecret"
+									type="password"
+									autocomplete="off"
+									class="input-bordered input w-full"
+									placeholder={data.sso ? 'Saved — leave empty to keep' : ''}
+									required={!data.sso}
+								/>
+							</label>
+							<label class="flex items-center gap-2 text-sm">
+								<input
+									type="checkbox"
+									name="enabled"
+									class="toggle toggle-sm"
+									checked={data.sso?.enabled ?? true}
+								/>
+								Enabled
+							</label>
+							<label class="flex items-start gap-2 text-sm">
+								<input
+									type="checkbox"
+									name="requireSso"
+									class="toggle mt-0.5 toggle-sm"
+									checked={data.sso?.requireSso ?? false}
+								/>
+								<span>
+									Require company sign-in
+									<span class="block text-xs text-base-content/60">
+										Staff can't use Google or Telegram, so removing someone in your provider ends
+										their access.
+									</span>
+								</span>
+							</label>
+							{#if page.form?.sso?.error}
+								<div class="alert text-sm alert-error">
+									<IconInfo class="size-5 shrink-0" /><span>{page.form.sso.error}</span>
+								</div>
+							{:else if page.form?.sso?.success}
+								<div class="alert text-sm alert-success">
+									<IconCheck class="size-5 shrink-0" /><span>Saved.</span>
+								</div>
+							{/if}
+							<button class="btn btn-block btn-secondary" disabled={savingSso}>
+								{data.sso ? 'Save changes' : 'Connect provider'}
+							</button>
 						</form>
-					{/if}
+						{#if data.sso}
+							<form
+								method="POST"
+								action="?/removeSso"
+								use:enhance={({ cancel }) => {
+									if (
+										!confirm('Disconnect company sign-in? Staff will need another way to sign in.')
+									)
+										cancel();
+								}}
+							>
+								<button class="btn btn-block btn-ghost btn-sm">Disconnect</button>
+							</form>
+						{/if}
 					</details>
 				{/if}
 			</SectionCard>
