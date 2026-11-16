@@ -13,9 +13,11 @@
 	interface Props {
 		gift: GiftSummary;
 		actions: Snippet<[GiftAction]>;
+		/** Position in a list, for a gentle staggered entrance. */
+		index?: number;
 	}
 
-	let { gift, actions }: Props = $props();
+	let { gift, actions, index }: Props = $props();
 
 	const giftActions = (status: string): GiftAction[] => {
 		if (status === 'active') return ['pauseGift', 'endGift'];
@@ -24,7 +26,7 @@
 	};
 </script>
 
-<Card bodyClass="gap-3">
+<Card bodyClass="gap-3" class="animate-rise-in stagger" style="--i: {index ?? 0}">
 	<div class="flex items-center gap-3">
 		<div class="avatar">
 			<div class="w-10 rounded-xl ring ring-base-300">

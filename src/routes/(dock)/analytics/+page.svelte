@@ -119,12 +119,14 @@
 
 	<div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
 		<StatTile
+			index={0}
 			label="Reservations"
 			value={data.stats.totalReservations}
 			icon={IconBox}
 			hint="{data.stats.avgPerDay.toFixed(1)} per day"
 		/>
 		<StatTile
+			index={1}
 			label="Revenue"
 			value={data.stats.totalRevenue}
 			decimals={2}
@@ -134,6 +136,7 @@
 			hint={rangeLabel(data.days).toLowerCase()}
 		/>
 		<StatTile
+			index={2}
 			label="Completion"
 			value={data.stats.completionRate}
 			suffix="%"
@@ -142,6 +145,7 @@
 			hint="{data.stats.activeOffers} active offers"
 		/>
 		<StatTile
+			index={3}
 			label="Favorites"
 			value={data.stats.favoriteCount}
 			icon={IconClock}
@@ -151,7 +155,7 @@
 	</div>
 
 	<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-		<Card>
+		<Card class="animate-soft-pop stagger" style="--i: {0}">
 			<h2 class="mb-4 text-base font-semibold">Reservations over time</h2>
 			{#if reservationsData.length > 0}
 				<div class="h-56 sm:h-64">
@@ -200,7 +204,7 @@
 			{/if}
 		</Card>
 
-		<Card>
+		<Card class="animate-soft-pop stagger" style="--i: {1}">
 			<h2 class="mb-4 text-base font-semibold">Revenue over time</h2>
 			{#if reservationsData.length > 0}
 				<div class="h-56 sm:h-64">
@@ -249,7 +253,7 @@
 			{/if}
 		</Card>
 
-		<Card>
+		<Card class="animate-soft-pop stagger" style="--i: {2}">
 			<h2 class="mb-4 flex items-center gap-2 text-base font-semibold">
 				<IconClock class="size-4 text-info" />
 				Peak pickup hours
@@ -296,7 +300,7 @@
 			{/if}
 		</Card>
 
-		<Card>
+		<Card class="animate-soft-pop stagger" style="--i: {3}">
 			<h2 class="mb-4 text-base font-semibold">Top performing offers</h2>
 			{#if data.offerPerformanceData.length > 0}
 				<ul class="max-h-64 space-y-2 overflow-y-auto">
@@ -328,7 +332,7 @@
 			{/if}
 		</Card>
 
-		<Card class="lg:col-span-2" padding="none">
+		<Card class="animate-soft-pop stagger lg:col-span-2" padding="none" style="--i: {4}">
 			<div class="p-5 sm:p-6">
 				<h2 class="mb-4 text-base font-semibold">Location performance</h2>
 			</div>

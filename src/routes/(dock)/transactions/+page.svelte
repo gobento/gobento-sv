@@ -46,6 +46,7 @@
 >
 	<div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
 		<StatTile
+			index={0}
 			label="Pending by bank"
 			value={data.summary.totalPendingIban}
 			decimals={2}
@@ -55,6 +56,7 @@
 			hint="{data.summary.pendingSettlements} monthly settlements"
 		/>
 		<StatTile
+			index={1}
 			label="Pending USDT"
 			value={data.summary.totalPendingTether}
 			decimals={2}
@@ -63,6 +65,7 @@
 			hint="Tether payouts"
 		/>
 		<StatTile
+			index={2}
 			label="Paid by bank"
 			value={data.summary.totalPaidIban}
 			decimals={2}
@@ -72,6 +75,7 @@
 			hint="all time"
 		/>
 		<StatTile
+			index={3}
 			label="Paid USDT"
 			value={data.summary.totalPaidTether}
 			decimals={2}
@@ -89,9 +93,9 @@
 		/>
 	{:else}
 		<div class="space-y-4">
-			{#each data.settlements as settlement (settlement.id)}
+			{#each data.settlements as settlement, i (settlement.id)}
 				{@const isExpanded = expanded.has(settlement.id)}
-				<Card padding="none">
+				<Card padding="none" class="animate-rise-in stagger" style="--i: {i}">
 					<div class="space-y-4 p-5">
 						<div class="flex flex-wrap items-center justify-between gap-3">
 							<div class="flex items-center gap-3">

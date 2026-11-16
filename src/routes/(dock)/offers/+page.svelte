@@ -4,6 +4,7 @@
 	import { withSearch } from '#lib/paths.js';
 	import { resolve } from '$app/paths';
 	import IconTag from '~icons/fluent/tag-24-regular';
+	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconAdd from '~icons/fluent/add-24-regular';
 	import IconDelete from '~icons/fluent/delete-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-regular';
@@ -98,8 +99,8 @@
 	});
 </script>
 
-{#snippet offerCard(offer: Offer)}
-	<ManageOfferCard {offer}>
+{#snippet offerCard(offer: Offer, index: number)}
+	<ManageOfferCard {offer} {index}>
 		{#snippet actions()}
 			<div class="flex gap-2">
 				<form method="POST" action="?/setActive" class="flex-1" use:enhance={offerBusy(offer.id)}>
@@ -282,8 +283,8 @@
 						<span class="badge badge-sm badge-secondary">{allLocationOffers.length}</span>
 					</div>
 					<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-						{#each allLocationOffers as offer (offer.id)}
-							{@render offerCard(offer)}
+						{#each allLocationOffers as offer, i (offer.id)}
+							{@render offerCard(offer, i)}
 						{/each}
 					</div>
 				</section>
@@ -298,8 +299,8 @@
 						<span class="badge badge-sm badge-info">{specificLocationOffers.length}</span>
 					</div>
 					<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-						{#each specificLocationOffers as offer (offer.id)}
-							{@render offerCard(offer)}
+						{#each specificLocationOffers as offer, i (offer.id)}
+							{@render offerCard(offer, i)}
 						{/each}
 					</div>
 				</section>

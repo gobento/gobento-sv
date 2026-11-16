@@ -36,15 +36,18 @@
 	interface Props {
 		offer: ManagedOffer;
 		actions: Snippet;
+		/** Position in a list, for a gentle staggered entrance. */
+		index?: number;
 	}
 
-	let { offer, actions }: Props = $props();
+	let { offer, actions, index }: Props = $props();
 </script>
 
 <div
-	class="group flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg {offer.isActive
+	class="group flex animate-rise-in flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition-all stagger hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg {offer.isActive
 		? ''
 		: 'opacity-70'}"
+	style:--i={index ?? 0}
 >
 	<div class="relative h-44 w-full overflow-hidden">
 		<OptimizedLocationImage

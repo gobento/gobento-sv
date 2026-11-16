@@ -27,14 +27,16 @@
 	interface Props {
 		req: PickupRequest;
 		actions: Snippet;
+		/** Position in a list, for a gentle staggered entrance. */
+		index?: number;
 	}
 
-	let { req, actions }: Props = $props();
+	let { req, actions, index }: Props = $props();
 
 	const formatDate = (value: string | Date | null) => (value ? formatDateTime(value) : '');
 </script>
 
-<Card>
+<Card class="animate-rise-in stagger" style="--i: {index ?? 0}">
 	<div class="flex items-start gap-3">
 		<div class="avatar">
 			<div class="w-12 rounded-xl ring ring-base-300">

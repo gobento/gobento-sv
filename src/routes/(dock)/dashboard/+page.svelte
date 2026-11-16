@@ -64,19 +64,40 @@
 	{/snippet}
 
 	<div class="mb-6 flex flex-wrap gap-2">
-		<Button href={resolve('/(dock)/offers/new')} icon={IconAdd} size="sm" class="sm:hidden">
+		<Button
+			href={resolve('/(dock)/offers/new')}
+			icon={IconAdd}
+			size="sm"
+			class="animate-soft-pop stagger sm:hidden"
+			style="--i: 0"
+		>
 			New offer
 		</Button>
-		<Button href={resolve('/(dock)/locations/new')} icon={IconLocation} variant="outline" size="sm">
+		<Button
+			href={resolve('/(dock)/locations/new')}
+			icon={IconLocation}
+			variant="outline"
+			size="sm"
+			class="hover-wiggle animate-soft-pop stagger"
+			style="--i: 1"
+		>
 			Add location
 		</Button>
-		<Button href={resolve('/(dock)/charities')} icon={IconHeart} variant="outline" size="sm">
+		<Button
+			href={resolve('/(dock)/charities')}
+			icon={IconHeart}
+			variant="outline"
+			size="sm"
+			class="hover-wiggle animate-soft-pop stagger"
+			style="--i: 2"
+		>
 			Find a charity
 		</Button>
 	</div>
 
 	<div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
 		<StatTile
+			index={0}
 			label="To hand over"
 			value={data.pickupsNextDay}
 			icon={IconBag}
@@ -85,6 +106,7 @@
 			href="#pickups"
 		/>
 		<StatTile
+			index={1}
 			label="Reservations"
 			value={data.stats.totalReservations}
 			icon={IconChart}
@@ -93,6 +115,7 @@
 			href={resolve('/(dock)/analytics')}
 		/>
 		<StatTile
+			index={2}
 			label="Revenue"
 			value={data.stats.totalRevenue}
 			decimals={2}
@@ -103,6 +126,7 @@
 			href={resolve('/(dock)/transactions')}
 		/>
 		<StatTile
+			index={3}
 			label="Active offers"
 			value={data.stats.activeOffers}
 			icon={IconTag}
@@ -132,8 +156,8 @@
 					</p>
 				{:else}
 					<ul class="space-y-2">
-						{#each data.upcomingPickups as pickup (pickup.id)}
-							<li>
+						{#each data.upcomingPickups as pickup, i (pickup.id)}
+							<li class="animate-rise-in stagger" style:--i={i}>
 								<a
 									href={resolve('/(dock)/offers/[id]', { id: pickup.offerId })}
 									class="pressable flex items-center gap-3 rounded-xl border border-base-300 p-3 hover:border-primary/30"
@@ -243,11 +267,13 @@
 				bodyClass="gap-2"
 				class="lg:col-span-2"
 			>
-				{#each attention as item (item.label)}
+				{#each attention as item, i (item.label)}
 					<a
 						href={item.href}
-						class="pressable flex items-center gap-3 rounded-xl border border-base-300 p-3 hover:border-warning/40"
+						class="pressable hover-wiggle flex animate-rise-in items-center gap-3 rounded-xl border border-base-300 p-3 stagger hover:border-warning/40"
+						style:--i={i}
 					>
+						<span class="attention-dot size-1.5 shrink-0 rounded-full bg-warning"></span>
 						<item.icon class="size-5 shrink-0 text-warning" />
 						<span class="min-w-0 flex-1 truncate text-sm font-semibold">{item.label}</span>
 						<span class="hidden text-xs text-base-content/60 sm:block">{item.hint}</span>
@@ -272,8 +298,11 @@
 				<p class="text-sm text-base-content/60">No active offers yet.</p>
 			{:else}
 				<ul class="divide-y divide-base-200">
-					{#each data.offerPerformanceData as offer (offer.id)}
-						<li class="flex items-center justify-between gap-3 py-2 text-sm">
+					{#each data.offerPerformanceData as offer, i (offer.id)}
+						<li
+							class="flex animate-rise-in items-center justify-between gap-3 py-2 text-sm stagger"
+							style:--i={i}
+						>
 							<a
 								href={resolve('/(dock)/offers/[id]', { id: offer.id })}
 								class="truncate font-medium hover:underline">{offer.name}</a
@@ -297,8 +326,8 @@
 				<p class="text-sm text-base-content/60">Add your first location to start selling.</p>
 			{:else}
 				<ul class="space-y-2">
-					{#each data.locationPerformanceData as loc (loc.id)}
-						<li>
+					{#each data.locationPerformanceData as loc, i (loc.id)}
+						<li class="animate-rise-in stagger" style:--i={i}>
 							<a
 								href={resolve('/(dock)/locations/[id]', { id: loc.id })}
 								class="pressable flex items-center gap-3 rounded-xl border border-base-300 p-3 hover:border-primary/30"

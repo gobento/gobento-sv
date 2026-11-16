@@ -19,12 +19,14 @@
 	interface Props {
 		gift: GiftOffer;
 		actions: Snippet;
+		/** Position in a list, for a gentle staggered entrance. */
+		index?: number;
 	}
 
-	let { gift, actions }: Props = $props();
+	let { gift, actions, index }: Props = $props();
 </script>
 
-<Card class="border-primary/30">
+<Card class="animate-rise-in border-primary/30 stagger" style="--i: {index ?? 0}">
 	<div class="flex items-start gap-3">
 		<div class="avatar">
 			<div class="w-12 rounded-xl ring ring-base-300">

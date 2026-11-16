@@ -19,12 +19,14 @@
 		charity: CharitySummary;
 		onGift: (charity: CharitySummary) => void;
 		onRequest: (charity: CharitySummary) => void;
+		/** Position in a list, for a gentle staggered entrance. */
+		index?: number;
 	}
 
-	let { charity, onGift, onRequest }: Props = $props();
+	let { charity, onGift, onRequest, index }: Props = $props();
 </script>
 
-<Card bodyClass="gap-4">
+<Card bodyClass="gap-4" class="animate-rise-in stagger" style="--i: {index ?? 0}">
 	<div class="flex items-center gap-3">
 		<div class="avatar">
 			<div class="w-12 rounded-xl ring ring-base-300">

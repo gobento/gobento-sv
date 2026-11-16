@@ -69,165 +69,172 @@
 >
 	<Segmented options={tabs} bind:value={tab} label="Charity sections" class="mb-6" />
 
-	{#if tab === 'gifts'}
-		<section>
-			<div class="mb-3 flex items-end justify-between gap-3">
-				<div>
-					<h2 class="flex items-center gap-2 text-lg font-semibold">
-						<IconRepeat class="size-5 text-primary" />
-						Regular gifts
-					</h2>
-					<p class="text-sm text-base-content/60">
-						Give to a charity on a fixed schedule. Once they accept, every pickup is booked for you
-						three days ahead.
-					</p>
-				</div>
-			</div>
+	{#key tab}
+		<div class="animate-fade-in">
+			{#if tab === 'gifts'}
+				<section>
+					<div class="mb-3 flex items-end justify-between gap-3">
+						<div>
+							<h2 class="flex items-center gap-2 text-lg font-semibold">
+								<IconRepeat class="size-5 text-primary" />
+								Regular gifts
+							</h2>
+							<p class="text-sm text-base-content/60">
+								Give to a charity on a fixed schedule. Once they accept, every pickup is booked for
+								you three days ahead.
+							</p>
+						</div>
+					</div>
 
-			{#if page.form?.gift?.success}
-				<div class="mb-4 alert alert-success">
-					<IconCheck class="size-5 shrink-0" />
-					<span>Your regular gift was sent. The charity will be notified to accept it.</span>
-				</div>
-			{/if}
-			{#if page.form?.giftAction?.error}
-				<div class="mb-4 alert alert-error">
-					<span>{page.form.giftAction.error}</span>
-				</div>
-			{/if}
+					{#if page.form?.gift?.success}
+						<div class="mb-4 alert animate-soft-pop alert-success">
+							<IconCheck class="size-5 shrink-0" />
+							<span>Your regular gift was sent. The charity will be notified to accept it.</span>
+						</div>
+					{/if}
+					{#if page.form?.giftAction?.error}
+						<div class="mb-4 alert alert-error">
+							<span>{page.form.giftAction.error}</span>
+						</div>
+					{/if}
 
-			{#if openGifts.length === 0}
-				<EmptyState
-					icon={IconRepeat}
-					title="No regular gifts yet"
-					description="Give surplus food on a fixed schedule. Once a charity accepts, every pickup is booked for you three days ahead."
-				>
-					{#snippet actions()}
-						<button class="btn gap-2 btn-primary btn-sm" onclick={() => (tab = 'find')}>
-							<IconSearch class="size-4" /> Find a charity
-						</button>
-					{/snippet}
-				</EmptyState>
-			{:else}
-				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-					{#each openGifts as gift (gift.id)}
-						<RegularGiftCard {gift}>
-							{#snippet actions(action)}
-								<form
-									method="POST"
-									action="?/{action}"
-									use:enhance={({ cancel }) => {
-										if (
-											action === 'endGift' &&
-											!confirm(
-												gift.status === 'proposed'
-													? 'Withdraw this regular gift?'
-													: 'End this regular gift? Upcoming pickups are called off.'
-											)
-										) {
-											cancel();
-											return;
-										}
-										giftActionId = gift.id;
-										return async ({ update }) => {
-											giftActionId = null;
-											await update();
-										};
-									}}
-								>
-									<input type="hidden" name="giftId" value={gift.id} />
-									<button
-										class="btn gap-1.5 btn-sm {action === 'endGift' ? 'btn-ghost' : 'btn-outline'}"
-										disabled={giftActionId === gift.id}
-									>
-										{#if action === 'pauseGift'}
-											<IconPause class="size-4" /> Pause
-										{:else if action === 'resumeGift'}
-											<IconPlay class="size-4" /> Resume
-										{:else}
-											<IconDismiss class="size-4" />
-											{gift.status === 'proposed' ? 'Withdraw' : 'End'}
-										{/if}
-									</button>
-								</form>
+					{#if openGifts.length === 0}
+						<EmptyState
+							icon={IconRepeat}
+							title="No regular gifts yet"
+							description="Give surplus food on a fixed schedule. Once a charity accepts, every pickup is booked for you three days ahead."
+						>
+							{#snippet actions()}
+								<button class="btn gap-2 btn-primary btn-sm" onclick={() => (tab = 'find')}>
+									<IconSearch class="size-4" /> Find a charity
+								</button>
 							{/snippet}
-						</RegularGiftCard>
-					{/each}
+						</EmptyState>
+					{:else}
+						<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+							{#each openGifts as gift, i (gift.id)}
+								<RegularGiftCard {gift} index={i}>
+									{#snippet actions(action)}
+										<form
+											method="POST"
+											action="?/{action}"
+											use:enhance={({ cancel }) => {
+												if (
+													action === 'endGift' &&
+													!confirm(
+														gift.status === 'proposed'
+															? 'Withdraw this regular gift?'
+															: 'End this regular gift? Upcoming pickups are called off.'
+													)
+												) {
+													cancel();
+													return;
+												}
+												giftActionId = gift.id;
+												return async ({ update }) => {
+													giftActionId = null;
+													await update();
+												};
+											}}
+										>
+											<input type="hidden" name="giftId" value={gift.id} />
+											<button
+												class="btn gap-1.5 btn-sm {action === 'endGift'
+													? 'btn-ghost'
+													: 'btn-outline'}"
+												disabled={giftActionId === gift.id}
+											>
+												{#if action === 'pauseGift'}
+													<IconPause class="size-4" /> Pause
+												{:else if action === 'resumeGift'}
+													<IconPlay class="size-4" /> Resume
+												{:else}
+													<IconDismiss class="size-4" />
+													{gift.status === 'proposed' ? 'Withdraw' : 'End'}
+												{/if}
+											</button>
+										</form>
+									{/snippet}
+								</RegularGiftCard>
+							{/each}
+						</div>
+					{/if}
+
+					{#if pastGifts.length > 0}
+						<details class="mt-3 text-sm">
+							<summary class="cursor-pointer text-base-content/60">
+								{pastGifts.length} past {pastGifts.length === 1 ? 'gift' : 'gifts'}
+							</summary>
+							<ul class="mt-2 space-y-1">
+								{#each pastGifts as gift (gift.id)}
+									<li class="flex flex-wrap items-center gap-2 text-base-content/70">
+										<StatusBadge map={GIFT_STATUS} status={gift.status} />
+										<span class="font-medium">{gift.charityName}</span>
+										<span>{gift.schedule}</span>
+										<span>· {gift.pickups} pickups</span>
+										{#if gift.status === 'declined' && gift.notes}<span>· “{gift.notes}”</span>{/if}
+									</li>
+								{/each}
+							</ul>
+						</details>
+					{/if}
+				</section>
+			{:else}
+				<div class="mb-6 flex flex-wrap items-end gap-3">
+					<div class="form-control">
+						<label class="mb-1 block text-sm font-medium" for="foodType">Food type</label>
+						<select id="foodType" class="select-bordered select" bind:value={foodType}>
+							<option value="">Any food type</option>
+							{#each FOOD_TYPES as type (type)}
+								<option value={type}>{FOOD_TYPE_LABELS[type]}</option>
+							{/each}
+						</select>
+					</div>
+
+					<div class="form-control">
+						<label class="mb-1 block text-sm font-medium" for="country">Country</label>
+						<select id="country" class="select-bordered select" bind:value={country}>
+							<option value="">Any country</option>
+							{#each data.countries as c (c)}
+								<option value={c}>{c}</option>
+							{/each}
+						</select>
+					</div>
+
+					<button class="btn gap-2 btn-primary" onclick={applyFilters}>
+						<IconSearch class="size-4" />
+						Search
+					</button>
 				</div>
-			{/if}
 
-			{#if pastGifts.length > 0}
-				<details class="mt-3 text-sm">
-					<summary class="cursor-pointer text-base-content/60">
-						{pastGifts.length} past {pastGifts.length === 1 ? 'gift' : 'gifts'}
-					</summary>
-					<ul class="mt-2 space-y-1">
-						{#each pastGifts as gift (gift.id)}
-							<li class="flex flex-wrap items-center gap-2 text-base-content/70">
-								<StatusBadge map={GIFT_STATUS} status={gift.status} />
-								<span class="font-medium">{gift.charityName}</span>
-								<span>{gift.schedule}</span>
-								<span>· {gift.pickups} pickups</span>
-								{#if gift.status === 'declined' && gift.notes}<span>· “{gift.notes}”</span>{/if}
-							</li>
-						{/each}
-					</ul>
-				</details>
-			{/if}
-		</section>
-	{:else}
-		<div class="mb-6 flex flex-wrap items-end gap-3">
-			<div class="form-control">
-				<label class="mb-1 block text-sm font-medium" for="foodType">Food type</label>
-				<select id="foodType" class="select-bordered select" bind:value={foodType}>
-					<option value="">Any food type</option>
-					{#each FOOD_TYPES as type (type)}
-						<option value={type}>{FOOD_TYPE_LABELS[type]}</option>
-					{/each}
-				</select>
-			</div>
+				{#if page.form?.request?.success}
+					<div class="mb-6 alert animate-soft-pop alert-success">
+						<IconCheck class="size-5 shrink-0" />
+						<span>Your pickup request has been sent.</span>
+					</div>
+				{/if}
 
-			<div class="form-control">
-				<label class="mb-1 block text-sm font-medium" for="country">Country</label>
-				<select id="country" class="select-bordered select" bind:value={country}>
-					<option value="">Any country</option>
-					{#each data.countries as c (c)}
-						<option value={c}>{c}</option>
-					{/each}
-				</select>
-			</div>
-
-			<button class="btn gap-2 btn-primary" onclick={applyFilters}>
-				<IconSearch class="size-4" />
-				Search
-			</button>
-		</div>
-
-		{#if page.form?.request?.success}
-			<div class="mb-6 alert alert-success">
-				<IconCheck class="size-5 shrink-0" />
-				<span>Your pickup request has been sent.</span>
-			</div>
-		{/if}
-
-		{#if data.charities.length === 0}
-			<EmptyState
-				icon={IconHeart}
-				title="No charities match your search"
-				description="Try widening the food type or country filters."
-			/>
-		{:else}
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-				{#each data.charities as charity (charity.accountId)}
-					<CharityCard
-						{charity}
-						onGift={(c) => (giftCharity = c)}
-						onRequest={(c) => (selectedCharity = c)}
+				{#if data.charities.length === 0}
+					<EmptyState
+						icon={IconHeart}
+						title="No charities match your search"
+						description="Try widening the food type or country filters."
 					/>
-				{/each}
-			</div>
-		{/if}
-	{/if}
+				{:else}
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+						{#each data.charities as charity, i (charity.accountId)}
+							<CharityCard
+								{charity}
+								index={i}
+								onGift={(c) => (giftCharity = c)}
+								onRequest={(c) => (selectedCharity = c)}
+							/>
+						{/each}
+					</div>
+				{/if}
+			{/if}
+		</div>
+	{/key}
 </BaseLayout>
 
 {#if selectedCharity}

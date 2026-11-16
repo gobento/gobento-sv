@@ -49,9 +49,13 @@
 				/>
 			{:else}
 				<ul class="space-y-2">
-					{#each data.team as member (member.accountId)}
+					{#each data.team as member, i (member.accountId)}
 						<li>
-							<Card padding="sm" class="flex flex-wrap items-center gap-3">
+							<Card
+								padding="sm"
+								class="flex animate-rise-in flex-wrap items-center gap-3 stagger"
+								style="--i: {i}"
+							>
 								<div class="avatar avatar-placeholder">
 									<div class="w-10 rounded-full bg-primary/10 text-primary">
 										<span class="font-bold">{member.name.slice(0, 1).toUpperCase()}</span>

@@ -24,12 +24,14 @@
 		req: UpcomingPickup;
 		serverNow: number;
 		actions: Snippet;
+		/** Position in a list, for a gentle staggered entrance. */
+		index?: number;
 	}
 
-	let { req, serverNow, actions }: Props = $props();
+	let { req, serverNow, actions, index }: Props = $props();
 </script>
 
-<Card padding="sm">
+<Card padding="sm" class="animate-rise-in stagger" style="--i: {index ?? 0}">
 	<div class="flex items-start gap-3">
 		<div class="avatar">
 			<div class="w-10 rounded-xl ring ring-base-300">
