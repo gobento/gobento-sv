@@ -20,6 +20,9 @@
 	import IconPlay from '~icons/fluent/play-24-regular';
 	import IconDismiss from '~icons/fluent/dismiss-24-regular';
 	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';
+	import Segmented from '#lib/components/ui/Segmented.svelte';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
 	import { GIFT_STATUS } from '#lib/statuses.js';
 	import { formatMoment } from '#lib/components/reservations/pickup.js';
 	import {
@@ -38,6 +41,7 @@
 
 	let foodType = $state(data.filters.foodType ?? '');
 	let country = $state(data.filters.country ?? '');
+	let tab = $state<'gifts' | 'find'>('gifts');
 
 	// Pickup request modal state
 	let selectedCharity = $state<PageData['charities'][number] | null>(null);
@@ -99,6 +103,11 @@
 		data.gifts.filter((g) => g.status === 'declined' || g.status === 'ended')
 	);
 
+	const tabs = $derived([
+		{ value: 'gifts' as const, label: 'Regular gifts', count: openGifts.length },
+		{ value: 'find' as const, label: 'Find charities', count: data.charities.length }
+	]);
+
 	const statusLabels: Record<string, string> = {
 		pending: 'Request pending',
 		accepted: 'Accepted',
@@ -109,40 +118,15 @@
 </script>
 
 <BaseLayout
-	title="Find charities"
-	description="Search for a charity to collect surplus food from your locations"
+	title="Charities"
+	description="Your regular giving, and the charities who can collect your surplus"
 	icon={IconHeart}
 >
-	<!-- Filters -->
-	<div class="mb-6 flex flex-wrap items-end gap-3">
-		<div class="form-control">
-			<label class="mb-1 block text-sm font-medium" for="foodType">Food type</label>
-			<select id="foodType" class="select-bordered select" bind:value={foodType}>
-				<option value="">Any food type</option>
-				{#each FOOD_TYPES as type (type)}
-					<option value={type}>{FOOD_TYPE_LABELS[type]}</option>
-				{/each}
-			</select>
-		</div>
+	<Segmented options={tabs} bind:value={tab} label="Charity sections" class="mb-6" />
 
-		<div class="form-control">
-			<label class="mb-1 block text-sm font-medium" for="country">Country</label>
-			<select id="country" class="select-bordered select" bind:value={country}>
-				<option value="">Any country</option>
-				{#each data.countries as c (c)}
-					<option value={c}>{c}</option>
-				{/each}
-			</select>
-		</div>
-
-		<button class="btn gap-2 btn-primary" onclick={applyFilters}>
-			<IconSearch class="size-4" />
-			Search
-		</button>
-	</div>
-
+	{#if tab === 'gifts'}
 	<!-- Regular gifts -->
-	<section class="mb-8">
+	<section>
 		<div class="mb-3 flex items-end justify-between gap-3">
 			<div>
 				<h2 class="flex items-center gap-2 text-lg font-semibold">
@@ -170,18 +154,22 @@
 		{/if}
 
 		{#if openGifts.length === 0}
-			<div
-				class="rounded-2xl border border-dashed border-base-300 bg-base-100 p-6 text-sm text-base-content/70"
+			<EmptyState
+				icon={IconRepeat}
+				title="No regular gifts yet"
+				description="Give surplus food on a fixed schedule. Once a charity accepts, every pickup is booked for you three days ahead."
 			>
-				You don't give regularly yet. Pick a charity below and choose <strong>Give regularly</strong
-				>
-				— for example every Friday after closing.
-			</div>
+				{#snippet actions()}
+					<button class="btn gap-2 btn-primary btn-sm" onclick={() => (tab = 'find')}>
+						<IconSearch class="size-4" /> Find a charity
+					</button>
+				{/snippet}
+			</EmptyState>
 		{:else}
 			<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 				{#each openGifts as gift (gift.id)}
-					<div class="card border border-base-300 bg-base-100 shadow-sm">
-						<div class="card-body gap-3 p-4">
+					<Card bodyClass="gap-3">
+						<div>
 							<div class="flex items-center gap-3">
 								<div class="avatar">
 									<div class="w-10 rounded-xl ring ring-base-300">
@@ -246,7 +234,7 @@
 								{/each}
 							</div>
 						</div>
-					</div>
+					</Card>
 				{/each}
 			</div>
 		{/if}
@@ -271,7 +259,34 @@
 		{/if}
 	</section>
 
-	<h2 class="mb-3 text-lg font-semibold">Find a charity</h2>
+	{:else}
+	<!-- Find charities -->
+	<div class="mb-6 flex flex-wrap items-end gap-3">
+		<div class="form-control">
+			<label class="mb-1 block text-sm font-medium" for="foodType">Food type</label>
+			<select id="foodType" class="select-bordered select" bind:value={foodType}>
+				<option value="">Any food type</option>
+				{#each FOOD_TYPES as type (type)}
+					<option value={type}>{FOOD_TYPE_LABELS[type]}</option>
+				{/each}
+			</select>
+		</div>
+
+		<div class="form-control">
+			<label class="mb-1 block text-sm font-medium" for="country">Country</label>
+			<select id="country" class="select-bordered select" bind:value={country}>
+				<option value="">Any country</option>
+				{#each data.countries as c (c)}
+					<option value={c}>{c}</option>
+				{/each}
+			</select>
+		</div>
+
+		<button class="btn gap-2 btn-primary" onclick={applyFilters}>
+			<IconSearch class="size-4" />
+			Search
+		</button>
+	</div>
 
 	{#if page.form?.request?.success}
 		<div class="mb-6 alert alert-success">
@@ -281,16 +296,16 @@
 	{/if}
 
 	{#if data.charities.length === 0}
-		<div class="rounded-2xl border border-base-300 bg-base-100 p-10 text-center">
-			<IconHeart class="mx-auto mb-3 size-10 opacity-30" />
-			<p class="font-medium">No charities match your search</p>
-			<p class="text-sm text-base-content/60">Try widening the food type or country filters.</p>
-		</div>
+		<EmptyState
+			icon={IconHeart}
+			title="No charities match your search"
+			description="Try widening the food type or country filters."
+		/>
 	{:else}
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 			{#each data.charities as charity (charity.accountId)}
-				<div class="card border border-base-300 bg-base-100 shadow-sm">
-					<div class="card-body gap-4">
+				<Card bodyClass="gap-4">
+					<div>
 						<div class="flex items-center gap-3">
 							<div class="avatar">
 								<div class="w-12 rounded-xl ring ring-base-300">
@@ -347,9 +362,10 @@
 							</div>
 						</div>
 					</div>
-				</div>
+				</Card>
 			{/each}
 		</div>
+	{/if}
 	{/if}
 </BaseLayout>
 
