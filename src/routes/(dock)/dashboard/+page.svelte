@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
 	import StatTile from '#lib/components/ui/StatTile.svelte';
 	import SectionCard from '#lib/components/ui/SectionCard.svelte';
 	import { formatPickupWindow } from '#lib/components/reservations/pickup.js';
@@ -10,13 +11,38 @@
 	import IconBag from '~icons/fluent/shopping-bag-24-regular';
 	import IconMoney from '~icons/fluent/money-24-regular';
 	import IconTag from '~icons/fluent/tag-24-regular';
+	import IconAdd from '~icons/fluent/add-24-regular';
+	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconHeart from '~icons/fluent/heart-24-regular';
 	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
 	import IconChart from '~icons/fluent/data-trending-24-regular';
-	import IconLocation from '~icons/fluent/location-24-regular';
+	import IconWarning from '~icons/fluent/warning-24-regular';
 	import IconArrow from '~icons/fluent/arrow-right-24-regular';
 
 	let { data }: { data: PageData } = $props();
+
+	const attention = $derived(
+		[
+			data.attention.openComplaints > 0 && {
+				label: `${data.attention.openComplaints} open ${data.attention.openComplaints === 1 ? 'complaint' : 'complaints'}`,
+				hint: 'Reply to customers',
+				href: resolve('/(dock)/complaints'),
+				icon: IconWarning
+			},
+			data.attention.expiredOffers > 0 && {
+				label: `${data.attention.expiredOffers} ${data.attention.expiredOffers === 1 ? 'offer has' : 'offers have'} expired`,
+				hint: 'Still listed as active',
+				href: resolve('/(dock)/offers'),
+				icon: IconTag
+			},
+			data.attention.inactiveOffers > 0 && {
+				label: `${data.attention.inactiveOffers} inactive ${data.attention.inactiveOffers === 1 ? 'offer' : 'offers'}`,
+				hint: 'Paused or not published',
+				href: resolve('/(dock)/offers?status=inactive'),
+				icon: IconTag
+			}
+		].filter((item): item is NonNullable<typeof item> => Boolean(item))
+	);
 
 	const euro = (value: number) =>
 		value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -24,9 +50,30 @@
 
 <BaseLayout
 	title="Dashboard"
-	description="Today at a glance, your offers and your giving"
+	description="What needs doing today, and how your business is doing"
 	icon={IconHome}
 >
+	{#snippet actions()}
+		<Button
+			href={resolve('/(dock)/offers/new')}
+			icon={IconAdd}
+			size="sm"
+			class="hidden sm:inline-flex">New offer</Button
+		>
+	{/snippet}
+
+	<div class="mb-6 flex flex-wrap gap-2">
+		<Button href={resolve('/(dock)/offers/new')} icon={IconAdd} size="sm" class="sm:hidden">
+			New offer
+		</Button>
+		<Button href={resolve('/(dock)/locations/new')} icon={IconLocation} variant="outline" size="sm">
+			Add location
+		</Button>
+		<Button href={resolve('/(dock)/charities')} icon={IconHeart} variant="outline" size="sm">
+			Find a charity
+		</Button>
+	</div>
+
 	<div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
 		<StatTile
 			label="To hand over"
@@ -34,14 +81,14 @@
 			icon={IconBag}
 			tone="primary"
 			hint="next 24 hours"
-			href={resolve('/(dock)/offers')}
+			href="#pickups"
 		/>
 		<StatTile
 			label="Reservations"
 			value={data.stats.totalReservations}
 			icon={IconChart}
 			tone="info"
-			hint="{data.stats.avgPerDay} per day · 30 days"
+			hint="{data.stats.avgPerDay.toFixed(1)} per day · last 30 days"
 			href={resolve('/(dock)/analytics')}
 		/>
 		<StatTile
@@ -65,6 +112,51 @@
 	</div>
 
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+		<div id="pickups" class="scroll-mt-4">
+		<SectionCard
+			title="Next 24 hours"
+			description="Bags your customers and charities will collect"
+			icon={IconBag}
+			bodyClass="gap-3"
+		>
+			{#snippet actions()}
+				<span class="badge badge-primary badge-sm">{data.pickupsNextDay} total</span>
+			{/snippet}
+
+			{#if data.upcomingPickups.length === 0}
+				<p class="rounded-xl border border-dashed border-base-300 p-4 text-sm text-base-content/60">
+					No pickups due. Enjoy the quiet — the next orders will show up here automatically.
+				</p>
+			{:else}
+				<ul class="space-y-2">
+					{#each data.upcomingPickups as pickup (pickup.id)}
+						<li>
+							<a
+								href={resolve('/(dock)/offers/[id]', { id: pickup.offerId })}
+								class="pressable flex items-center gap-3 rounded-xl border border-base-300 p-3 hover:border-primary/30"
+							>
+								<div class="min-w-0 flex-1">
+									<p class="truncate text-sm font-semibold">{pickup.offerName}</p>
+									<p class="truncate text-xs text-base-content/60">
+										{formatPickupWindow(pickup.from, pickup.until)}{pickup.locationName
+											? ` · ${pickup.locationName}`
+											: ''}
+									</p>
+								</div>
+								<IconArrow class="size-4 shrink-0 text-base-content/40 rtl:rotate-180" />
+							</a>
+						</li>
+					{/each}
+				</ul>
+				{#if data.pickupsNextDay > data.upcomingPickups.length}
+					<p class="text-xs text-base-content/50">
+						+ {data.pickupsNextDay - data.upcomingPickups.length} more in the next 24 hours
+					</p>
+				{/if}
+			{/if}
+		</SectionCard>
+		</div>
+
 		<SectionCard
 			title="Giving"
 			description="Food that goes to charities instead of the bin"
@@ -139,6 +231,29 @@
 			{/if}
 		</SectionCard>
 
+		{#if attention.length > 0}
+			<SectionCard
+				title="Needs attention"
+				description="Small things worth a look"
+				icon={IconWarning}
+				tone="warning"
+				bodyClass="gap-2"
+				class="lg:col-span-2"
+			>
+				{#each attention as item (item.label)}
+					<a
+						href={item.href}
+						class="pressable flex items-center gap-3 rounded-xl border border-base-300 p-3 hover:border-warning/40"
+					>
+						<item.icon class="size-5 shrink-0 text-warning" />
+						<span class="min-w-0 flex-1 truncate text-sm font-semibold">{item.label}</span>
+						<span class="hidden text-xs text-base-content/60 sm:block">{item.hint}</span>
+						<IconArrow class="size-4 shrink-0 text-base-content/40 rtl:rotate-180" />
+					</a>
+				{/each}
+			</SectionCard>
+		{/if}
+
 		<SectionCard
 			title="Top offers"
 			description="Most reserved, last 30 days"
@@ -169,7 +284,7 @@
 			{/if}
 		</SectionCard>
 
-		<SectionCard title="Locations" icon={IconLocation} bodyClass="gap-3" class="lg:col-span-2">
+		<SectionCard title="Locations" icon={IconLocation} bodyClass="gap-3">
 			{#snippet actions()}
 				<a href={resolve('/(dock)/locations')} class="btn gap-1 btn-ghost btn-sm"
 					>All <IconArrow class="size-4" /></a
@@ -178,21 +293,29 @@
 			{#if data.locationPerformanceData.length === 0}
 				<p class="text-sm text-base-content/60">Add your first location to start selling.</p>
 			{:else}
-				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+				<ul class="space-y-2">
 					{#each data.locationPerformanceData as loc (loc.id)}
-						<a
-							href={resolve('/(dock)/locations/[id]', { id: loc.id })}
-							class="rounded-xl border border-base-300 p-3 text-sm hover:bg-base-200/50"
-						>
-							<p class="truncate font-semibold">{loc.name}</p>
-							<p class="truncate text-xs text-base-content/60">{loc.address}, {loc.city}</p>
-							<p class="mt-2 text-xs text-base-content/70">
-								{loc.totalReservations} reservations · {loc.completionRate}% picked up · {loc.favoritesCount}
-								♥
-							</p>
-						</a>
+						<li>
+							<a
+								href={resolve('/(dock)/locations/[id]', { id: loc.id })}
+								class="pressable flex items-center gap-3 rounded-xl border border-base-300 p-3 hover:border-primary/30"
+							>
+								<div class="min-w-0 flex-1">
+									<p class="truncate text-sm font-semibold">{loc.name}</p>
+									<p class="truncate text-xs text-base-content/60">
+										{loc.address}, {loc.city}
+									</p>
+								</div>
+								<span class="shrink-0 text-right text-xs text-base-content/60">
+									<span class="block font-semibold text-base-content tabular-nums"
+										>{loc.totalReservations}</span
+									>
+									{loc.completionRate}% picked up
+								</span>
+							</a>
+						</li>
 					{/each}
-				</div>
+				</ul>
 			{/if}
 		</SectionCard>
 	</div>
