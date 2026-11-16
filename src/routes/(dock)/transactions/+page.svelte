@@ -3,288 +3,213 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import { formatDate, formatDateTime, formatMonthYear } from '#lib/dates.js';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
+	import StatTile from '#lib/components/ui/StatTile.svelte';
+	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
+	import { PAYMENT_METHOD, SETTLEMENT_STATUS } from '#lib/statuses.js';
+	import IconMoneyHand from '~icons/fluent/money-hand-24-regular';
 	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
 	import IconClock from '~icons/fluent/clock-24-regular';
-	import IconDismissCircle from '~icons/fluent/dismiss-circle-24-regular';
-	import IconWarning from '~icons/fluent/warning-24-regular';
-	import IconMoneyHand from '~icons/fluent/money-hand-24-regular';
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 	import IconChevronDown from '~icons/fluent/chevron-down-24-regular';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	// todo: make it possible for businesses to download pdf receipts for settlements and all the offers bouught during the month, including the date of each.
-	// this should make it possible for the irs to properly tax the business.
+	// todo: make it possible for businesses to download pdf receipts for settlements
+	// and the offers bought during the month, so they can hand them to their tax advisor.
 
-	function formatCurrency(amount: number, currency: string = 'EUR'): string {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: currency
-		}).format(amount);
+	function money(amount: number, currency: string) {
+		return `${currency === 'EUR' ? '€' : ''}${amount.toLocaleString('de-DE', {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		})}${currency === 'EUR' ? '' : ` ${currency}`}`;
 	}
 
-	function formatMonth(month: string, year: number): string {
+	function monthLabel(month: string, year: number) {
 		return formatMonthYear(new Date(year, parseInt(month) - 1));
 	}
 
-	function getStatusBadge(status: string) {
-		const statusMap = {
-			pending: { class: 'badge-warning', icon: IconClock, text: 'Pending' },
-			processing: { class: 'badge-info', icon: IconClock, text: 'Processing' },
-			paid: { class: 'badge-success', icon: IconCheckmarkCircle, text: 'Paid' },
-			failed: { class: 'badge-error', icon: IconDismissCircle, text: 'Failed' },
-			partially_paid: { class: 'badge-warning', icon: IconWarning, text: 'Partially Paid' }
-		};
-		return statusMap[status as keyof typeof statusMap] || statusMap.pending;
-	}
+	const expanded = new SvelteSet<string>();
 
-	function getPaymentMethodBadge(method: string) {
-		return method === 'iban'
-			? { class: 'badge-primary', text: 'Bank Transfer' }
-			: { class: 'badge-accent', text: 'USDT' };
-	}
-
-	const expandedSettlements = new SvelteSet<string>();
-
-	function toggleSettlement(id: string) {
-		if (expandedSettlements.has(id)) {
-			expandedSettlements.delete(id);
-		} else {
-			expandedSettlements.add(id);
-		}
+	function toggle(id: string) {
+		if (expanded.has(id)) expanded.delete(id);
+		else expanded.add(id);
 	}
 </script>
 
 <BaseLayout
-	title="Monthly Settlements"
-	description="View and track your monthly payment settlements"
+	title="Payments"
+	description="Monthly settlements and the payments behind them"
 	icon={IconMoneyHand}
 >
-	<!-- Summary Cards -->
-	<div class="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-		<div class="stats shadow">
-			<div class="stat">
-				<div class="stat-figure text-warning">
-					<IconMoneyHand class="size-8" />
-				</div>
-				<div class="stat-title">Pending Bank Transfer</div>
-				<div class="stat-value text-2xl">
-					{formatCurrency(data.summary.totalPendingIban, 'EUR')}
-				</div>
-				<div class="stat-desc">{data.summary.pendingSettlements} pending settlements</div>
-			</div>
-		</div>
-
-		<div class="stats shadow">
-			<div class="stat">
-				<div class="stat-figure text-accent">
-					<IconMoneyHand class="size-8" />
-				</div>
-				<div class="stat-title">Pending USDT</div>
-				<div class="stat-value text-2xl">
-					{formatCurrency(data.summary.totalPendingTether, 'USD')}
-				</div>
-				<div class="stat-desc">Tether payments</div>
-			</div>
-		</div>
-
-		<div class="stats shadow">
-			<div class="stat">
-				<div class="stat-figure text-success">
-					<IconCheckmarkCircle class="size-8" />
-				</div>
-				<div class="stat-title">Total Paid (Bank)</div>
-				<div class="stat-value text-2xl">
-					{formatCurrency(data.summary.totalPaidIban, 'EUR')}
-				</div>
-				<div class="stat-desc">All-time bank transfers</div>
-			</div>
-		</div>
-
-		<div class="stats shadow">
-			<div class="stat">
-				<div class="stat-figure text-success">
-					<IconCheckmarkCircle class="size-8" />
-				</div>
-				<div class="stat-title">Total Paid (USDT)</div>
-				<div class="stat-value text-2xl">
-					{formatCurrency(data.summary.totalPaidTether, 'USD')}
-				</div>
-				<div class="stat-desc">All-time USDT payments</div>
-			</div>
-		</div>
+	<div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+		<StatTile
+			label="Pending by bank"
+			value={data.summary.totalPendingIban}
+			decimals={2}
+			prefix="€"
+			icon={IconClock}
+			tone="warning"
+			hint="{data.summary.pendingSettlements} monthly settlements"
+		/>
+		<StatTile
+			label="Pending USDT"
+			value={data.summary.totalPendingTether}
+			decimals={2}
+			icon={IconClock}
+			tone="accent"
+			hint="Tether payouts"
+		/>
+		<StatTile
+			label="Paid by bank"
+			value={data.summary.totalPaidIban}
+			decimals={2}
+			prefix="€"
+			icon={IconCheckmarkCircle}
+			tone="success"
+			hint="all time"
+		/>
+		<StatTile
+			label="Paid USDT"
+			value={data.summary.totalPaidTether}
+			decimals={2}
+			icon={IconCheckmarkCircle}
+			tone="success"
+			hint="all time"
+		/>
 	</div>
 
-	<!-- Settlements List -->
-	<div class="space-y-4">
-		{#if data.settlements.length === 0}
-			<div class="alert">
-				<IconCalendar class="size-6" />
-				<span>No settlements yet. Settlements are generated monthly for completed payments.</span>
-			</div>
-		{:else}
+	{#if data.settlements.length === 0}
+		<EmptyState
+			icon={IconCalendar}
+			title="No settlements yet"
+			description="Settlements are generated monthly once payments are completed."
+		/>
+	{:else}
+		<div class="space-y-4">
 			{#each data.settlements as settlement (settlement.id)}
-				{@const statusBadge = getStatusBadge(settlement.status)}
-				{@const isExpanded = expandedSettlements.has(settlement.id)}
-
-				<div class="card bg-base-200 shadow-lg">
-					<div class="card-body">
-						<!-- Settlement Header -->
-						<div class="flex flex-wrap items-center justify-between gap-4">
+				{@const isExpanded = expanded.has(settlement.id)}
+				<Card padding="none">
+					<div class="space-y-4 p-5">
+						<div class="flex flex-wrap items-center justify-between gap-3">
 							<div class="flex items-center gap-3">
-								<IconCalendar class="size-6 text-primary" />
+								<div class="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+									<IconCalendar class="size-5" />
+								</div>
 								<div>
-									<h3 class="text-xl font-bold">
-										{formatMonth(settlement.month, settlement.year)}
-									</h3>
-									<p class="text-sm text-base-content/60">
-										Settlement ID: {settlement.id.slice(0, 8)}...
+									<h2 class="text-lg font-bold">{monthLabel(settlement.month, settlement.year)}</h2>
+									<p class="font-mono text-xs text-base-content/50">
+										{settlement.id.slice(0, 8)}
 									</p>
 								</div>
 							</div>
-
-							<div class="flex items-center gap-2">
-								<span class="badge {statusBadge.class} gap-2">
-									<statusBadge.icon class="size-4" />
-									{statusBadge.text}
-								</span>
-							</div>
+							<StatusBadge map={SETTLEMENT_STATUS} status={settlement.status} />
 						</div>
 
-						<!-- Settlement Summary -->
-						<div class="mt-4 grid gap-4 md:grid-cols-2">
-							<!-- Bank Transfer Summary -->
+						<div class="grid gap-3 md:grid-cols-2">
 							{#if settlement.ibanPaymentCount > 0}
-								<div class="rounded-lg bg-base-300 p-4">
-									<div class="mb-2 flex items-center gap-2">
-										<span class="badge badge-primary">Bank Transfer</span>
-										<span class="text-sm text-base-content/60">
-											{settlement.ibanPaymentCount} payments
-										</span>
+								<div class="rounded-xl bg-base-200/60 p-4">
+									<div class="mb-1 flex items-center gap-2">
+										<StatusBadge map={PAYMENT_METHOD} status="iban" outline />
+										<span class="text-xs text-base-content/60"
+											>{settlement.ibanPaymentCount} payments</span
+										>
 									</div>
-									<div class="text-2xl font-bold">
-										{formatCurrency(settlement.ibanTotalAmount, settlement.ibanCurrency || 'EUR')}
-									</div>
+									<p class="text-xl font-bold">
+										{money(settlement.ibanTotalAmount, settlement.ibanCurrency || 'EUR')}
+									</p>
 									{#if settlement.ibanPaidAt}
-										<div class="mt-2 text-xs text-success">
-											<IconCheckmarkCircle class="inline size-4" />
+										<p class="mt-1 text-xs text-success">
 											Paid on {formatDate(settlement.ibanPaidAt)}
-										</div>
-										{#if settlement.ibanTransactionRef}
-											<div class="text-xs text-base-content/60">
-												Ref: {settlement.ibanTransactionRef}
-											</div>
-										{/if}
+											{#if settlement.ibanTransactionRef}· {settlement.ibanTransactionRef}{/if}
+										</p>
 									{/if}
 									{#if settlement.ibanPayoutError}
-										<div class="mt-2 text-xs text-error">
-											<IconDismissCircle class="inline size-4" />
-											{settlement.ibanPayoutError}
-										</div>
+										<p class="mt-1 text-xs text-error">{settlement.ibanPayoutError}</p>
 									{/if}
 								</div>
 							{/if}
-
-							<!-- Tether Summary -->
 							{#if settlement.tetherPaymentCount > 0}
-								<div class="rounded-lg bg-base-300 p-4">
-									<div class="mb-2 flex items-center gap-2">
-										<span class="badge badge-accent">USDT</span>
-										<span class="text-sm text-base-content/60">
-											{settlement.tetherPaymentCount} payments
-										</span>
+								<div class="rounded-xl bg-base-200/60 p-4">
+									<div class="mb-1 flex items-center gap-2">
+										<StatusBadge map={PAYMENT_METHOD} status="usdt" outline />
+										<span class="text-xs text-base-content/60"
+											>{settlement.tetherPaymentCount} payments</span
+										>
 									</div>
-									<div class="text-2xl font-bold">
-										{formatCurrency(settlement.tetherTotalAmount, 'USD')}
-									</div>
+									<p class="text-xl font-bold">
+										{money(settlement.tetherTotalAmount, 'USD')}
+									</p>
 									{#if settlement.tetherPaidAt}
-										<div class="mt-2 text-xs text-success">
-											<IconCheckmarkCircle class="inline size-4" />
+										<p class="mt-1 text-xs text-success">
 											Paid on {formatDate(settlement.tetherPaidAt)}
-										</div>
-										{#if settlement.tetherTxHash}
-											<div class="text-xs text-base-content/60">
-												TX: {settlement.tetherTxHash.slice(0, 10)}...
-											</div>
-										{/if}
+											{#if settlement.tetherTxHash}· {settlement.tetherTxHash.slice(0, 10)}…{/if}
+										</p>
 									{/if}
 									{#if settlement.tetherPayoutError}
-										<div class="mt-2 text-xs text-error">
-											<IconDismissCircle class="inline size-4" />
-											{settlement.tetherPayoutError}
-										</div>
+										<p class="mt-1 text-xs text-error">{settlement.tetherPayoutError}</p>
 									{/if}
 								</div>
 							{/if}
 						</div>
 
-						<!-- Notes -->
 						{#if settlement.notes}
-							<div class="mt-4 rounded-lg bg-base-300 p-3 text-sm">
-								<strong>Notes:</strong>
+							<p class="rounded-xl bg-base-200/60 p-3 text-sm">
+								<span class="font-semibold">Note:</span>
 								{settlement.notes}
-							</div>
+							</p>
 						{/if}
 
-						<!-- Toggle Payment Details -->
-						<div class="mt-4 card-actions justify-end">
-							<button
-								class="btn gap-2 btn-ghost btn-sm"
-								onclick={() => toggleSettlement(settlement.id)}
-							>
-								View {settlement.payments.length} Payments
-								<IconChevronDown
-									class="size-4 transition-transform {isExpanded ? 'rotate-180' : ''}"
-								/>
-							</button>
-						</div>
-
-						<!-- Payment Details (Expandable) -->
-						{#if isExpanded && settlement.payments.length > 0}
-							<div class="mt-4 overflow-x-auto">
-								<table class="table table-zebra table-sm">
-									<thead>
-										<tr>
-											<th>Payment ID</th>
-											<th>Method</th>
-											<th>Amount</th>
-											<th>Completed</th>
-											<th>Status</th>
-										</tr>
-									</thead>
-									<tbody>
-										{#each settlement.payments as payment (payment.id)}
-											{@const methodBadge = getPaymentMethodBadge(payment.paymentMethod)}
-											<tr>
-												<td class="font-mono text-xs">
-													{payment.paymentId.slice(0, 8)}...
-												</td>
-												<td>
-													<span class="badge {methodBadge.class} badge-sm">
-														{methodBadge.text}
-													</span>
-												</td>
-												<td class="font-semibold">
-													{formatCurrency(payment.businessAmount, payment.currency)}
-												</td>
-												<td class="text-xs">
-													{payment.completedAt ? formatDateTime(payment.completedAt) : 'N/A'}
-												</td>
-												<td>
-													<span class="badge badge-xs">
-														{payment.status}
-													</span>
-												</td>
-											</tr>
-										{/each}
-									</tbody>
-								</table>
+						{#if settlement.payments.length > 0}
+							<div class="border-t border-base-200 pt-3">
+								<button
+									class="btn gap-2 btn-ghost btn-sm"
+									aria-expanded={isExpanded}
+									onclick={() => toggle(settlement.id)}
+								>
+									{isExpanded ? 'Hide' : 'View'}
+									{settlement.payments.length}
+									{settlement.payments.length === 1 ? 'payment' : 'payments'}
+									<IconChevronDown
+										class="size-4 transition-transform {isExpanded ? 'rotate-180' : ''}"
+									/>
+								</button>
 							</div>
 						{/if}
 					</div>
-				</div>
+
+					{#if isExpanded && settlement.payments.length > 0}
+						<div class="overflow-x-auto border-t border-base-200">
+							<table class="table w-full table-sm">
+								<thead>
+									<tr>
+										<th class="text-xs uppercase">Payment</th>
+										<th class="text-xs uppercase">Method</th>
+										<th class="text-xs uppercase">Amount</th>
+										<th class="text-xs uppercase">Completed</th>
+										<th class="text-xs uppercase">Status</th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each settlement.payments as payment (payment.id)}
+										<tr>
+											<td class="font-mono text-xs">{payment.paymentId.slice(0, 8)}</td>
+											<td><StatusBadge map={PAYMENT_METHOD} status={payment.paymentMethod} outline /></td>
+											<td class="font-semibold">{money(payment.businessAmount, payment.currency)}</td>
+											<td class="text-xs">
+												{payment.completedAt ? formatDateTime(payment.completedAt) : '—'}
+											</td>
+											<td class="text-xs capitalize">{payment.status}</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					{/if}
+				</Card>
 			{/each}
-		{/if}
-	</div>
+		</div>
+	{/if}
 </BaseLayout>
