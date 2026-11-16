@@ -5,6 +5,8 @@
 	import { page } from '$app/state';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import SectionCard from '#lib/components/ui/SectionCard.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import IconPeople from '~icons/fluent/people-team-24-regular';
 	import IconPersonAdd from '~icons/fluent/person-add-24-regular';
 	import IconDelete from '~icons/fluent/delete-24-regular';
@@ -38,19 +40,18 @@
 			{/if}
 
 			{#if data.team.length === 0}
-				<div class="rounded-2xl border border-dashed border-base-300 bg-base-100 p-8 text-center">
-					<IconPeople class="mx-auto mb-2 size-10 opacity-30" />
-					<p class="font-medium">No team members yet</p>
-					<p class="text-sm text-base-content/60">
-						Add the people who {isBusiness ? 'hand out orders' : 'collect donations'}.
-					</p>
-				</div>
+				<EmptyState
+					icon={IconPeople}
+					title="No team members yet"
+					description="Add the people who {isBusiness
+						? 'hand out orders at your locations'
+						: 'collect donations for you'}."
+				/>
 			{:else}
 				<ul class="space-y-2">
 					{#each data.team as member (member.accountId)}
-						<li
-							class="flex flex-wrap items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-3"
-						>
+						<li>
+						<Card padding="sm" class="flex flex-wrap items-center gap-3">
 							<div class="avatar avatar-placeholder">
 								<div class="w-10 rounded-full bg-primary/10 text-primary">
 									<span class="font-bold">{member.name.slice(0, 1).toUpperCase()}</span>
@@ -100,6 +101,7 @@
 									<IconDelete class="size-4" />
 								</button>
 							</form>
+						</Card>
 						</li>
 					{/each}
 				</ul>
@@ -136,7 +138,7 @@
 							/>
 						</label>
 						<label class="block">
-							<span class="mb-1 block text-sm font-medium">Google email</span>
+							<span class="mb-1 block text-sm font-medium">Email address</span>
 							<input
 								name="email"
 								type="email"
@@ -187,7 +189,11 @@
 				{#if !data.ssoAvailable}
 					<p class="text-sm text-base-content/70">Company sign-in is not available on this server yet.</p>
 				{:else}
-					<div class="space-y-1 text-sm text-base-content/70">
+					<details class="group">
+						<summary class="cursor-pointer text-sm font-semibold text-primary">
+							{data.sso ? 'Edit provider settings' : 'Set up company sign-in'}
+						</summary>
+					<div class="space-y-1 pt-4 text-sm text-base-content/70">
 						<p>
 							Register Go Bento as a web app in your identity provider (Microsoft Entra ID, Okta,
 							Google Workspace, Keycloak, …) with this redirect URI:
@@ -273,6 +279,7 @@
 							<button class="btn btn-block btn-ghost btn-sm">Disconnect</button>
 						</form>
 					{/if}
+					</details>
 				{/if}
 			</SectionCard>
 
