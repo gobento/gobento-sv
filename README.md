@@ -41,7 +41,13 @@ Never commit `.env` or any other secret.
 | `bun run preview` | Preview the production build |
 | `bun run check` | Svelte and TypeScript diagnostics |
 | `bun run test` | Vitest unit tests |
+| `bun lint` | Built-in Bun linter (add `--fix` to apply fixes) |
+| `bun fmt --check` | Check formatting; `bun fmt` applies it |
 | `bun run db:snapshot` | Regenerate the mock database schema from the Drizzle schema |
+
+There are no `lint`/`fmt` package scripts on purpose: `bun lint` and `bun fmt`
+are built into Bun and run directly. Run `bun lint` and `bun fmt --check` before
+opening a pull request.
 
 ## Project layout
 
@@ -95,5 +101,17 @@ storage and outbound HTTP calls are routed through the same mock layer when
 
 - [docs/MIGRATION_TASKS.md](docs/MIGRATION_TASKS.md) — SvelteKit migration notes
 - [docs/todo.md](docs/todo.md) — feature backlog and known gaps
+
+## Deployment
+
+`vercel.json` installs with Bun, builds with `bun run build` and schedules the
+recurring-gift cron (`/api/cron/recurring-gifts`, 05:00 UTC daily). The web app
+is deployed by connecting the repository to Vercel; pushes to the default branch
+are built and published automatically. Configure the environment variables from
+`.env.example` in the Vercel project settings. Nothing here needs server-side
+SSH access.
+
+Bot containers (the `bot/` folder) are deployed separately from the web app; see
+the internal operations notes for those steps.
 
 Contributor conventions for this repository are in [agents.md](agents.md).
