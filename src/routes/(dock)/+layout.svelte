@@ -109,8 +109,13 @@
 	</a>
 
 	<div class="flex flex-1 flex-col gap-1 overflow-y-auto">
-		{#each items as item (item.path)}
+		{#each items as item, index (item.path)}
 			{@const isActive = item.path === active}
+			{#if item.section && items[index - 1]?.section !== item.section}
+				<p class="px-3.5 pt-3 pb-1 text-xs font-semibold tracking-wide text-base-content/40 uppercase">
+					{item.section}
+				</p>
+			{/if}
 			<!-- eslint-disable svelte/no-navigation-without-resolve -- fixed app paths from navigation.ts -->
 			<a
 				href={item.path}
@@ -185,6 +190,13 @@
 	<ul class="flex flex-col gap-1 pb-2">
 		{#each bar.overflow as item, index (item.path)}
 			{@const isActive = item.path === active}
+			{#if item.section && bar.overflow[index - 1]?.section !== item.section}
+				<li
+					class="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-base-content/40 uppercase"
+				>
+					{item.section}
+				</li>
+			{/if}
 			<li class="animate-rise-in stagger" style:--i={index}>
 				<!-- eslint-disable svelte/no-navigation-without-resolve -- fixed app paths from navigation.ts -->
 				<a

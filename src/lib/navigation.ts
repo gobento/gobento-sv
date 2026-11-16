@@ -23,6 +23,8 @@ export interface NavItem {
 	path: string;
 	label: string;
 	icon: NavIcon;
+	/** Optional group heading, shown in the sidebar and the "More" sheet only. */
+	section?: string;
 }
 
 const PROFILE: NavItem = { path: '/profile', label: 'Profile', icon: 'person' };
@@ -37,21 +39,21 @@ const NAVIGATION: Record<AccountType, NavItem[]> = {
 		PROFILE
 	],
 	business: [
-		{ path: '/dashboard', label: 'Dashboard', icon: 'home' },
-		{ path: '/offers', label: 'Offers', icon: 'tag' },
+		{ path: '/dashboard', label: 'Dashboard', icon: 'home', section: 'Overview' },
+		{ path: '/offers', label: 'Offers', icon: 'tag', section: 'Selling' },
 		{ path: '/locations', label: 'Locations', icon: 'location' },
-		{ path: '/transactions', label: 'Payments', icon: 'money' },
+		{ path: '/transactions', label: 'Payments', icon: 'money', section: 'Insights' },
 		{ path: '/analytics', label: 'Analytics', icon: 'chart' },
-		{ path: '/charities', label: 'Charities', icon: 'heart' },
+		{ path: '/charities', label: 'Charities', icon: 'heart', section: 'Organisation' },
 		{ path: '/team', label: 'Team', icon: 'person' },
 		{ path: '/complaints', label: 'Complaints', icon: 'warning' },
 		SETTINGS
 	],
 	charity: [
-		{ path: '/donations', label: 'Donations', icon: 'heart' },
+		{ path: '/donations', label: 'Donations', icon: 'heart', section: 'Collecting' },
 		{ path: '/discover', label: 'Discover', icon: 'discover' },
 		{ path: '/reservations', label: 'Pickups', icon: 'bag' },
-		{ path: '/team', label: 'Team', icon: 'person' },
+		{ path: '/team', label: 'Team', icon: 'person', section: 'Organisation' },
 		SETTINGS
 	],
 	// Staff of a business or charity: the counter / collection view only.
