@@ -1,23 +1,19 @@
 <!-- src/routes/(dock)/donations/+page.svelte -->
 <script lang="ts">
-	import { formatDateTime } from '#lib/dates.js';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import StatTile from '#lib/components/ui/StatTile.svelte';
-	import Card from '#lib/components/ui/Card.svelte';
 	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import Segmented from '#lib/components/ui/Segmented.svelte';
-	import PickupQr from '#lib/components/reservations/PickupQr.svelte';
 	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';
+	import GiftOfferCard from '#lib/components/donations/GiftOfferCard.svelte';
+	import PickupRequestCard from '#lib/components/donations/PickupRequestCard.svelte';
+	import UpcomingPickupCard from '#lib/components/donations/UpcomingPickupCard.svelte';
+	import { formatDateTime } from '#lib/dates.js';
 	import { GIFT_STATUS, PICKUP_STATUS } from '#lib/statuses.js';
-	import { formatPickupWindow } from '#lib/components/reservations/pickup.js';
-	import { FOOD_TYPE_LABELS, isFoodType } from '#lib/foodTypes.js';
 	import IconHeart from '~icons/fluent/heart-24-regular';
-	import IconLocation from '~icons/fluent/location-24-regular';
-	import IconClock from '~icons/fluent/clock-24-regular';
-	import IconTag from '~icons/fluent/tag-24-regular';
 	import IconCheck from '~icons/fluent/checkmark-24-regular';
 	import IconDismiss from '~icons/fluent/dismiss-24-regular';
 	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
@@ -34,11 +30,6 @@
 
 	let processingId = $state<string | null>(null);
 	let tab = $state<'todo' | 'upcoming' | 'regular' | 'history'>('todo');
-
-	function formatDate(value: string | Date | null): string {
-		if (!value) return '';
-		return formatDateTime(value);
-	}
 
 	const GRACE_MS = 6 * 60 * 60 * 1000;
 	const now = Date.now();
@@ -144,38 +135,8 @@
 						</h2>
 						<div class="space-y-4">
 							{#each giftOffers as gift (gift.id)}
-								<Card class="border-primary/30">
-									<div class="flex items-start gap-3">
-										<div class="avatar">
-											<div class="w-12 rounded-xl ring ring-base-300">
-												<img src={gift.logoUrl} alt={gift.businessName} />
-											</div>
-										</div>
-										<div class="min-w-0 flex-1">
-											<h3 class="font-semibold">{gift.businessName}</h3>
-											<p class="text-sm font-medium text-primary">{gift.schedule}</p>
-										</div>
-									</div>
-									<p class="text-sm text-base-content/80">{gift.message}</p>
-									<div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-base-content/70">
-										{#if gift.foodType && isFoodType(gift.foodType)}
-											<span class="inline-flex items-center gap-1.5">
-												<IconTag class="size-4" />{FOOD_TYPE_LABELS[gift.foodType]}
-											</span>
-										{/if}
-										{#if gift.locationName}
-											<span class="inline-flex items-center gap-1.5">
-												<IconLocation class="size-4" />{gift.locationName}{gift.locationAddress
-													? `, ${gift.locationAddress}`
-													: ''}
-											</span>
-										{/if}
-									</div>
-									<p class="text-xs text-base-content/60">
-										Accepting books every pickup for you automatically, three days ahead. You can
-										call off a single pickup or stop the gift at any time.
-									</p>
-									<div class="flex flex-wrap justify-end gap-2">
+								<GiftOfferCard {gift}>
+									{#snippet actions()}
 										<form
 											method="POST"
 											action="?/declineGift"
@@ -198,8 +159,8 @@
 												<IconCheck class="size-4" /> Accept schedule
 											</button>
 										</form>
-									</div>
-								</Card>
+									{/snippet}
+								</GiftOfferCard>
 							{/each}
 						</div>
 					</section>
@@ -213,50 +174,8 @@
 						</h2>
 						<div class="space-y-4">
 							{#each pending as req (req.id)}
-								<Card>
-									<div class="flex items-start gap-3">
-										<div class="avatar">
-											<div class="w-12 rounded-xl ring ring-base-300">
-												<img src={req.logoUrl} alt={req.businessName} />
-											</div>
-										</div>
-										<div class="min-w-0 flex-1">
-											<h3 class="font-semibold">{req.businessName}</h3>
-											<p class="text-xs text-base-content/60">
-												Requested {formatDate(req.createdAt)}
-											</p>
-										</div>
-										<StatusBadge map={PICKUP_STATUS} status={req.status} />
-									</div>
-									<p class="text-sm text-base-content/80">{req.message}</p>
-									<div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-base-content/70">
-										{#if req.foodType && isFoodType(req.foodType)}
-											<span class="inline-flex items-center gap-1.5">
-												<IconTag class="size-4" />
-												{FOOD_TYPE_LABELS[req.foodType]}
-											</span>
-										{/if}
-										{#if req.offerName}
-											<span class="inline-flex items-center gap-1.5">
-												<IconTag class="size-4" />
-												{req.offerName}
-											</span>
-										{/if}
-										{#if req.locationName}
-											<span class="inline-flex items-center gap-1.5">
-												<IconLocation class="size-4" />
-												{req.locationName}{req.locationCity ? `, ${req.locationCity}` : ''}
-											</span>
-										{/if}
-										{#if req.proposedPickupFrom}
-											<span class="inline-flex items-center gap-1.5">
-												<IconClock class="size-4" />
-												{formatDate(req.proposedPickupFrom)}
-												{#if req.proposedPickupUntil}– {formatDate(req.proposedPickupUntil)}{/if}
-											</span>
-										{/if}
-									</div>
-									<div class="flex flex-wrap justify-end gap-2">
+								<PickupRequestCard {req}>
+									{#snippet actions()}
 										<form method="POST" action="?/declineRequest" use:enhance={busy(req.id)}>
 											<input type="hidden" name="requestId" value={req.id} />
 											<button
@@ -283,8 +202,8 @@
 												Accept
 											</button>
 										</form>
-									</div>
-								</Card>
+									{/snippet}
+								</PickupRequestCard>
 							{/each}
 						</div>
 					</section>
@@ -301,46 +220,8 @@
 		{:else}
 			<div class="space-y-3">
 				{#each upcoming as req (req.id)}
-					<Card padding="sm">
-						<div class="flex items-start gap-3">
-							<div class="avatar">
-								<div class="w-10 rounded-xl ring ring-base-300">
-									<img src={req.logoUrl} alt={req.businessName} />
-								</div>
-							</div>
-							<div class="min-w-0 flex-1">
-								<h3 class="font-semibold">
-									{#if req.proposedPickupFrom && req.proposedPickupUntil}
-										{formatPickupWindow(req.proposedPickupFrom, req.proposedPickupUntil)}
-									{:else}
-										Time to be agreed
-									{/if}
-								</h3>
-								<p class="text-sm text-base-content/70">
-									{req.businessName}{#if req.locationName}
-										· {req.locationName}{req.locationAddress ? `, ${req.locationAddress}` : ''}{/if}
-								</p>
-							</div>
-							{#if req.recurringGiftId}
-								<span class="badge gap-1 badge-outline badge-sm badge-primary"
-									><IconRepeat class="size-3" /> Regular</span
-								>
-							{/if}
-						</div>
-						<p class="text-sm text-base-content/70">{req.message}</p>
-						{#if req.reservationId && req.reservationClaimToken && req.reservationStatus === 'active'}
-							<details class="rounded-xl bg-base-200/60 p-3">
-								<summary class="cursor-pointer text-sm font-semibold">Show pickup code</summary>
-								<div class="mt-3">
-									<PickupQr
-										reservationId={req.reservationId}
-										claimToken={req.reservationClaimToken}
-										serverNow={data.serverNow}
-									/>
-								</div>
-							</details>
-						{/if}
-						<div class="flex flex-wrap justify-end gap-2">
+					<UpcomingPickupCard {req} serverNow={data.serverNow}>
+						{#snippet actions()}
 							<form
 								method="POST"
 								action="?/skipPickup"
@@ -357,8 +238,8 @@
 									<IconCheck class="size-4" /> Collected
 								</button>
 							</form>
-						</div>
-					</Card>
+						{/snippet}
+					</UpcomingPickupCard>
 				{/each}
 			</div>
 		{/if}
@@ -372,57 +253,51 @@
 		{:else}
 			<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 				{#each regularDonors as gift (gift.id)}
-					<Card padding="sm">
-						<div class="flex items-center gap-3">
-							<div class="avatar">
-								<div class="w-10 rounded-xl ring ring-base-300">
-									<img src={gift.logoUrl} alt={gift.businessName} />
-								</div>
+					<div class="flex items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-4">
+						<div class="avatar">
+							<div class="w-10 rounded-xl ring ring-base-300">
+								<img src={gift.logoUrl} alt={gift.businessName} />
 							</div>
-							<div class="min-w-0 flex-1">
-								<p class="truncate font-semibold">{gift.businessName}</p>
-								<p class="truncate text-sm text-base-content/70">{gift.schedule}</p>
-							</div>
-							<StatusBadge map={GIFT_STATUS} status={gift.status} />
-							<form
-								method="POST"
-								action="?/stopGift"
-								use:enhance={busy(gift.id, `Stop collecting from ${gift.businessName}?`)}
-							>
-								<input type="hidden" name="giftId" value={gift.id} />
-								<button class="btn btn-ghost btn-xs" disabled={processingId === gift.id}
-									>Stop</button
-								>
-							</form>
 						</div>
-					</Card>
+						<div class="min-w-0 flex-1">
+							<p class="truncate font-semibold">{gift.businessName}</p>
+							<p class="truncate text-sm text-base-content/70">{gift.schedule}</p>
+						</div>
+						<StatusBadge map={GIFT_STATUS} status={gift.status} />
+						<form
+							method="POST"
+							action="?/stopGift"
+							use:enhance={busy(gift.id, `Stop collecting from ${gift.businessName}?`)}
+						>
+							<input type="hidden" name="giftId" value={gift.id} />
+							<button class="btn btn-ghost btn-xs" disabled={processingId === gift.id}>Stop</button>
+						</form>
+					</div>
 				{/each}
 			</div>
 		{/if}
 	{:else if history.length > 0}
 		<div class="space-y-2">
 			{#each history as req (req.id)}
-				<Card padding="sm">
-					<div class="flex items-start gap-3">
-						<div class="avatar">
-							<div class="w-9 rounded-lg ring ring-base-300">
-								<img src={req.logoUrl} alt={req.businessName} />
-							</div>
+				<div class="flex items-start gap-3 rounded-2xl border border-base-300 bg-base-100 p-3">
+					<div class="avatar">
+						<div class="w-9 rounded-lg ring ring-base-300">
+							<img src={req.logoUrl} alt={req.businessName} />
 						</div>
-						<div class="min-w-0 flex-1">
-							<p class="truncate text-sm font-semibold">{req.businessName}</p>
-							<p class="truncate text-xs text-base-content/60">
-								{req.proposedPickupFrom
-									? formatDate(req.proposedPickupFrom)
-									: formatDate(req.createdAt)} · {req.message}
-							</p>
-							{#if req.status === 'declined' && req.notes}
-								<p class="text-xs text-base-content/60">Note: {req.notes}</p>
-							{/if}
-						</div>
-						<StatusBadge map={PICKUP_STATUS} status={req.status} />
 					</div>
-				</Card>
+					<div class="min-w-0 flex-1">
+						<p class="truncate text-sm font-semibold">{req.businessName}</p>
+						<p class="truncate text-xs text-base-content/60">
+							{req.proposedPickupFrom
+								? formatDateTime(req.proposedPickupFrom)
+								: formatDateTime(req.createdAt)} · {req.message}
+						</p>
+						{#if req.status === 'declined' && req.notes}
+							<p class="text-xs text-base-content/60">Note: {req.notes}</p>
+						{/if}
+					</div>
+					<StatusBadge map={PICKUP_STATUS} status={req.status} />
+				</div>
 			{/each}
 		</div>
 	{:else}
