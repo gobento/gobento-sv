@@ -16,6 +16,9 @@
 	import IconWarning from '~icons/fluent/warning-24-regular';
 	import IconPeople from '~icons/fluent/people-24-regular';
 	import IconFilterDismiss from '~icons/fluent/filter-dismiss-24-regular';
+	import IconPause from '~icons/fluent/pause-24-regular';
+	import IconPlay from '~icons/fluent/play-24-regular';
+	import IconCopy from '~icons/fluent/copy-24-regular';
 
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -25,11 +28,35 @@
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import Alert from '#lib/components/Alert.svelte';
 	import Modal from '#lib/components/Modal.svelte';
-	import NotFound from '#lib/components/NotFound.svelte';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
+	import Segmented from '#lib/components/ui/Segmented.svelte';
 	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
 	import { useImagePreloader, extractImageUrls } from '#lib/utils/imagePreloader.svelte.js';
 
 	let { data } = $props();
+
+	type StatusFilter = 'all' | 'active' | 'inactive';
+	const statusOptions = $derived([
+		{ value: 'all' as const, label: 'All', count: data.stats.total },
+		{ value: 'active' as const, label: 'Active', count: data.stats.active },
+		{ value: 'inactive' as const, label: 'Paused', count: data.stats.total - data.stats.active }
+	]);
+	let status = $state<StatusFilter>(data.filters.status as StatusFilter);
+	$effect(() => {
+		status = data.filters.status as StatusFilter;
+	});
+
+	let busyOfferId = $state<string | null>(null);
+
+	function offerBusy(id: string) {
+		return () => {
+			busyOfferId = id;
+			return async ({ update }: { update: () => Promise<void> }) => {
+				await update();
+				busyOfferId = null;
+			};
+		};
+	}
 
 	// Businesses can only post offers once a moderator has approved them
 	const isVerified = $derived(data.verificationStatus === 'verified');
@@ -187,21 +214,48 @@
 			</div>
 
 			<!-- Actions -->
-			<div class="mt-5 flex items-center gap-2 border-t border-base-200 pt-4">
+			<div class="mt-5 space-y-2 border-t border-base-200 pt-4">
 				<a
 					href={resolve('/(dock)/offers/[id]', { id: offer.id })}
-					class="btn flex-1 gap-1 btn-outline btn-primary btn-sm"
+					class="btn btn-block gap-1 btn-outline btn-primary btn-sm"
 				>
 					View details
 					<IconArrowRight class="size-4" />
 				</a>
-				<button
-					class="btn btn-square btn-outline btn-error btn-sm"
-					aria-label="Delete offer"
-					onclick={() => requestDelete(offer)}
-				>
-					<IconDelete class="size-4" />
-				</button>
+				<div class="flex gap-2">
+					<form method="POST" action="?/setActive" class="flex-1" use:enhance={offerBusy(offer.id)}>
+						<input type="hidden" name="offerId" value={offer.id} />
+						<input type="hidden" name="active" value={offer.isActive ? 'false' : 'true'} />
+						<button
+							class="btn btn-block gap-1 btn-ghost btn-sm"
+							disabled={busyOfferId === offer.id}
+							aria-label={offer.isActive ? `Pause ${offer.name}` : `Activate ${offer.name}`}
+						>
+							{#if offer.isActive}
+								<IconPause class="size-4" /> Pause
+							{:else}
+								<IconPlay class="size-4" /> Activate
+							{/if}
+						</button>
+					</form>
+					<form method="POST" action="?/duplicateOffer" use:enhance={offerBusy(offer.id)}>
+						<input type="hidden" name="offerId" value={offer.id} />
+						<button
+							class="btn btn-square btn-ghost btn-sm"
+							disabled={busyOfferId === offer.id}
+							aria-label="Duplicate {offer.name}"
+						>
+							<IconCopy class="size-4" />
+						</button>
+					</form>
+					<button
+						class="btn btn-square btn-ghost btn-sm text-error"
+						aria-label="Delete offer"
+						onclick={() => requestDelete(offer)}
+					>
+						<IconDelete class="size-4" />
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -225,14 +279,14 @@
 	{/if}
 
 	{#if data.stats.total === 0}
-		<NotFound
+		<EmptyState
 			icon={IconTag}
 			title="No offers yet"
 			description={isVerified
 				? 'Create your first offer to attract customers and boost your business'
 				: 'You can create offers once your business has been approved by a moderator'}
-			actionLabel={isVerified ? 'Create First Offer' : undefined}
-			actionHref={isVerified ? '/offers/new' : undefined}
+			actionLabel={isVerified ? 'Create first offer' : undefined}
+			actionHref={isVerified ? resolve('/(dock)/offers/new') : undefined}
 			actionIcon={isVerified ? IconAdd : undefined}
 		/>
 	{:else}
@@ -261,22 +315,15 @@
 		</div>
 
 		<!-- Filter bar -->
-		<div class="mb-8 rounded-2xl border border-base-300 bg-base-100 p-4">
+		<div class="mb-8 space-y-4 rounded-2xl border border-base-300 bg-base-100 p-4">
+			<Segmented
+				options={statusOptions}
+				bind:value={status}
+				label="Offer status"
+				onchange={(value) => updateFilter('status', value)}
+				class="sm:max-w-sm"
+			/>
 			<div class="flex flex-wrap items-end gap-4">
-				<!-- Status -->
-				<label class="form-control">
-					<span class="label-text mb-1 text-xs text-base-content/60">Status</span>
-					<select
-						class="select-bordered select select-sm"
-						value={data.filters.status}
-						onchange={(e) => updateFilter('status', e.currentTarget.value)}
-					>
-						<option value="all">All</option>
-						<option value="active">Active</option>
-						<option value="inactive">Inactive</option>
-					</select>
-				</label>
-
 				<!-- Recurring -->
 				<label class="form-control">
 					<span class="label-text mb-1 text-xs text-base-content/60">Type</span>
@@ -307,7 +354,7 @@
 
 				<!-- Amount range -->
 				<label class="form-control">
-					<span class="label-text mb-1 text-xs text-base-content/60">Min amount</span>
+					<span class="label-text mb-1 text-xs text-base-content/60">Min bags</span>
 					<input
 						type="number"
 						min="0"
@@ -318,7 +365,7 @@
 					/>
 				</label>
 				<label class="form-control">
-					<span class="label-text mb-1 text-xs text-base-content/60">Max amount</span>
+					<span class="label-text mb-1 text-xs text-base-content/60">Max bags</span>
 					<input
 						type="number"
 						min="0"
@@ -339,12 +386,12 @@
 		</div>
 
 		{#if data.offers.length === 0}
-			<NotFound
+			<EmptyState
 				icon={IconTag}
 				title="No offers match your filters"
 				description="Try adjusting or clearing the filters to see more offers."
 				actionLabel="Clear filters"
-				actionHref="?"
+				actionHref={resolve('/(dock)/offers')}
 				actionIcon={IconFilterDismiss}
 			/>
 		{:else}

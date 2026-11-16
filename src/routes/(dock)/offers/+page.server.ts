@@ -9,6 +9,7 @@ import {
 } from '#lib/server/schema.js';
 import { eq, and, asc, desc, gte, lte, inArray, sql, type SQL } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
+import { randomUUID } from 'node:crypto';
 import { getSignedDownloadUrl } from '#lib/server/backblaze.js';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -146,7 +147,60 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	};
 };
 
+/** Loads an offer only if it belongs to the signed-in business. */
+async function ownOffer(offerId: FormDataEntryValue | null, accountId: string) {
+	if (typeof offerId !== 'string' || !offerId) return null;
+	const [offer] = await db
+		.select()
+		.from(businessOffers)
+		.where(and(eq(businessOffers.id, offerId), eq(businessOffers.businessAccountId, accountId)))
+		.limit(1);
+	return offer ?? null;
+}
+
+function requireBusiness(locals: App.Locals) {
+	const account = locals.account;
+	if (!account || account.accountType !== 'business') {
+		throw error(403, 'Only business accounts can manage offers');
+	}
+	return account;
+}
+
 export const actions: Actions = {
+	setActive: async ({ request, locals }) => {
+		const account = requireBusiness(locals);
+		const formData = await request.formData();
+		const offer = await ownOffer(formData.get('offerId'), account.id);
+		if (!offer) return fail(404, { message: 'Offer not found' });
+
+		await db
+			.update(businessOffers)
+			.set({ isActive: formData.get('active') === 'true' })
+			.where(eq(businessOffers.id, offer.id));
+		return { success: true };
+	},
+
+	duplicateOffer: async ({ request, locals }) => {
+		const account = requireBusiness(locals);
+		const formData = await request.formData();
+		const offer = await ownOffer(formData.get('offerId'), account.id);
+		if (!offer) return fail(404, { message: 'Offer not found' });
+
+		try {
+			await db.insert(businessOffers).values({
+				...offer,
+				id: randomUUID(),
+				name: `${offer.name} (copy)`,
+				isActive: false,
+				validUntil: null
+			});
+			return { success: true };
+		} catch (e) {
+			console.error('Failed to duplicate offer:', e);
+			return fail(500, { message: 'Failed to duplicate offer' });
+		}
+	},
+
 	deleteOffer: async ({ request, locals }) => {
 		const account = locals.account;
 
