@@ -5,16 +5,8 @@
 	import { resolve } from '$app/paths';
 	import IconTag from '~icons/fluent/tag-24-regular';
 	import IconAdd from '~icons/fluent/add-24-regular';
-	import IconLocation from '~icons/fluent/location-24-regular';
-	import IconGlobe from '~icons/fluent/globe-24-regular';
-	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
 	import IconDelete from '~icons/fluent/delete-24-regular';
-	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
-	import IconClock from '~icons/fluent/clock-24-regular';
-	import IconBox from '~icons/fluent/box-24-regular';
-	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-regular';
-	import IconPeople from '~icons/fluent/people-24-regular';
 	import IconFilterDismiss from '~icons/fluent/filter-dismiss-24-regular';
 	import IconPause from '~icons/fluent/pause-24-regular';
 	import IconPlay from '~icons/fluent/play-24-regular';
@@ -24,16 +16,18 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
-	import { formatDate, formatTime } from '#lib/util.js';
 	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import Alert from '#lib/components/ui/Alert.svelte';
 	import Modal from '#lib/components/ui/Modal.svelte';
 	import EmptyState from '#lib/components/ui/EmptyState.svelte';
-	import Segmented from '#lib/components/ui/Segmented.svelte';
-	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
 	import { useImagePreloader, extractImageUrls } from '#lib/utils/imagePreloader.svelte.js';
+	import ManageOfferCard from '#lib/components/offers/ManageOfferCard.svelte';
+	import Segmented from '#lib/components/ui/Segmented.svelte';
 
 	let { data } = $props();
+
+	// Preload offer images for a snappier experience.
+	useImagePreloader(() => extractImageUrls(data.offers));
 
 	type StatusFilter = 'all' | 'active' | 'inactive';
 	const statusOptions = $derived([
@@ -55,9 +49,6 @@
 
 	// Businesses can only post offers once a moderator has approved them
 	const isVerified = $derived(data.verificationStatus === 'verified');
-
-	// Preload offer images for a snappier experience
-	useImagePreloader(() => extractImageUrls(data.offers));
 
 	type Offer = (typeof data.offers)[number];
 
@@ -108,152 +99,44 @@
 </script>
 
 {#snippet offerCard(offer: Offer)}
-	<div
-		class="group flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg {offer.isActive
-			? ''
-			: 'opacity-70'}"
-	>
-		<!-- Image header -->
-		<div class="relative h-44 w-full overflow-hidden">
-			<OptimizedLocationImage
-				src={offer.imageUrl ?? ''}
-				alt={offer.name}
-				class="h-full w-full transition-transform duration-300 group-hover:scale-105"
-			/>
-			<div class="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent"></div>
-
-			<!-- Status badge -->
-			<div class="absolute top-3 left-3">
-				{#if offer.isActive}
-					<span class="badge gap-1 border-none badge-sm shadow badge-success">
-						<IconCheckmark class="size-3" />
-						{#if offer.validUntil}
-							Active until {formatDate(offer.validUntil)}
-						{:else}
-							Active
-						{/if}
-					</span>
-				{:else}
-					<span class="badge border-none badge-sm shadow badge-neutral">Inactive</span>
-				{/if}
-			</div>
-
-			<!-- Reserved badge -->
-			{#if offer.reservedCount > 0}
-				<div class="absolute top-3 right-3">
-					<span class="badge gap-1 border-none badge-sm shadow badge-warning">
-						<IconPeople class="size-3" />
-						{offer.reservedCount} reserved
-					</span>
-				</div>
-			{/if}
-		</div>
-
-		<!-- Body -->
-		<div class="flex flex-1 flex-col p-5">
-			<h3 class="leading-tight font-semibold">{offer.name}</h3>
-			<p class="mt-1 line-clamp-2 text-sm text-base-content/60">{offer.description}</p>
-
-			<!-- Price -->
-			<div class="mt-4 flex items-baseline gap-2">
-				<span class="text-2xl font-bold text-success">
-					{offer.price.toFixed(2)}
-					{offer.currency}
-				</span>
-				{#if offer.originalValue && offer.originalValue > offer.price}
-					<span class="text-sm text-base-content/40 line-through">
-						{offer.originalValue.toFixed(2)}
-						{offer.currency}
-					</span>
-				{/if}
-			</div>
-
-			<!-- Location -->
-			{#if offer.locationId !== null}
-				<a
-					href={resolve('/(dock)/locations/[id]', { id: offer.locationId })}
-					class="mt-4 flex items-start gap-2 rounded-lg border border-info/20 bg-info/5 px-3 py-2 transition-colors hover:bg-info/10"
-				>
-					<IconLocation class="mt-0.5 size-4 shrink-0 text-info" />
-					<div class="min-w-0 text-xs">
-						<div class="truncate font-semibold text-info">{offer.locationName}</div>
-						<div class="text-base-content/60">
-							{offer.locationCity}{#if offer.locationProvince}, {offer.locationProvince}{/if}
-						</div>
-					</div>
-				</a>
-			{/if}
-
-			<!-- Details -->
-			<div class="mt-4 grid grid-cols-1 gap-2 text-xs text-base-content/60">
-				{#if offer.pickupTimeFrom && offer.pickupTimeUntil}
-					<div class="flex items-center gap-2">
-						<IconClock class="size-4 shrink-0 text-base-content/40" />
-						<span
-							>Pickup {formatTime(offer.pickupTimeFrom)} – {formatTime(offer.pickupTimeUntil)}</span
-						>
-					</div>
-				{/if}
-				{#if offer.quantity}
-					<div class="flex items-center gap-2">
-						<IconBox class="size-4 shrink-0 text-base-content/40" />
-						<span>{offer.quantity} available</span>
-					</div>
-				{/if}
-				{#if offer.isRecurring}
-					<div class="flex items-center gap-2">
-						<IconRepeat class="size-4 shrink-0 text-base-content/40" />
-						<span>Recurring offer</span>
-					</div>
-				{/if}
-			</div>
-
-			<!-- Actions -->
-			<div class="mt-5 space-y-2 border-t border-base-200 pt-4">
-				<a
-					href={resolve('/(dock)/offers/[id]', { id: offer.id })}
-					class="btn btn-block gap-1 btn-outline btn-primary btn-sm"
-				>
-					View details
-					<IconArrowRight class="size-4" />
-				</a>
-				<div class="flex gap-2">
-					<form method="POST" action="?/setActive" class="flex-1" use:enhance={offerBusy(offer.id)}>
-						<input type="hidden" name="offerId" value={offer.id} />
-						<input type="hidden" name="active" value={offer.isActive ? 'false' : 'true'} />
-						<button
-							class="btn btn-block gap-1 btn-ghost btn-sm"
-							disabled={busyOfferId === offer.id}
-							aria-label={offer.isActive ? `Pause ${offer.name}` : `Activate ${offer.name}`}
-						>
-							{#if offer.isActive}
-								<IconPause class="size-4" /> Pause
-							{:else}
-								<IconPlay class="size-4" /> Activate
-							{/if}
-						</button>
-					</form>
-					<form method="POST" action="?/duplicateOffer" use:enhance={offerBusy(offer.id)}>
-						<input type="hidden" name="offerId" value={offer.id} />
-						<button
-							class="btn btn-square btn-ghost btn-sm"
-							disabled={busyOfferId === offer.id}
-							aria-label="Duplicate {offer.name}"
-						>
-							<IconCopy class="size-4" />
-						</button>
-					</form>
+	<ManageOfferCard {offer}>
+		{#snippet actions()}
+			<div class="flex gap-2">
+				<form method="POST" action="?/setActive" class="flex-1" use:enhance={offerBusy(offer.id)}>
+					<input type="hidden" name="offerId" value={offer.id} />
+					<input type="hidden" name="active" value={offer.isActive ? 'false' : 'true'} />
 					<button
-						class="btn btn-square btn-ghost text-error btn-sm"
-						aria-label="Delete offer"
-						onclick={() => requestDelete(offer)}
+						class="btn btn-block gap-1 btn-ghost btn-sm"
+						disabled={busyOfferId === offer.id}
+						aria-label={offer.isActive ? `Pause ${offer.name}` : `Activate ${offer.name}`}
 					>
-						<IconDelete class="size-4" />
+						{#if offer.isActive}
+							<IconPause class="size-4" /> Pause
+						{:else}
+							<IconPlay class="size-4" /> Activate
+						{/if}
 					</button>
-				</div>
+				</form>
+				<form method="POST" action="?/duplicateOffer" use:enhance={offerBusy(offer.id)}>
+					<input type="hidden" name="offerId" value={offer.id} />
+					<button
+						class="btn btn-square btn-ghost btn-sm"
+						disabled={busyOfferId === offer.id}
+						aria-label="Duplicate {offer.name}"
+					>
+						<IconCopy class="size-4" />
+					</button>
+				</form>
+				<button
+					class="btn btn-square btn-ghost text-error btn-sm"
+					aria-label="Delete offer"
+					onclick={() => requestDelete(offer)}
+				>
+					<IconDelete class="size-4" />
+				</button>
 			</div>
-		</div>
-	</div>
+		{/snippet}
+	</ManageOfferCard>
 {/snippet}
 
 <BaseLayout
