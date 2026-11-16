@@ -113,6 +113,9 @@
 	--animate-shimmer: shimmer 1.6s linear infinite;
 	--animate-sheet-up: sheet-up 0.38s var(--ease-out-quint) both;
 	--animate-toast-in: toast-in 0.45s var(--ease-spring-soft) both;
+	--animate-soft-pop: soft-pop 0.42s var(--ease-spring-soft) both;
+	--animate-nudge: nudge 0.45s var(--ease-spring) both;
+	--animate-bob: bob 2.6s ease-in-out infinite;
 }
 
 @layer base {
@@ -357,6 +360,53 @@
 	}
 }
 
+/* Small, friendly touches: cards settle in, icons nudge on hover, a gentle bob
+   for empty-state companions. Kept short so they never compete with content. */
+@keyframes soft-pop {
+	from {
+		opacity: 0;
+		transform: translateY(6px) scale(0.97);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+@keyframes nudge {
+	0%,
+	100% {
+		transform: translateX(0);
+	}
+	35% {
+		transform: translateX(3px);
+	}
+	70% {
+		transform: translateX(-2px);
+	}
+}
+
+@keyframes bob {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-3px);
+	}
+}
+
+@keyframes dot-pulse {
+	from {
+		opacity: 0.65;
+		transform: scale(0.6);
+	}
+	to {
+		opacity: 0;
+		transform: scale(1.7);
+	}
+}
+
 @keyframes nav-progress-slide {
 	from {
 		transform: translateX(-100%);
@@ -525,6 +575,30 @@
 		stroke-dasharray: 32;
 		stroke-dashoffset: 32;
 		animation: draw-check 0.5s 0.25s var(--ease-out-quint) forwards;
+	}
+
+	/* A soft halo on the single dot that says "this one needs you". */
+	.attention-dot {
+		position: relative;
+	}
+	.attention-dot::after {
+		content: '';
+		position: absolute;
+		inset: -3px;
+		border-radius: 9999px;
+		background: var(--color-warning);
+		animation: dot-pulse 2s ease-out infinite;
+		pointer-events: none;
+	}
+
+	/* Decorative icons give a tiny wiggle when their row is hovered. */
+	.hover-wiggle svg {
+		transition: transform 0.2s var(--ease-spring);
+	}
+	@media (hover: hover) {
+		.hover-wiggle:hover svg {
+			animation: wiggle 0.6s var(--ease-spring) both;
+		}
 	}
 
 	/* --- Leaflet --------------------------------------------------------- */

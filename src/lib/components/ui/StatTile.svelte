@@ -17,6 +17,8 @@
 		/** Small line under the value, e.g. "last 30 days". */
 		hint?: string;
 		href?: string;
+		/** Position in a row, for a short staggered entrance. */
+		index?: number;
 		class?: string;
 		children?: Snippet;
 	}
@@ -31,6 +33,7 @@
 		tone = 'primary',
 		hint,
 		href,
+		index,
 		class: className = '',
 		children
 	}: Props = $props();
@@ -39,7 +42,10 @@
 <svelte:element
 	this={href ? 'a' : 'div'}
 	{href}
-	class="surface flex min-w-0 flex-col gap-3 p-4 {href ? 'pressable' : ''} {className}"
+	class="surface flex min-w-0 animate-soft-pop flex-col gap-3 p-4 stagger {href
+		? 'pressable'
+		: ''} {className}"
+	style:--i={index ?? 0}
 >
 	<div class="flex items-center justify-between gap-2">
 		<span class="truncate text-sm font-semibold text-base-content/60">{label}</span>

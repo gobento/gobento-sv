@@ -81,6 +81,14 @@ docs/           migration notes and feature backlog
 Import through the `#lib` alias, for example
 `import Button from '#lib/components/ui/Button.svelte'`.
 
+### Motion
+
+Shared animation utilities live in `src/app.css` — `animate-pop-in`,
+`animate-rise-in`, `animate-soft-pop`, the `stagger` delay helper, and small
+accents like `attention-dot` and `hover-wiggle`. Use them sparingly for entrances
+and feedback; `prefers-reduced-motion` collapses all animations and transitions
+to a no-op.
+
 ### Roles and navigation
 
 `src/lib/navigation.ts` is the single source of truth for which destinations each
