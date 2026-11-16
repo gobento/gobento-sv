@@ -7,15 +7,16 @@ import {
 	favoriteLocations
 } from '#lib/server/schema.js';
 import { eq, and, gte, sql, desc } from 'drizzle-orm';
+import { parseAnalyticsDays, type AnalyticsDays } from '#lib/analytics.js';
 
 export interface AnalyticsData {
+	days: AnalyticsDays;
 	reservationsData: { date: string; count: number; revenue: number }[];
 	offerPerformanceData: {
 		id: string;
 		name: string;
 		reservations: number;
 		revenue: number;
-		avgRating: number;
 	}[];
 	peakHoursData: { hour: string; pickups: number }[];
 	locationPerformanceData: {
@@ -27,7 +28,6 @@ export interface AnalyticsData {
 		revenue: number;
 		completionRate: number;
 		favoritesCount: number;
-		avgRating: number;
 	}[];
 	stats: {
 		totalReservations: number;
@@ -40,16 +40,18 @@ export interface AnalyticsData {
 }
 
 /**
- * Aggregates analytics for a business account over the last 30 days.
- * Shared by the analytics page load and the Excel export endpoint.
+ * Aggregates analytics for a business account over a fixed window.
+ * Shared by the analytics page, the dashboard and the Excel export so the same
+ * numbers always mean the same thing.
  */
-export async function getAnalyticsData(businessAccountId: string): Promise<AnalyticsData> {
-	// Calculate date ranges
-	const now = new Date();
-	const thirtyDaysAgo = new Date(now);
-	thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+export async function getAnalyticsData(
+	businessAccountId: string,
+	requestedDays: AnalyticsDays = 30
+): Promise<AnalyticsData> {
+	const days = parseAnalyticsDays(String(requestedDays));
+	const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-	// Fetch reservations data for the last 30 days
+	// Reservations over time
 	const reservationsData = await db
 		.select({
 			date: sql<string>`DATE(${reservations.reservedAt})`,
@@ -61,23 +63,25 @@ export async function getAnalyticsData(businessAccountId: string): Promise<Analy
 		.where(
 			and(
 				eq(businessOffers.businessAccountId, businessAccountId),
-				gte(reservations.reservedAt, thirtyDaysAgo)
+				gte(reservations.reservedAt, since)
 			)
 		)
 		.groupBy(sql`DATE(${reservations.reservedAt})`)
 		.orderBy(sql`DATE(${reservations.reservedAt})`);
 
-	// Fetch offer performance data
+	// Offer performance. Only reservations inside the window count towards it.
 	const offerPerformanceData = await db
 		.select({
 			id: businessOffers.id,
 			name: businessOffers.name,
 			reservations: sql<number>`COUNT(${reservations.id})::int`,
-			revenue: sql<number>`SUM(${businessOffers.price})::float`,
-			completedCount: sql<number>`COUNT(CASE WHEN ${reservations.status} = 'completed' THEN 1 END)::int`
+			revenue: sql<number>`COALESCE(SUM(${businessOffers.price}), 0)::float`
 		})
 		.from(businessOffers)
-		.leftJoin(reservations, eq(reservations.offerId, businessOffers.id))
+		.leftJoin(
+			reservations,
+			and(eq(reservations.offerId, businessOffers.id), gte(reservations.reservedAt, since))
+		)
 		.where(
 			and(
 				eq(businessOffers.businessAccountId, businessAccountId),
@@ -88,7 +92,7 @@ export async function getAnalyticsData(businessAccountId: string): Promise<Analy
 		.orderBy(desc(sql`COUNT(${reservations.id})`))
 		.limit(5);
 
-	// Fetch peak hours data
+	// Peak hours
 	const peakHoursData = await db
 		.select({
 			hour: sql<string>`TO_CHAR(${reservations.pickupFrom}, 'HH24:00')`,
@@ -99,13 +103,13 @@ export async function getAnalyticsData(businessAccountId: string): Promise<Analy
 		.where(
 			and(
 				eq(businessOffers.businessAccountId, businessAccountId),
-				gte(reservations.reservedAt, thirtyDaysAgo)
+				gte(reservations.reservedAt, since)
 			)
 		)
 		.groupBy(sql`TO_CHAR(${reservations.pickupFrom}, 'HH24:00')`)
 		.orderBy(sql`TO_CHAR(${reservations.pickupFrom}, 'HH24:00')`);
 
-	// Fetch location performance data
+	// Location performance, with the same window applied to reservations
 	const locationPerformanceData = await db
 		.select({
 			id: businessLocations.id,
@@ -120,14 +124,16 @@ export async function getAnalyticsData(businessAccountId: string): Promise<Analy
 		})
 		.from(businessLocations)
 		.leftJoin(businessOffers, eq(businessOffers.locationId, businessLocations.id))
-		.leftJoin(reservations, eq(reservations.offerId, businessOffers.id))
+		.leftJoin(
+			reservations,
+			and(eq(reservations.offerId, businessOffers.id), gte(reservations.reservedAt, since))
+		)
 		.leftJoin(favoriteLocations, eq(favoriteLocations.locationId, businessLocations.id))
 		.where(eq(businessLocations.businessAccountId, businessAccountId))
 		.groupBy(businessLocations.id)
 		.orderBy(desc(sql`COUNT(${reservations.id})`));
 
-	// Calculate overall stats
-	const totalReservations = await db
+	const [totalReservations] = await db
 		.select({
 			count: sql<number>`COUNT(*)::int`,
 			revenue: sql<number>`COALESCE(SUM(${businessOffers.price}), 0)::float`,
@@ -138,12 +144,11 @@ export async function getAnalyticsData(businessAccountId: string): Promise<Analy
 		.where(
 			and(
 				eq(businessOffers.businessAccountId, businessAccountId),
-				gte(reservations.reservedAt, thirtyDaysAgo)
+				gte(reservations.reservedAt, since)
 			)
-		)
-		.then((rows) => rows[0]);
+		);
 
-	const activeOffersCount = await db
+	const [activeOffers] = await db
 		.select({ count: sql<number>`COUNT(*)::int` })
 		.from(businessOffers)
 		.where(
@@ -151,17 +156,18 @@ export async function getAnalyticsData(businessAccountId: string): Promise<Analy
 				eq(businessOffers.businessAccountId, businessAccountId),
 				eq(businessOffers.isActive, true)
 			)
-		)
-		.then((rows) => rows[0].count);
+		);
 
-	const totalFavoritesCount = await db
+	const [favorites] = await db
 		.select({ count: sql<number>`COUNT(DISTINCT ${favoriteLocations.accountId})::int` })
 		.from(favoriteLocations)
 		.innerJoin(businessLocations, eq(favoriteLocations.locationId, businessLocations.id))
-		.where(eq(businessLocations.businessAccountId, businessAccountId))
-		.then((rows) => rows[0].count);
+		.where(eq(businessLocations.businessAccountId, businessAccountId));
+
+	const count = totalReservations?.count ?? 0;
 
 	return {
+		days,
 		reservationsData: reservationsData.map((row) => ({
 			date: row.date,
 			count: row.count,
@@ -171,8 +177,7 @@ export async function getAnalyticsData(businessAccountId: string): Promise<Analy
 			id: row.id,
 			name: row.name,
 			reservations: row.reservations,
-			revenue: row.revenue || 0,
-			avgRating: 4.5 // TODO: Add ratings table to schema
+			revenue: row.revenue || 0
 		})),
 		peakHoursData,
 		locationPerformanceData: locationPerformanceData.map((row) => ({
@@ -184,19 +189,18 @@ export async function getAnalyticsData(businessAccountId: string): Promise<Analy
 			revenue: row.revenue,
 			completionRate:
 				row.totalCount > 0 ? Math.round((row.completedCount / row.totalCount) * 100) : 0,
-			favoritesCount: row.favoritesCount,
-			avgRating: 4.5 // TODO: Add ratings table to schema
+			favoritesCount: row.favoritesCount
 		})),
 		stats: {
-			totalReservations: totalReservations.count,
-			totalRevenue: totalReservations.revenue,
-			avgPerDay: Math.round(totalReservations.count / 30),
-			activeOffers: activeOffersCount,
+			totalReservations: count,
+			totalRevenue: totalReservations?.revenue ?? 0,
+			avgPerDay: count / days,
+			activeOffers: activeOffers?.count ?? 0,
 			completionRate:
-				totalReservations.count > 0
-					? Math.round((totalReservations.completedCount / totalReservations.count) * 100)
+				count > 0
+					? Math.round(((totalReservations?.completedCount ?? 0) / count) * 100)
 					: 0,
-			favoriteCount: totalFavoritesCount
+			favoriteCount: favorites?.count ?? 0
 		}
 	};
 }

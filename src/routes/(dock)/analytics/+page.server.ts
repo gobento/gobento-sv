@@ -1,37 +1,40 @@
 // /src/routes/(dock)/analytics/+page.server.ts
 import type { PageServerLoad, Actions } from './$types';
 import { getAnalyticsData } from '#lib/server/analytics.js';
+import { parseAnalyticsDays, rangeLabel, type AnalyticsDays } from '#lib/analytics.js';
 import { buildXlsx, type Sheet } from '#lib/server/xlsx.js';
 import { error, fail } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ locals }) => {
+function requireBusiness(locals: App.Locals): string {
 	const account = locals.account!;
-
 	if (account.accountType !== 'business') {
 		throw error(403, 'Only business accounts can access analytics');
 	}
+	return account.id;
+}
 
-	return getAnalyticsData(account.id);
+export const load: PageServerLoad = async ({ locals, url }) => {
+	const businessAccountId = requireBusiness(locals);
+	const days = parseAnalyticsDays(url.searchParams.get('days'));
+	return getAnalyticsData(businessAccountId, days);
 };
 
 export const actions: Actions = {
-	export: async ({ locals }) => {
-		const account = locals.account!;
-
-		if (account.accountType !== 'business') {
-			return fail(403, { message: 'Only business accounts can export analytics' });
-		}
-
-		const data = await getAnalyticsData(account.id);
+	export: async ({ request, locals }) => {
+		const businessAccountId = requireBusiness(locals);
+		const formData = await request.formData();
+		const days: AnalyticsDays = parseAnalyticsDays(String(formData.get('days') ?? ''));
+		const data = await getAnalyticsData(businessAccountId, days);
+		const label = rangeLabel(days);
 
 		const sheets: Sheet[] = [
 			{
 				name: 'Overview',
 				rows: [
-					['Metric', 'Value'],
-					['Total Reservations (30d)', data.stats.totalReservations],
-					['Total Revenue (30d)', data.stats.totalRevenue],
-					['Average Per Day', data.stats.avgPerDay],
+					['Metric', `Value (${label.toLowerCase()})`],
+					['Total Reservations', data.stats.totalReservations],
+					['Total Revenue (€)', data.stats.totalRevenue],
+					['Average Per Day', data.stats.avgPerDay.toFixed(1)],
 					['Active Offers', data.stats.activeOffers],
 					['Completion Rate (%)', data.stats.completionRate],
 					['Favorites', data.stats.favoriteCount]
@@ -47,13 +50,8 @@ export const actions: Actions = {
 			{
 				name: 'Top Offers',
 				rows: [
-					['Offer', 'Reservations', 'Revenue (€)', 'Avg Rating'],
-					...data.offerPerformanceData.map((row) => [
-						row.name,
-						row.reservations,
-						row.revenue,
-						row.avgRating
-					])
+					['Offer', 'Reservations', 'Revenue (€)'],
+					...data.offerPerformanceData.map((row) => [row.name, row.reservations, row.revenue])
 				]
 			},
 			{
@@ -70,8 +68,7 @@ export const actions: Actions = {
 						'Reservations',
 						'Revenue (€)',
 						'Completion Rate (%)',
-						'Favorites',
-						'Avg Rating'
+						'Favorites'
 					],
 					...data.locationPerformanceData.map((row) => [
 						row.name,
@@ -80,8 +77,7 @@ export const actions: Actions = {
 						row.totalReservations,
 						row.revenue,
 						row.completionRate,
-						row.favoritesCount,
-						row.avgRating
+						row.favoritesCount
 					])
 				]
 			}
@@ -90,7 +86,7 @@ export const actions: Actions = {
 		const workbook = buildXlsx(sheets);
 
 		return {
-			filename: `analytics-${new Date().toISOString().slice(0, 10)}.xlsx`,
+			filename: `analytics-${data.days}d-${new Date().toISOString().slice(0, 10)}.xlsx`,
 			xlsx: workbook.toString('base64')
 		};
 	}

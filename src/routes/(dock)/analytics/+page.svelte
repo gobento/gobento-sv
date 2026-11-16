@@ -1,24 +1,34 @@
 <!-- /src/routes/(dock)/analytics/+page.svelte -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
+	import { goto } from '$app/navigation';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { withSearch } from '#lib/paths.js';
+	import {
+		ANALYTICS_RANGES,
+		parseAnalyticsDays,
+		rangeLabel,
+		type AnalyticsDays
+	} from '#lib/analytics.js';
 	import { formatDate, formatDayMonth } from '#lib/dates.js';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { Chart, Svg, Area, Axis, Highlight, Tooltip } from 'layerchart';
 	import { scaleTime, scaleLinear } from 'd3-scale';
-	import FluentChartMultiple24Regular from '~icons/fluent/chart-multiple-24-regular';
-	import IconMoney from '~icons/fluent/money-20-filled';
-	import IconBox from '~icons/fluent/box-20-filled';
-	import IconPeople from '~icons/fluent/people-20-filled';
-	import IconStar from '~icons/fluent/star-20-filled';
-	import IconClock from '~icons/fluent/clock-20-filled';
-	import IconDownload from '~icons/fluent/arrow-download-20-filled';
-	import ChartFilledIcon from '~icons/fluent/data-bar-vertical-24-filled';
+	import IconDownload from '~icons/fluent/arrow-download-24-regular';
+	import IconBox from '~icons/fluent/box-24-regular';
+	import IconMoney from '~icons/fluent/money-24-regular';
+	import IconStar from '~icons/fluent/star-24-regular';
+	import IconClock from '~icons/fluent/clock-24-regular';
+	import ChartIcon from '~icons/fluent/data-bar-vertical-24-regular';
 
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import StatTile from '#lib/components/ui/StatTile.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
+	import Segmented from '#lib/components/ui/Segmented.svelte';
 
 	let { data }: { data: PageData } = $props();
 
-	// Transform reservations data to use Date objects
 	const reservationsData = $derived(
 		data.reservationsData.map((row) => ({
 			date: new Date(row.date),
@@ -27,161 +37,130 @@
 		}))
 	);
 
-	// Format date for axis labels (short version)
-	const formatDateShort = (date: Date) => formatDayMonth(date);
+	type RangeOption = '7' | '30' | '90';
+	const rangeOptions = ANALYTICS_RANGES.map((days) => ({
+		value: String(days) as RangeOption,
+		label: `${days}d`
+	}));
+	let currentRange = $state<RangeOption>(String(data.days) as RangeOption);
 
-	// Format date for tooltip header
-	const formatDateLong = (date: Date) => formatDate(date);
+	$effect(() => {
+		currentRange = String(data.days) as RangeOption;
+	});
 
-	// Handle offer click
-	const handleOfferClick = (offerId: string) => {
-		window.location.href = `/offers/${offerId}`;
-	};
+	function changeRange(value: RangeOption) {
+		const days: AnalyticsDays = parseAnalyticsDays(value);
+		const params = new SvelteURLSearchParams();
+		params.set('days', String(days));
+		goto(withSearch(resolve('/(dock)/analytics'), params), { replace: true, keepFocus: true });
+	}
 
-	// Handle location click
-	const handleLocationClick = (locationId: string) => {
-		window.location.href = `/locations/${locationId}`;
-	};
+	const euro = (value: number, decimals = 0) =>
+		value.toLocaleString('de-DE', {
+			minimumFractionDigits: decimals,
+			maximumFractionDigits: decimals
+		});
 
 	let exporting = $state(false);
 
-	// Trigger a browser download from the base64 workbook returned by the export action
-	const downloadXlsx = (base64: string, filename: string) => {
+	// Trigger a browser download from the base64 workbook returned by the export action.
+	function downloadXlsx(base64: string, filename: string) {
 		const binary = atob(base64);
 		const bytes = new Uint8Array(binary.length);
-		for (let i = 0; i < binary.length; i++) {
-			bytes[i] = binary.charCodeAt(i);
-		}
-		const blob = new Blob([bytes], {
-			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-		});
-		const url = URL.createObjectURL(blob);
+		for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+		const url = URL.createObjectURL(
+			new Blob([bytes], {
+				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+			})
+		);
 		const link = document.createElement('a');
 		link.href = url;
 		link.download = filename;
 		link.click();
 		URL.revokeObjectURL(url);
-	};
+	}
 </script>
 
-<BaseLayout title="Analytics" description="Track performance and insights" icon={ChartFilledIcon}>
+<BaseLayout
+	title="Analytics"
+	description="How your offers are doing, over the period you choose"
+	icon={ChartIcon}
+>
 	<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-		<select class="select-bordered select w-full bg-base-200 font-medium select-sm sm:w-auto">
-			<option>Last 30 Days</option>
-			<option>Last 7 Days</option>
-			<option>Last 90 Days</option>
-			<option>This Year</option>
-		</select>
-
+		<Segmented
+			options={rangeOptions}
+			bind:value={currentRange}
+			label="Reporting period"
+			onchange={changeRange}
+			class="sm:w-64"
+		/>
 		<form
 			method="POST"
 			action="?/export"
-			class="w-full sm:w-auto"
 			use:enhance={() => {
 				exporting = true;
 				return async ({ result }) => {
+					exporting = false;
 					if (
 						result.type === 'success' &&
-						result.data &&
-						typeof result.data.xlsx === 'string' &&
-						typeof result.data.filename === 'string'
+						typeof result.data?.xlsx === 'string' &&
+						typeof result.data?.filename === 'string'
 					) {
 						downloadXlsx(result.data.xlsx, result.data.filename);
 					}
-					exporting = false;
 				};
 			}}
 		>
-			<button type="submit" class="btn w-full btn-outline btn-sm sm:w-auto" disabled={exporting}>
+			<input type="hidden" name="days" value={data.days} />
+			<button class="btn gap-2 btn-outline btn-sm" disabled={exporting}>
 				{#if exporting}
 					<span class="loading loading-xs loading-spinner"></span>
 				{:else}
-					<span class="size-4">
-						<IconDownload class="size-full" />
-					</span>
+					<IconDownload class="size-4" />
 				{/if}
-				Export to Excel
+				Export Excel
 			</button>
 		</form>
 	</div>
 
-	<!-- Stats Cards -->
-	<div class="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 lg:grid-cols-4">
-		<div class="rounded-lg border border-base-300 bg-base-200 p-3 sm:p-4">
-			<div class="flex items-center gap-1.5 sm:gap-2">
-				<div class="size-3.5 shrink-0 text-primary sm:size-4">
-					<IconBox class="size-full" />
-				</div>
-				<p class="text-sm font-medium tracking-wide text-base-content/60 uppercase sm:text-xs">
-					Reservations
-				</p>
-			</div>
-			<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-lg">
-				{data.stats.totalReservations}
-			</p>
-			<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">
-				{data.stats.avgPerDay} per day
-			</p>
-		</div>
-
-		<div class="rounded-lg border border-base-300 bg-base-200 p-3 sm:p-4">
-			<div class="flex items-center gap-1.5 sm:gap-2">
-				<div class="size-3.5 shrink-0 text-success sm:size-4">
-					<IconMoney class="size-full" />
-				</div>
-				<p class="text-sm font-medium tracking-wide text-base-content/60 uppercase sm:text-xs">
-					Revenue
-				</p>
-			</div>
-			<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-lg">
-				€{data.stats.totalRevenue.toLocaleString('de-DE', {
-					minimumFractionDigits: 0,
-					maximumFractionDigits: 0
-				})}
-			</p>
-			<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">Last 30 days</p>
-		</div>
-
-		<div class="rounded-lg border border-base-300 bg-base-200 p-3 sm:p-4">
-			<div class="flex items-center gap-1.5 sm:gap-2">
-				<div class="size-3.5 shrink-0 text-info sm:size-4">
-					<FluentChartMultiple24Regular class="size-full" />
-				</div>
-				<p class="text-sm font-medium tracking-wide text-base-content/60 uppercase sm:text-xs">
-					Completion
-				</p>
-			</div>
-			<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-lg">
-				{data.stats.completionRate}%
-			</p>
-			<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">
-				{data.stats.activeOffers} active
-			</p>
-		</div>
-
-		<div class="rounded-lg border border-base-300 bg-base-200 p-3 sm:p-4">
-			<div class="flex items-center gap-1.5 sm:gap-2">
-				<div class="size-3.5 shrink-0 text-warning sm:size-4">
-					<IconStar class="size-full" />
-				</div>
-				<p class="text-sm font-medium tracking-wide text-base-content/60 uppercase sm:text-xs">
-					Favorites
-				</p>
-			</div>
-			<p class="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl lg:text-lg">
-				{data.stats.favoriteCount}
-			</p>
-			<p class="mt-0.5 text-[11px] text-base-content/50 sm:mt-1 sm:text-xs">Total users</p>
-		</div>
+	<div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+		<StatTile
+			label="Reservations"
+			value={data.stats.totalReservations}
+			icon={IconBox}
+			hint="{data.stats.avgPerDay.toFixed(1)} per day"
+		/>
+		<StatTile
+			label="Revenue"
+			value={data.stats.totalRevenue}
+			decimals={2}
+			prefix="€"
+			icon={IconMoney}
+			tone="success"
+			hint={rangeLabel(data.days).toLowerCase()}
+		/>
+		<StatTile
+			label="Completion"
+			value={data.stats.completionRate}
+			suffix="%"
+			icon={IconStar}
+			tone="warning"
+			hint="{data.stats.activeOffers} active offers"
+		/>
+		<StatTile
+			label="Favorites"
+			value={data.stats.favoriteCount}
+			icon={IconClock}
+			tone="info"
+			hint="people following your locations"
+		/>
 	</div>
 
-	<!-- Charts Row 1 -->
-	<div class="mb-4 grid grid-cols-1 gap-4 sm:mb-6 lg:grid-cols-2">
-		<!-- Reservations Trend -->
-		<div class="rounded-lg border border-base-300 bg-base-200 p-4 sm:p-5">
-			<h2 class="mb-4 text-sm font-semibold sm:mb-5 sm:text-base">Reservations Over Time</h2>
+	<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+		<Card>
+			<h2 class="mb-4 text-base font-semibold">Reservations over time</h2>
 			{#if reservationsData.length > 0}
-				<div class="h-48 sm:h-56 lg:h-64">
+				<div class="h-56 sm:h-64">
 					<Chart
 						data={reservationsData}
 						x="date"
@@ -199,41 +178,38 @@
 								placement="left"
 								grid
 								rule={{ class: 'stroke-base-content/10' }}
-								labelProps={{ class: 'text-sm sm:text-xs fill-base-content/60' }}
+								labelProps={{ class: 'text-xs fill-base-content/60' }}
 							/>
 							<Axis
 								placement="bottom"
-								format={formatDateShort}
+								format={formatDayMonth}
 								rule={{ class: 'stroke-base-content/10' }}
-								labelProps={{ class: 'text-sm sm:text-xs fill-base-content/60' }}
+								labelProps={{ class: 'text-xs fill-base-content/60' }}
 							/>
 							<Highlight points lines />
 						</Svg>
 						<Tooltip.Root>
-							{#snippet children({ data })}
-								<Tooltip.Header>{formatDateLong(data.date)}</Tooltip.Header>
+							{#snippet children({ data: point })}
+								<Tooltip.Header>{formatDate(point.date)}</Tooltip.Header>
 								<Tooltip.List>
-									<Tooltip.Item label="Reservations" value={data.count} />
-									<Tooltip.Item label="Revenue" value={`€${data.revenue.toFixed(2)}`} />
+									<Tooltip.Item label="Reservations" value={point.count} />
+									<Tooltip.Item label="Revenue" value={`€${euro(point.revenue, 2)}`} />
 								</Tooltip.List>
 							{/snippet}
 						</Tooltip.Root>
 					</Chart>
 				</div>
 			{:else}
-				<div
-					class="flex h-48 items-center justify-center text-xs text-base-content/50 sm:h-56 sm:text-sm lg:h-64"
-				>
-					No reservation data available
-				</div>
+				<p class="py-16 text-center text-sm text-base-content/50">
+					No reservations in the last {data.days} days yet.
+				</p>
 			{/if}
-		</div>
+		</Card>
 
-		<!-- Revenue Trend -->
-		<div class="rounded-lg border border-base-300 bg-base-200 p-4 sm:p-5">
-			<h2 class="mb-4 text-sm font-semibold sm:mb-5 sm:text-base">Revenue Over Time</h2>
+		<Card>
+			<h2 class="mb-4 text-base font-semibold">Revenue over time</h2>
 			{#if reservationsData.length > 0}
-				<div class="h-48 sm:h-56 lg:h-64">
+				<div class="h-56 sm:h-64">
 					<Chart
 						data={reservationsData}
 						x="date"
@@ -251,49 +227,41 @@
 								placement="left"
 								grid
 								rule={{ class: 'stroke-base-content/10' }}
-								labelProps={{ class: 'text-sm sm:text-xs fill-base-content/60' }}
-								format={(d) => `€${d}`}
+								labelProps={{ class: 'text-xs fill-base-content/60' }}
+								format={(value: number) => `€${euro(value)}`}
 							/>
 							<Axis
 								placement="bottom"
-								format={formatDateShort}
+								format={formatDayMonth}
 								rule={{ class: 'stroke-base-content/10' }}
-								labelProps={{ class: 'text-sm sm:text-xs fill-base-content/60' }}
+								labelProps={{ class: 'text-xs fill-base-content/60' }}
 							/>
 							<Highlight points lines />
 						</Svg>
 						<Tooltip.Root>
-							{#snippet children({ data })}
-								<Tooltip.Header>{formatDateLong(data.date)}</Tooltip.Header>
+							{#snippet children({ data: point })}
+								<Tooltip.Header>{formatDate(point.date)}</Tooltip.Header>
 								<Tooltip.List>
-									<Tooltip.Item label="Revenue" value={`€${data.revenue.toFixed(2)}`} />
+									<Tooltip.Item label="Revenue" value={`€${euro(point.revenue, 2)}`} />
 								</Tooltip.List>
 							{/snippet}
 						</Tooltip.Root>
 					</Chart>
 				</div>
 			{:else}
-				<div
-					class="flex h-48 items-center justify-center text-xs text-base-content/50 sm:h-56 sm:text-sm lg:h-64"
-				>
-					No revenue data available
-				</div>
+				<p class="py-16 text-center text-sm text-base-content/50">
+					No revenue in the last {data.days} days yet.
+				</p>
 			{/if}
-		</div>
-	</div>
+		</Card>
 
-	<!-- Charts Row 2 -->
-	<div class="mb-4 grid grid-cols-1 gap-4 sm:mb-6 lg:grid-cols-2">
-		<!-- Peak Hours -->
-		<div class="rounded-lg border border-base-300 bg-base-200 p-4 sm:p-5">
-			<h2 class="mb-4 flex items-center gap-2 text-sm font-semibold sm:mb-5 sm:text-base">
-				<div class="size-3.5 sm:size-4">
-					<IconClock class="size-full" />
-				</div>
-				Peak Pickup Hours
+		<Card>
+			<h2 class="mb-4 flex items-center gap-2 text-base font-semibold">
+				<IconClock class="size-4 text-info" />
+				Peak pickup hours
 			</h2>
 			{#if data.peakHoursData.length > 0}
-				<div class="h-48 sm:h-56 lg:h-64">
+				<div class="h-56 sm:h-64">
 					<Chart
 						data={data.peakHoursData}
 						x="hour"
@@ -310,152 +278,97 @@
 								placement="left"
 								grid
 								rule={{ class: 'stroke-base-content/10' }}
-								labelProps={{ class: 'text-sm sm:text-xs fill-base-content/60' }}
+								labelProps={{ class: 'text-xs fill-base-content/60' }}
 							/>
 							<Axis
 								placement="bottom"
 								rule={{ class: 'stroke-base-content/10' }}
-								labelProps={{ class: 'text-sm sm:text-xs fill-base-content/60' }}
+								labelProps={{ class: 'text-xs fill-base-content/60' }}
 							/>
 							<Highlight points lines />
 						</Svg>
 						<Tooltip.Root>
-							{#snippet children({ data })}
-								<Tooltip.Header>{data.hour}</Tooltip.Header>
+							{#snippet children({ data: point })}
+								<Tooltip.Header>{point.hour}</Tooltip.Header>
 								<Tooltip.List>
-									<Tooltip.Item label="Pickups" value={data.pickups} />
+									<Tooltip.Item label="Pickups" value={point.pickups} />
 								</Tooltip.List>
 							{/snippet}
 						</Tooltip.Root>
 					</Chart>
 				</div>
 			{:else}
-				<div
-					class="flex h-48 items-center justify-center text-xs text-base-content/50 sm:h-56 sm:text-sm lg:h-64"
-				>
-					No pickup data available
-				</div>
+				<p class="py-16 text-center text-sm text-base-content/50">No pickups in this period.</p>
 			{/if}
-		</div>
+		</Card>
 
-		<!-- Top Offers Performance -->
-		<div class="rounded-lg border border-base-300 bg-base-200 p-4 sm:p-5">
-			<h2 class="mb-4 text-sm font-semibold sm:mb-5 sm:text-base">Top Performing Offers</h2>
+		<Card>
+			<h2 class="mb-4 text-base font-semibold">Top performing offers</h2>
 			{#if data.offerPerformanceData.length > 0}
-				<div class="max-h-48 space-y-2 overflow-y-auto sm:max-h-56 lg:max-h-64">
+				<ul class="max-h-64 space-y-2 overflow-y-auto">
 					{#each data.offerPerformanceData as offer, i (offer.id)}
-						<button
-							type="button"
-							onclick={() => handleOfferClick(offer.id)}
-							class="flex w-full items-center gap-2.5 rounded border border-base-300 bg-base-100 p-2.5 text-left transition-colors hover:border-primary hover:bg-base-100/50 sm:gap-3 sm:p-3"
-						>
-							<div
-								class="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary sm:size-6 sm:text-xs"
+						<li>
+							<a
+								href={resolve('/(dock)/offers/[id]', { id: offer.id })}
+								class="pressable flex items-center gap-3 rounded-xl border border-base-300 p-3 hover:border-primary/30"
 							>
-								{i + 1}
-							</div>
-							<div class="min-w-0 flex-1">
-								<p class="truncate text-xs font-medium sm:text-sm">{offer.name}</p>
-								<div
-									class="mt-0.5 flex items-center gap-2.5 text-sm text-base-content/60 sm:mt-1 sm:gap-3 sm:text-xs"
+								<span
+									class="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"
 								>
-									<span class="flex items-center gap-0.5 sm:gap-1">
-										<div class="h-3 w-3 sm:h-3.5 sm:w-3.5">
-											<IconBox class="size-full" />
-										</div>
-										{offer.reservations}
-									</span>
-									<span class="flex items-center gap-0.5 sm:gap-1">
-										<div class="h-3 w-3 text-warning sm:h-3.5 sm:w-3.5">
-											<IconStar class="size-full" />
-										</div>
-										{offer.avgRating}
-									</span>
-								</div>
-							</div>
-							<div class="text-right">
-								<div class="text-xs font-semibold tabular-nums sm:text-sm">
-									€{offer.revenue.toFixed(0)}
-								</div>
-							</div>
-						</button>
+									{i + 1}
+								</span>
+								<span class="min-w-0 flex-1 truncate text-sm font-medium">{offer.name}</span>
+								<span class="shrink-0 text-right text-xs text-base-content/60">
+									<span class="block font-semibold text-base-content tabular-nums"
+										>€{euro(offer.revenue)}</span
+									>
+									{offer.reservations} {offer.reservations === 1 ? 'booking' : 'bookings'}
+								</span>
+							</a>
+						</li>
 					{/each}
-				</div>
+				</ul>
 			{:else}
-				<div
-					class="flex h-48 items-center justify-center text-xs text-base-content/50 sm:h-56 sm:text-sm lg:h-64"
-				>
-					No active offers found
-				</div>
+				<p class="py-16 text-center text-sm text-base-content/50">No active offers to rank.</p>
 			{/if}
-		</div>
-	</div>
+		</Card>
 
-	<!-- Location Performance Table -->
-	<div class="rounded-lg border border-base-300 bg-base-200 p-4 sm:p-5">
-		<h2 class="mb-4 flex items-center gap-2 text-sm font-semibold sm:mb-5 sm:text-base">
-			<div class="size-3.5 sm:size-4">
-				<IconPeople class="size-full" />
+		<Card class="lg:col-span-2" padding="none">
+			<div class="p-5 sm:p-6">
+				<h2 class="mb-4 text-base font-semibold">Location performance</h2>
 			</div>
-			Location Performance
-		</h2>
-		{#if data.locationPerformanceData.length > 0}
-			<div class="-mx-4 overflow-x-auto sm:mx-0">
-				<div class="inline-block min-w-full align-middle">
+			{#if data.locationPerformanceData.length > 0}
+				<div class="overflow-x-auto">
 					<table class="table w-full table-sm">
 						<thead>
 							<tr class="border-base-300">
-								<th
-									class="text-sm font-medium tracking-wide text-base-content/60 uppercase sm:text-xs"
-								>
-									Location
+								<th class="text-xs tracking-wide text-base-content/60 uppercase">Location</th>
+								<th class="text-xs tracking-wide text-base-content/60 uppercase">Bookings</th>
+								<th class="text-xs tracking-wide text-base-content/60 uppercase">Revenue</th>
+								<th class="hidden text-xs tracking-wide text-base-content/60 uppercase sm:table-cell">
+									Completed
 								</th>
-								<th
-									class="text-sm font-medium tracking-wide text-base-content/60 uppercase sm:text-xs"
-								>
-									Reservations
-								</th>
-								<th
-									class="text-sm font-medium tracking-wide text-base-content/60 uppercase sm:text-xs"
-								>
-									Revenue
-								</th>
-								<th
-									class="hidden text-sm font-medium tracking-wide text-base-content/60 uppercase sm:table-cell sm:text-xs"
-								>
-									Completion
-								</th>
-								<th
-									class="hidden text-sm font-medium tracking-wide text-base-content/60 uppercase sm:table-cell sm:text-xs"
-								>
+								<th class="hidden text-xs tracking-wide text-base-content/60 uppercase sm:table-cell">
 									Favorites
-								</th>
-								<th
-									class="text-sm font-medium tracking-wide text-base-content/60 uppercase sm:text-xs"
-								>
-									Rating
 								</th>
 							</tr>
 						</thead>
 						<tbody>
 							{#each data.locationPerformanceData as location (location.id)}
-								<tr
-									class="cursor-pointer border-base-300 transition-colors hover:bg-base-300/50"
-									onclick={() => handleLocationClick(location.id)}
-								>
-									<td class="min-w-[120px] sm:min-w-0">
-										<div class="text-xs font-medium sm:text-sm">{location.name}</div>
-										<div class="text-sm text-base-content/50 sm:text-xs">
-											{location.address}, {location.city}
-										</div>
+								<tr class="border-base-300 hover:bg-base-200/50">
+									<td>
+										<a
+											href={resolve('/(dock)/locations/[id]', { id: location.id })}
+											class="font-medium hover:underline"
+										>
+											{location.name}
+											<span class="block text-xs font-normal text-base-content/50">
+												{location.address}, {location.city}
+											</span>
+										</a>
 									</td>
-									<td class="text-xs tabular-nums sm:text-sm">{location.totalReservations}</td>
-									<td class="text-xs font-medium tabular-nums sm:text-sm">
-										€{location.revenue.toLocaleString('de-DE', {
-											minimumFractionDigits: 0,
-											maximumFractionDigits: 0
-										})}
-									</td>
+									<td class="tabular-nums">{location.totalReservations}</td>
+									<td class="font-semibold tabular-nums">€{euro(location.revenue)}</td>
 									<td class="hidden sm:table-cell">
 										<div class="flex items-center gap-2">
 											<progress
@@ -470,27 +383,17 @@
 											<span class="text-xs tabular-nums">{location.completionRate}%</span>
 										</div>
 									</td>
-									<td class="hidden text-xs tabular-nums sm:table-cell sm:text-sm">
+									<td class="hidden text-xs tabular-nums sm:table-cell">
 										{location.favoritesCount}
-									</td>
-									<td>
-										<div class="flex items-center gap-0.5 sm:gap-1">
-											<div class="h-3 w-3 text-warning sm:h-3.5 sm:w-3.5">
-												<IconStar class="size-full" />
-											</div>
-											<span class="text-xs tabular-nums sm:text-sm">{location.avgRating}</span>
-										</div>
 									</td>
 								</tr>
 							{/each}
 						</tbody>
 					</table>
 				</div>
-			</div>
-		{:else}
-			<div class="flex h-32 items-center justify-center text-xs text-base-content/50 sm:text-sm">
-				No location data available
-			</div>
-		{/if}
+			{:else}
+				<p class="px-5 pb-5 text-sm text-base-content/50">Add a location to see its performance.</p>
+			{/if}
+		</Card>
 	</div>
 </BaseLayout>
