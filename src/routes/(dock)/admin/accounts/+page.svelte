@@ -1,7 +1,7 @@
 <!-- src/routes/(dock)/admin/accounts/+page.svelte -->
 <script lang="ts">
 	import { formatDate } from '#lib/dates.js';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import IconPeople from '~icons/fluent/people-24-filled';
 	import IconSearch from '~icons/fluent/search-24-regular';
 	import IconMail from '~icons/fluent/mail-24-regular';

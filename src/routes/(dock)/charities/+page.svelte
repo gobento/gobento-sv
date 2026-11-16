@@ -7,7 +7,7 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import { FOOD_TYPES, FOOD_TYPE_LABELS } from '#lib/foodTypes.js';
 	import IconHeart from '~icons/fluent/heart-24-regular';
 	import IconSearch from '~icons/fluent/search-24-regular';

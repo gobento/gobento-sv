@@ -4,7 +4,7 @@
 	import type { Component, Snippet } from 'svelte';
 	import type { LayoutData } from './$types';
 	import { page, navigating } from '$app/state';
-	import Modal from '#lib/components/Modal.svelte';
+	import Modal from '#lib/components/ui/Modal.svelte';
 	import {
 		activePath,
 		navigationFor,

@@ -15,10 +15,10 @@
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-regular';
 	import LocationCard from '#lib/components/maps/LocationCard.svelte';
-	import Seo from '#lib/components/Seo.svelte';
+	import Seo from '#lib/components/layout/Seo.svelte';
 	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
 	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
-	import ComplaintModal from '#lib/components/ComplaintModal.svelte';
+	import ComplaintModal from '#lib/components/complaints/ComplaintModal.svelte';
 	import { formatDate, formatTime, formatPrice } from '#lib/util.js';
 
 	let { data, form } = $props();

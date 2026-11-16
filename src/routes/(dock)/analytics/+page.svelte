@@ -22,7 +22,7 @@
 	import IconClock from '~icons/fluent/clock-24-regular';
 	import ChartIcon from '~icons/fluent/data-bar-vertical-24-regular';
 
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import StatTile from '#lib/components/ui/StatTile.svelte';
 	import Card from '#lib/components/ui/Card.svelte';
 	import Segmented from '#lib/components/ui/Segmented.svelte';
@@ -42,12 +42,6 @@
 		value: String(days) as RangeOption,
 		label: `${days}d`
 	}));
-	let currentRange = $state<RangeOption>(String(data.days) as RangeOption);
-
-	$effect(() => {
-		currentRange = String(data.days) as RangeOption;
-	});
-
 	function changeRange(value: RangeOption) {
 		const days: AnalyticsDays = parseAnalyticsDays(value);
 		const params = new SvelteURLSearchParams();
@@ -89,7 +83,7 @@
 	<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 		<Segmented
 			options={rangeOptions}
-			bind:value={currentRange}
+			value={String(data.days) as RangeOption}
 			label="Reporting period"
 			onchange={changeRange}
 			class="sm:w-64"

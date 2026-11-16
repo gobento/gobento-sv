@@ -4,7 +4,7 @@
 	import IconBeaker from '~icons/fluent/beaker-24-regular';
 	import IconLock from '~icons/fluent/lock-closed-24-filled';
 	import IconCard from '~icons/fluent/payment-24-regular';
-	import Alert from '#lib/components/Alert.svelte';
+	import Alert from '#lib/components/ui/Alert.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { formatPrice } from '#lib/util.js';
 

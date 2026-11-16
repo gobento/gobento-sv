@@ -5,8 +5,8 @@
 	import { resolve } from '$app/paths';
 	import { formatDate } from '#lib/dates.js';
 	import { enhance } from '$app/forms';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
-	import NotFound from '#lib/components/NotFound.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
+	import NotFound from '#lib/components/ui/NotFound.svelte';
 	import IconHeart from '~icons/fluent/heart-24-filled';
 	import IconHeartBroken from '~icons/fluent/heart-broken-24-regular';
 	import IconLocation from '~icons/fluent/location-24-regular';

@@ -4,8 +4,8 @@
 	import IconSend from '~icons/fluent/send-24-regular';
 	import IconBell from '~icons/fluent/alert-24-regular';
 
-	import Modal from '#lib/components/Modal.svelte';
-	import Alert from '#lib/components/Alert.svelte';
+	import Modal from '#lib/components/ui/Modal.svelte';
+	import Alert from '#lib/components/ui/Alert.svelte';
 	import LocationCard from '#lib/components/maps/LocationCard.svelte';
 	import { COMPLAINT_CATEGORIES, COMPLAINT_CATEGORY_LABELS } from '#lib/complaints.js';
 

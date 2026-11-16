@@ -16,7 +16,7 @@
 	import IconEdit from '~icons/fluent/edit-24-regular';
 	import IconInfo from '~icons/fluent/info-24-regular';
 	import IconStar from '~icons/fluent/star-24-filled';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import { FOOD_TYPES, FOOD_TYPE_LABELS } from '#lib/foodTypes.js';
 
 	interface Props {

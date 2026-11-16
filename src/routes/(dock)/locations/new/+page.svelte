@@ -8,7 +8,7 @@
 	import IconMap from '~icons/fluent/map-24-regular';
 	import IconSearch from '~icons/fluent/search-24-regular';
 	import IconCamera from '~icons/fluent/camera-24-regular';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import { page } from '$app/state';
 
 	let { data } = $props();

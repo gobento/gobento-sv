@@ -6,7 +6,7 @@
 	import { page, updated } from '$app/state';
 	import { markNavigationEnd, markNavigationStart, startTelemetry } from '#lib/client/telemetry.js';
 	import Toaster from '#lib/components/ui/Toaster.svelte';
-	import InstallPrompt from '#lib/components/InstallPrompt.svelte';
+	import InstallPrompt from '#lib/components/layout/InstallPrompt.svelte';
 
 	let { children } = $props();
 

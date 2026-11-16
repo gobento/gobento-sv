@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { withSearch } from '#lib/paths.js';
 	import type { PageData } from './$types';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import StatTile from '#lib/components/ui/StatTile.svelte';
 	import SectionCard from '#lib/components/ui/SectionCard.svelte';

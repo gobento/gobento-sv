@@ -7,12 +7,12 @@
 	import IconWarning from '~icons/fluent/warning-24-regular';
 
 	import OfferStatusCard from './OfferStatusCard.svelte';
-	import PriceDisplay from '#lib/components/PriceDisplay.svelte';
-	import Seo from '#lib/components/Seo.svelte';
+	import PriceDisplay from '#lib/components/ui/PriceDisplay.svelte';
+	import Seo from '#lib/components/layout/Seo.svelte';
 	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
 	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
 	import LocationCard from '#lib/components/maps/LocationCard.svelte';
-	import ComplaintModal from '#lib/components/ComplaintModal.svelte';
+	import ComplaintModal from '#lib/components/complaints/ComplaintModal.svelte';
 	import { formatPrice } from '#lib/util.js';
 	import { SvelteDate } from 'svelte/reactivity';
 

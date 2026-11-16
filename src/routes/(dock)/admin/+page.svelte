@@ -1,7 +1,7 @@
 <!-- src/routes/(dock)/admin/+page.svelte -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import DailyBars from '#lib/components/admin/DailyBars.svelte';
 	import IconLeaf from '~icons/fluent/leaf-two-24-regular';
 	import IconDataBar from '~icons/fluent/data-bar-vertical-24-filled';

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import PublicPage from '#lib/components/account/PublicPage.svelte';
-	import Seo from '#lib/components/Seo.svelte';
+	import Seo from '#lib/components/layout/Seo.svelte';
 </script>
 
 <Seo

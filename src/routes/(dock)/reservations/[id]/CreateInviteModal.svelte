@@ -5,8 +5,8 @@
 	import IconCopy from '~icons/fluent/copy-24-regular';
 	import IconCheck from '~icons/fluent/checkmark-24-filled';
 	import IconLink from '~icons/fluent/link-24-regular';
-	import Modal from '#lib/components/Modal.svelte';
-	import Alert from '#lib/components/Alert.svelte';
+	import Modal from '#lib/components/ui/Modal.svelte';
+	import Alert from '#lib/components/ui/Alert.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { toast } from '#lib/components/ui/toast.svelte.js';
 

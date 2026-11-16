@@ -11,8 +11,8 @@
 	import IconStore from '~icons/fluent/building-shop-24-regular';
 	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
 	import IconLock from '~icons/fluent/lock-closed-24-filled';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
-	import Alert from '#lib/components/Alert.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
+	import Alert from '#lib/components/ui/Alert.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { formatPickupWindow } from '#lib/components/reservations/pickup.js';
 	import { formatPrice } from '#lib/util.js';

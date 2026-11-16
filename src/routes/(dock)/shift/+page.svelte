@@ -6,8 +6,8 @@
 	import { enhance, deserialize } from '$app/forms';
 	import { invalidateAll, goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
-	import Modal from '#lib/components/Modal.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
+	import Modal from '#lib/components/ui/Modal.svelte';
 	import QrScanner from '#lib/components/staff/QrScanner.svelte';
 	import PickupQr from '#lib/components/reservations/PickupQr.svelte';
 	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';

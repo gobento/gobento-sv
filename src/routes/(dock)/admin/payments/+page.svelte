@@ -2,7 +2,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { formatDateTime } from '#lib/dates.js';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import IconReceipt from '~icons/fluent/receipt-24-filled';
 	import type { PageData } from './$types';
 

@@ -10,8 +10,8 @@
 	import IconPaste from '~icons/fluent/clipboard-paste-24-regular';
 	import IconWallet from '~icons/fluent/wallet-24-regular';
 	import IconWarning from '~icons/fluent/warning-24-regular';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
-	import Alert from '#lib/components/Alert.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
+	import Alert from '#lib/components/ui/Alert.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { toast } from '#lib/components/ui/toast.svelte.js';
 	import PaymentProgress from '../../PaymentProgress.svelte';

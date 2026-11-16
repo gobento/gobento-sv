@@ -3,7 +3,7 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import SectionCard from '#lib/components/ui/SectionCard.svelte';
 	import Card from '#lib/components/ui/Card.svelte';
 	import EmptyState from '#lib/components/ui/EmptyState.svelte';

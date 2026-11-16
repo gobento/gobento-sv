@@ -12,7 +12,7 @@
 	import IconCalendar from '~icons/fluent/calendar-24-regular';
 
 	import { PUBLIC_PAYMENT_FEE } from '$app/env/public';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 
 	let { data, form } = $props();
 

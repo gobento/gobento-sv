@@ -1,7 +1,7 @@
 <!-- src/routes/(dock)/admin/telemetry/+page.svelte -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import { formatDateTime, formatTimeOfDay, formatDayMonth } from '#lib/dates.js';
 	import { displayRoute } from '#lib/telemetry.js';
 	import IconPulse from '~icons/fluent/pulse-24-filled';

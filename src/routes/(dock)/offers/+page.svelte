@@ -25,9 +25,9 @@
 	import { page } from '$app/state';
 
 	import { formatDate, formatTime } from '#lib/util.js';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
-	import Alert from '#lib/components/Alert.svelte';
-	import Modal from '#lib/components/Modal.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
+	import Alert from '#lib/components/ui/Alert.svelte';
+	import Modal from '#lib/components/ui/Modal.svelte';
 	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import Segmented from '#lib/components/ui/Segmented.svelte';
 	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
@@ -41,11 +41,6 @@
 		{ value: 'active' as const, label: 'Active', count: data.stats.active },
 		{ value: 'inactive' as const, label: 'Paused', count: data.stats.total - data.stats.active }
 	]);
-	let status = $state<StatusFilter>(data.filters.status as StatusFilter);
-	$effect(() => {
-		status = data.filters.status as StatusFilter;
-	});
-
 	let busyOfferId = $state<string | null>(null);
 
 	function offerBusy(id: string) {
@@ -318,7 +313,7 @@
 		<div class="mb-8 space-y-4 rounded-2xl border border-base-300 bg-base-100 p-4">
 			<Segmented
 				options={statusOptions}
-				bind:value={status}
+				value={data.filters.status as StatusFilter}
 				label="Offer status"
 				onchange={(value) => updateFilter('status', value)}
 				class="sm:max-w-sm"

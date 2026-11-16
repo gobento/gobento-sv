@@ -2,7 +2,7 @@
 <script lang="ts">
 	import { formatDate } from '#lib/dates.js';
 	import type { ActionData } from './$types';
-	import FileUpload from '#lib/components/FileUpload.svelte';
+	import FileUpload from '#lib/components/ui/FileUpload.svelte';
 	import IconCloudArrowUp from '~icons/fluent/cloud-arrow-up-24-regular';
 	import IconCheckmarkCircle from '~icons/fluent/checkmark-circle-24-filled';
 	import IconDismissCircle from '~icons/fluent/dismiss-circle-24-filled';

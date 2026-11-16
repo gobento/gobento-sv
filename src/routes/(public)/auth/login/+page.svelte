@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
-	import Seo from '#lib/components/Seo.svelte';
+	import Seo from '#lib/components/layout/Seo.svelte';
 	import BentoBox from '~icons/fluent-emoji-flat/bento-box';
 	import GoogleLogo from '~icons/logos/google-icon';
 	import IconTag from '~icons/fluent/tag-24-regular';

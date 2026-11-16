@@ -17,11 +17,11 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
 	import { Map, TileLayer, Marker } from 'sveaflet';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
-	import PriceDisplay from '#lib/components/PriceDisplay.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
+	import PriceDisplay from '#lib/components/ui/PriceDisplay.svelte';
 	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
 	import { formatDistance } from '#lib/util.js';
-	import NotFound from '#lib/components/NotFound.svelte';
+	import NotFound from '#lib/components/ui/NotFound.svelte';
 	import { page } from '$app/state';
 
 	let { data }: { data: PageData } = $props();

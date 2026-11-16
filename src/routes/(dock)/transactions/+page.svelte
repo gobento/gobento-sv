@@ -2,7 +2,7 @@
 <script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
 	import { formatDate, formatDateTime, formatMonthYear } from '#lib/dates.js';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import Card from '#lib/components/ui/Card.svelte';
 	import StatTile from '#lib/components/ui/StatTile.svelte';
 	import StatusBadge from '#lib/components/ui/StatusBadge.svelte';

@@ -2,7 +2,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
-	import Seo from '#lib/components/Seo.svelte';
+	import Seo from '#lib/components/layout/Seo.svelte';
 	import OptimizedLogoImage from '#lib/components/images/OptimizedLogoImage.svelte';
 	import OptimizedLocationImage from '#lib/components/images/OptimizedLocationImage.svelte';
 	import { businessTypeLabel } from '#lib/components/offers/format.js';
@@ -39,11 +39,18 @@
 	</a>
 
 	<header class="surface mb-6 flex animate-rise-in items-center gap-4 p-5">
-		<OptimizedLogoImage src={data.business.logoUrl} alt={data.business.name} size="md" shape="square" priority />
+		<OptimizedLogoImage
+			src={data.business.logoUrl}
+			alt={data.business.name}
+			size="md"
+			shape="square"
+			priority
+		/>
 		<div class="min-w-0 flex-1">
 			<h1 class="truncate text-2xl font-extrabold tracking-tight">{data.business.name}</h1>
 			<p class="text-sm text-base-content/60">
-				{businessTypeLabel(data.business.businessType)} · {cities.join(', ') || data.business.country}
+				{businessTypeLabel(data.business.businessType)} · {cities.join(', ') ||
+					data.business.country}
 			</p>
 			{#if data.business.description}
 				<p class="mt-2 line-clamp-3 text-sm text-base-content/80">{data.business.description}</p>
@@ -79,16 +86,23 @@
 						aria-current={current ? 'page' : undefined}
 					>
 						<div class="size-20 shrink-0 overflow-hidden rounded-xl bg-base-200">
-							<OptimizedLocationImage src={location.imageUrl} alt={location.name} class="h-full w-full" />
+							<OptimizedLocationImage
+								src={location.imageUrl}
+								alt={location.name}
+								class="h-full w-full"
+							/>
 						</div>
 						<div class="min-w-0 flex-1">
 							<p class="truncate font-semibold">
 								{location.name}
-								{#if current}<span class="badge ms-1 badge-sm badge-primary">You came from here</span>{/if}
+								{#if current}<span class="ms-1 badge badge-sm badge-primary"
+										>You came from here</span
+									>{/if}
 							</p>
 							<p class="flex items-center gap-1 truncate text-sm text-base-content/60">
 								<IconLocation class="size-4 shrink-0" />
-								{location.address}, {location.zipCode} {location.city}
+								{location.address}, {location.zipCode}
+								{location.city}
 							</p>
 							<p
 								class="mt-1 flex items-center gap-1 text-xs font-semibold {location.activeOffers > 0

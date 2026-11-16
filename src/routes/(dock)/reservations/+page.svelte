@@ -8,7 +8,7 @@
 	import IconChevron from '~icons/fluent/chevron-right-24-regular';
 	import IconReceipt from '~icons/fluent/receipt-24-regular';
 	import IconSearch from '~icons/fluent/search-24-regular';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import Segmented from '#lib/components/ui/Segmented.svelte';

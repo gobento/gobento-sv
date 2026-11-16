@@ -6,8 +6,8 @@
 	import IconWarning from '~icons/fluent/warning-24-regular';
 	import IconCheckmark from '~icons/fluent/checkmark-circle-24-regular';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-regular';
-	import BaseLayout from '#lib/components/BaseLayout.svelte';
-	import Alert from '#lib/components/Alert.svelte';
+	import BaseLayout from '#lib/components/layout/BaseLayout.svelte';
+	import Alert from '#lib/components/ui/Alert.svelte';
 	import { COMPLAINT_CATEGORY_LABELS, type ComplaintCategory } from '#lib/complaints.js';
 
 	let { data, form } = $props();

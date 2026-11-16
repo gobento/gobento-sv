@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import PublicPage from '#lib/components/account/PublicPage.svelte';
-	import Seo from '#lib/components/Seo.svelte';
+	import Seo from '#lib/components/layout/Seo.svelte';
 	import BentoBox from '~icons/fluent-emoji-flat/bento-box';
 	import IconBook from '~icons/fluent/book-24-regular';
 	import IconShield from '~icons/fluent/shield-24-regular';

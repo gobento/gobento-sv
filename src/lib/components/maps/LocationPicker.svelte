@@ -4,7 +4,7 @@
 	import IconLocation from '~icons/fluent/location-24-regular';
 	import IconMyLocation from '~icons/fluent/my-location-24-regular';
 	import IconDismiss from '~icons/fluent/dismiss-24-regular';
-	import Modal from '#lib/components/Modal.svelte';
+	import Modal from '#lib/components/ui/Modal.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import Spinner from '#lib/components/ui/Spinner.svelte';
 	import { toast } from '#lib/components/ui/toast.svelte.js';

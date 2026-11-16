@@ -1,7 +1,7 @@
 <!-- src/lib/components/NotFound.svelte -->
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import EmptyState from './ui/EmptyState.svelte';
+	import EmptyState from './EmptyState.svelte';
 
 	interface Props {
 		icon: Component;

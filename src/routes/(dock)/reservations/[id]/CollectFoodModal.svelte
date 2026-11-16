@@ -3,8 +3,8 @@
 	import { enhance } from '$app/forms';
 	import IconArrowRight from '~icons/fluent/arrow-right-24-filled';
 	import IconCheck from '~icons/fluent/checkmark-24-filled';
-	import Modal from '#lib/components/Modal.svelte';
-	import Alert from '#lib/components/Alert.svelte';
+	import Modal from '#lib/components/ui/Modal.svelte';
+	import Alert from '#lib/components/ui/Alert.svelte';
 	import Spinner from '#lib/components/ui/Spinner.svelte';
 	import PickupQr from '#lib/components/reservations/PickupQr.svelte';
 
