@@ -7,7 +7,6 @@
 	import IconTag from '~icons/fluent/tag-24-regular';
 
 	export interface GiftOffer {
-		id: string;
 		businessName: string;
 		logoUrl: string;
 		schedule: string;

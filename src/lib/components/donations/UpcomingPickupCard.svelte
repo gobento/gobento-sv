@@ -7,7 +7,6 @@
 	import IconRepeat from '~icons/fluent/arrow-repeat-all-24-regular';
 
 	export interface UpcomingPickup {
-		id: string;
 		businessName: string;
 		logoUrl: string;
 		message: string;

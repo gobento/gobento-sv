@@ -11,7 +11,6 @@
 	import IconTag from '~icons/fluent/tag-24-regular';
 
 	export interface PickupRequest {
-		id: string;
 		status: string;
 		businessName: string;
 		logoUrl: string;
