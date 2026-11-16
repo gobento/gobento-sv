@@ -1,6 +1,7 @@
 <!-- src/routes/(dock)/dashboard/+page.svelte -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { withSearch } from '#lib/paths.js';
 	import type { PageData } from './$types';
 	import BaseLayout from '#lib/components/BaseLayout.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
@@ -38,7 +39,7 @@
 			data.attention.inactiveOffers > 0 && {
 				label: `${data.attention.inactiveOffers} inactive ${data.attention.inactiveOffers === 1 ? 'offer' : 'offers'}`,
 				hint: 'Paused or not published',
-				href: resolve('/(dock)/offers?status=inactive'),
+				href: withSearch(resolve('/(dock)/offers'), { status: 'inactive' }),
 				icon: IconTag
 			}
 		].filter((item): item is NonNullable<typeof item> => Boolean(item))
