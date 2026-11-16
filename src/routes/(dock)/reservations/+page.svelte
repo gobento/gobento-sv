@@ -42,17 +42,36 @@
 	const shown = $derived(view === 'upcoming' ? upcoming : past);
 
 	const options = $derived([
-		{ value: 'upcoming' as const, label: 'Upcoming', count: upcoming.length },
-		{ value: 'past' as const, label: 'Past', count: past.length }
+		{
+			value: 'upcoming' as const,
+			label: data.isCharity ? 'To collect' : 'Upcoming',
+			count: upcoming.length
+		},
+		{
+			value: 'past' as const,
+			label: data.isCharity ? 'Collected' : 'Past',
+			count: past.length
+		}
 	]);
 </script>
 
 <svelte:head>
-	<title>Orders · GoBento</title>
+	<title>{data.isCharity ? 'Pickups' : 'Orders'} · GoBento</title>
 </svelte:head>
 
-<BaseLayout title="Orders" description="Your reserved bags and pickup tickets" icon={IconBag}>
-	<Segmented {options} bind:value={view} label="Filter orders" class="mb-5 sm:max-w-sm" />
+<BaseLayout
+	title={data.isCharity ? 'Pickups' : 'Orders'}
+	description={data.isCharity
+		? 'Donated food you have booked for collection'
+		: 'Your reserved bags and pickup tickets'}
+	icon={IconBag}
+>
+	<Segmented
+		{options}
+		bind:value={view}
+		label={data.isCharity ? 'Filter pickups' : 'Filter orders'}
+		class="mb-5 sm:max-w-sm"
+	/>
 
 	{#key view}
 		<div in:fly={{ y: 10, duration: 220 }}>
@@ -60,20 +79,24 @@
 				{#if view === 'upcoming'}
 					<EmptyState
 						icon={IconBag}
-						title="Nothing to pick up yet"
-						description="Reserve a surprise bag nearby and your pickup ticket will show up here."
+						title={data.isCharity ? 'Nothing to collect yet' : 'Nothing to pick up yet'}
+						description={data.isCharity
+							? 'Accepted donations and regular gifts show up here with their pickup tickets.'
+							: 'Reserve a surprise bag nearby and your pickup ticket will show up here.'}
 						actionLabel="Discover offers"
-						actionHref="/discover"
+						actionHref={resolve('/(dock)/discover')}
 						actionIcon={IconSearch}
 					/>
 				{:else}
 					<EmptyState
 						icon={IconHistory}
 						tone="muted"
-						title="No past orders"
-						description="Bags you have collected will be listed here, together with their receipts."
-						actionLabel="Discover offers"
-						actionHref="/discover"
+						title={data.isCharity ? 'No past pickups' : 'No past orders'}
+						description={data.isCharity
+							? 'Food you have collected for the charity will be listed here.'
+							: 'Bags you have collected will be listed here, together with their receipts.'}
+						actionLabel={data.isCharity ? 'Find donations' : 'Discover offers'}
+						actionHref={data.isCharity ? resolve('/(dock)/donations') : resolve('/(dock)/discover')}
 						actionIcon={IconSearch}
 					/>
 				{/if}
