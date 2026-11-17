@@ -42,7 +42,7 @@
 				href: withSearch(resolve('/(dock)/offers'), { status: 'inactive' }),
 				icon: IconTag
 			}
-		].filter((item): item is NonNullable<typeof item> => Boolean(item))
+		].filter((item) => item !== false)
 	);
 
 	const euro = (value: number) =>
@@ -76,7 +76,7 @@
 		<Button
 			href={resolve('/(dock)/locations/new')}
 			icon={IconLocation}
-			variant="outline"
+			outline
 			size="sm"
 			class="hover-wiggle animate-soft-pop stagger"
 			style="--i: 1"
@@ -86,7 +86,7 @@
 		<Button
 			href={resolve('/(dock)/charities')}
 			icon={IconHeart}
-			variant="outline"
+			outline
 			size="sm"
 			class="hover-wiggle animate-soft-pop stagger"
 			style="--i: 2"

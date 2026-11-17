@@ -46,7 +46,7 @@
 		const days: AnalyticsDays = parseAnalyticsDays(value);
 		const params = new SvelteURLSearchParams();
 		params.set('days', String(days));
-		goto(withSearch(resolve('/(dock)/analytics'), params), { replace: true, keepFocus: true });
+		goto(withSearch(resolve('/(dock)/analytics'), params), { replace: true, reset: false });
 	}
 
 	const euro = (value: number, decimals = 0) =>

@@ -12,6 +12,7 @@
 	import IconPause from '~icons/fluent/pause-24-regular';
 	import IconPlay from '~icons/fluent/play-24-regular';
 	import IconCopy from '~icons/fluent/copy-24-regular';
+	import IconGlobe from '~icons/fluent/globe-24-regular';
 
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
