@@ -34,16 +34,16 @@ Never commit `.env` or any other secret.
 
 ## Scripts
 
-| Command | What it does |
-| --- | --- |
-| `bun run dev` | Dev server with hot reload |
-| `bun run build` | Production build |
-| `bun run preview` | Preview the production build |
-| `bun run check` | Svelte and TypeScript diagnostics |
-| `bun run test` | Vitest unit tests |
-| `bun lint` | Built-in Bun linter (add `--fix` to apply fixes) |
-| `bun fmt --check` | Check formatting; `bun fmt` applies it |
-| `bun run db:snapshot` | Regenerate the mock database schema from the Drizzle schema |
+| Command               | What it does                                                     |
+| --------------------- | ---------------------------------------------------------------- |
+| `bun run dev`         | Dev server with hot reload                                       |
+| `bun run build`       | Production build                                                 |
+| `bun run preview`     | Preview the production build                                     |
+| `bun run check`       | Svelte and TypeScript diagnostics                                |
+| `bun run test`        | Vitest tests; server code runs on the seeded in-process database |
+| `bun lint`            | Built-in Bun linter (add `--fix` to apply fixes)                 |
+| `bun fmt --check`     | Check formatting; `bun fmt` applies it                           |
+| `bun run db:snapshot` | Regenerate the mock database schema from the Drizzle schema      |
 
 There are no `lint`/`fmt` package scripts on purpose: `bun lint` and `bun fmt`
 are built into Bun and run directly. Run `bun lint` and `bun fmt --check` before

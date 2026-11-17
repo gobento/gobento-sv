@@ -40,7 +40,7 @@ Gap analysis against the current codebase (verified 2026-11-14). Grouped by prio
 - [ ] Remove debug `console.log('result', result)` in `src/routes/(dock)/offers/[id]/+page.server.ts:163`.
 - [ ] Resolve `// todo: rethink validUntil, recurring and quantity` in `src/routes/(dock)/offers/new/+page.svelte:565`.
 - [ ] Reduce `@ts-nocheck` / `@ts-ignore` suppression; get `bun run check` clean.
-- [ ] Tests: only `complaints.spec.ts`, `iban.spec.ts`, `rest-mock.spec.ts` exist. Add coverage for payment handler, reservation lifecycle, expiration jobs, notification targeting. Add CI workflow running `check`/`lint`/`test`/`build` (only `monthly_payments.yml` exists).
+- [ ] Tests: server code runs against the seeded PGlite database (see `vitest.config.ts`); seed, schema snapshot, pickup redemption and regular gifts are covered. Still missing: payment handler, reservation expiry, notification targeting. CI (`.github/workflows/ci.yml`) runs `check` and `test`; add `lint` once its existing errors are fixed, and `build`.
 - [ ] Admin data protection: confirm IBAN/Tether masking policy in admin views (open question from `Admin-dashboard--account-payment.md` task context).
 
 ## Verify-before-building (may already work)

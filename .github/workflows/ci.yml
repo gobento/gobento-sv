@@ -1,0 +1,19 @@
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # Offline mock mode: no secrets or services needed for checks and tests.
+      - run: cp .env.example .env
+      - run: bun run check
+      - run: bun run test
