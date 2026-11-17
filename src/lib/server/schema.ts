@@ -1,13 +1,11 @@
 // src/lib/server/schema.ts
 import {
 	pgTable,
-	varchar,
 	boolean,
 	integer,
 	text,
 	doublePrecision,
 	timestamp,
-	serial,
 	primaryKey,
 	time,
 	uniqueIndex
@@ -305,52 +303,58 @@ export const recurringGifts = pgTable('recurring_gifts', {
 });
 
 // Pickup requests sent by a business to a charity to collect surplus food
-export const pickupRequests = pgTable('pickup_requests', {
-	id: text('id').primaryKey(),
-	businessAccountId: text('business_account_id')
-		.notNull()
-		.references(() => accounts.id, { onDelete: 'cascade' }),
-	charityAccountId: text('charity_account_id')
-		.notNull()
-		.references(() => accounts.id, { onDelete: 'cascade' }),
-	locationId: text('location_id').references(() => businessLocations.id, { onDelete: 'set null' }),
-	offerId: text('offer_id').references(() => businessOffers.id, { onDelete: 'set null' }),
-	foodType: text('food_type', {
-		enum: [
-			'bakery',
-			'produce',
-			'dairy',
-			'prepared_meals',
-			'packaged_dry',
-			'frozen',
-			'beverages',
-			'other'
-		]
-	}),
-	message: text('message').notNull(),
-	proposedPickupFrom: timestamp('proposed_pickup_from', { withTimezone: true }),
-	proposedPickupUntil: timestamp('proposed_pickup_until', { withTimezone: true }),
-	status: text('status', {
-		enum: ['pending', 'accepted', 'declined', 'cancelled', 'completed']
+export const pickupRequests = pgTable(
+	'pickup_requests',
+	{
+		id: text('id').primaryKey(),
+		businessAccountId: text('business_account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		charityAccountId: text('charity_account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		locationId: text('location_id').references(() => businessLocations.id, {
+			onDelete: 'set null'
+		}),
+		offerId: text('offer_id').references(() => businessOffers.id, { onDelete: 'set null' }),
+		foodType: text('food_type', {
+			enum: [
+				'bakery',
+				'produce',
+				'dairy',
+				'prepared_meals',
+				'packaged_dry',
+				'frozen',
+				'beverages',
+				'other'
+			]
+		}),
+		message: text('message').notNull(),
+		proposedPickupFrom: timestamp('proposed_pickup_from', { withTimezone: true }),
+		proposedPickupUntil: timestamp('proposed_pickup_until', { withTimezone: true }),
+		status: text('status', {
+			enum: ['pending', 'accepted', 'declined', 'cancelled', 'completed']
+		})
+			.notNull()
+			.default('pending'),
+		reservationId: text('reservation_id').references(() => reservations.id, {
+			onDelete: 'set null'
+		}),
+		notes: text('notes'),
+		recurringGiftId: text('recurring_gift_id').references(() => recurringGifts.id, {
+			onDelete: 'set null'
+		}),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		respondedAt: timestamp('responded_at', { withTimezone: true })
+	},
+	(table) => ({
+		// One request per gift occurrence, even when two requests race to create it
+		giftOccurrence: uniqueIndex('pickup_requests_gift_occurrence_idx').on(
+			table.recurringGiftId,
+			table.proposedPickupFrom
+		)
 	})
-		.notNull()
-		.default('pending'),
-	reservationId: text('reservation_id').references(() => reservations.id, {
-		onDelete: 'set null'
-	}),
-	notes: text('notes'),
-	recurringGiftId: text('recurring_gift_id').references(() => recurringGifts.id, {
-		onDelete: 'set null'
-	}),
-	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-	respondedAt: timestamp('responded_at', { withTimezone: true })
-}, (table) => ({
-	// One request per gift occurrence, even when two requests race to create it
-	giftOccurrence: uniqueIndex('pickup_requests_gift_occurrence_idx').on(
-		table.recurringGiftId,
-		table.proposedPickupFrom
-	)
-}));
+);
 
 // Staff of a business or charity: a low-level account that works for one employer.
 // Business staff are bound to exactly one location; charity staff to none.
