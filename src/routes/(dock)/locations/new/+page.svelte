@@ -308,6 +308,8 @@
 
 					<div
 						class="relative"
+						role="group"
+						aria-label="Image upload"
 						ondrop={handleDrop}
 						ondragover={handleDragOver}
 						ondragleave={handleDragLeave}
@@ -373,17 +375,6 @@
 									>
 										<p class="text-lg font-semibold text-white">Tap to change</p>
 									</div>
-									<button
-										type="button"
-										onclick={(e) => {
-											e.stopPropagation();
-											clearImage();
-										}}
-										disabled={isSubmitting}
-										class="btn absolute top-2 right-2 btn-circle btn-sm"
-									>
-										✕
-									</button>
 								</div>
 								<div class="border-t border-base-300 p-3">
 									<p class="truncate text-sm font-medium" title={selectedImage.name}>
@@ -395,6 +386,17 @@
 								</div>
 							{/if}
 						</button>
+						{#if imagePreviewUrl}
+							<button
+								type="button"
+								onclick={clearImage}
+								disabled={isSubmitting}
+								class="btn absolute top-3 right-3 btn-circle btn-sm"
+								aria-label="Remove image"
+							>
+								✕
+							</button>
+						{/if}
 					</div>
 				</div>
 
@@ -416,11 +418,11 @@
 						class="input-bordered input input-lg"
 						class:input-error={form?.field === 'name'}
 					/>
-					<label class="label">
+					<p class="label">
 						<span class="label-text-alt text-base-content/60"
 							>A friendly name to identify this location</span
 						>
-					</label>
+					</p>
 				</div>
 
 				<div class="divider text-lg font-semibold">Address Details</div>
@@ -442,11 +444,11 @@
 						class:input-error={form?.field === 'zipCode'}
 						onblur={lookupZipCode}
 					/>
-					<label class="label">
+					<p class="label">
 						<span class="label-text-alt text-base-content/60"
 							>City will be automatically filled based on ZIP code</span
 						>
-					</label>
+					</p>
 				</div>
 
 				<!-- Street Address -->

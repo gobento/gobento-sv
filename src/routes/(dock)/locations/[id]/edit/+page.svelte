@@ -165,11 +165,11 @@
 				placeholder="e.g., Downtown Branch, Main Office"
 				class="input-bordered input input-lg"
 			/>
-			<label class="label">
+			<p class="label">
 				<span class="label-text-alt text-base-content/60"
 					>A friendly name to identify this location</span
 				>
-			</label>
+			</p>
 		</div>
 
 		<div class="space-y-6">
@@ -187,6 +187,8 @@
 
 				<div
 					class="relative"
+					role="group"
+					aria-label="Image upload"
 					ondrop={handleDrop}
 					ondragover={handleDragOver}
 					ondragleave={handleDragLeave}
@@ -244,17 +246,6 @@
 									>
 										<p class="text-lg font-semibold text-white">Tap to change</p>
 									</div>
-									<button
-										type="button"
-										onclick={(e) => {
-											e.stopPropagation();
-											clearImage();
-										}}
-										disabled={isSaving}
-										class="btn absolute top-2 right-2 btn-circle btn-sm"
-									>
-										✕
-									</button>
 								</div>
 								<div class="border-t border-base-300 bg-success/5 p-3">
 									<div class="flex items-center justify-between">
@@ -310,6 +301,17 @@
 								</div>
 							{/if}
 						</button>
+						{#if imagePreviewUrl}
+							<button
+								type="button"
+								onclick={clearImage}
+								disabled={isSaving}
+								class="btn absolute top-3 right-3 btn-circle btn-sm"
+								aria-label="Remove image"
+							>
+								✕
+							</button>
+						{/if}
 					{/if}
 				</div>
 			</div>

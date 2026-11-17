@@ -232,18 +232,6 @@
 								>
 									<p class="text-lg font-semibold text-white">Tap to change</p>
 								</div>
-								<button
-									type="button"
-									onclick={(e) => {
-										e.stopPropagation();
-										clearImage();
-									}}
-									disabled={isSubmitting}
-									class="btn absolute top-3 right-3 btn-circle btn-sm"
-									aria-label="Remove image"
-								>
-									✕
-								</button>
 							</div>
 							<div class="flex items-center gap-2 border-t border-base-300 p-3 text-left">
 								<div class="badge gap-1 badge-sm badge-success">
@@ -261,6 +249,17 @@
 							</div>
 						{/if}
 					</button>
+					{#if imagePreviewUrl}
+						<button
+							type="button"
+							onclick={clearImage}
+							disabled={isSubmitting}
+							class="btn absolute top-3 right-3 btn-circle btn-sm"
+							aria-label="Remove image"
+						>
+							✕
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>

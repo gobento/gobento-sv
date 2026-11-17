@@ -518,12 +518,12 @@
 									disabled={$submitting}
 								/>
 								{#if getFormError('name')}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt flex items-center gap-1 text-error">
 											<IconWarning class="size-3" />
 											{getFormError('name')}
 										</span>
-									</label>
+									</p>
 								{/if}
 							</div>
 
@@ -552,12 +552,12 @@
 										{/each}
 									</select>
 									{#if getFormError('businessType')}
-										<label class="label">
+										<p class="label">
 											<span class="label-text-alt flex items-center gap-1 text-error">
 												<IconWarning class="size-3" />
 												{getFormError('businessType')}
 											</span>
-										</label>
+										</p>
 									{/if}
 								</div>
 							{/if}
@@ -585,18 +585,18 @@
 									}}
 									disabled={$submitting}></textarea>
 								{#if getFormError('description')}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt flex items-center gap-1 text-error">
 											<IconWarning class="size-3" />
 											{getFormError('description')}
 										</span>
-									</label>
+									</p>
 								{:else}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt text-base-content/50">
 											{getFormValue('description').length}/500 characters
 										</span>
-									</label>
+									</p>
 								{/if}
 							</div>
 
@@ -625,12 +625,12 @@
 									{/each}
 								</select>
 								{#if getFormError('country')}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt flex items-center gap-1 text-error">
 											<IconWarning class="size-3" />
 											{getFormError('country')}
 										</span>
-									</label>
+									</p>
 								{/if}
 							</div>
 
@@ -700,12 +700,12 @@
 									</button>
 								{/if}
 								{#if fileError}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt flex items-center gap-1 text-error">
 											<IconWarning class="size-3" />
 											{fileError}
 										</span>
-									</label>
+									</p>
 								{/if}
 							</div>
 						</div>
@@ -758,18 +758,18 @@
 									/>
 								</label>
 								{#if getFormError('registrationNumber')}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt flex items-center gap-1 text-error">
 											<IconWarning class="size-3" />
 											{getFormError('registrationNumber')}
 										</span>
-									</label>
+									</p>
 								{:else}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt text-base-content/50">
 											The official number from your charity registry
 										</span>
-									</label>
+									</p>
 								{/if}
 							</div>
 
@@ -800,18 +800,18 @@
 									/>
 								</label>
 								{#if getFormError('contactEmail')}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt flex items-center gap-1 text-error">
 											<IconWarning class="size-3" />
 											{getFormError('contactEmail')}
 										</span>
-									</label>
+									</p>
 								{:else}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt text-base-content/50">
 											Where our team can reach you about your verification
 										</span>
-									</label>
+									</p>
 								{/if}
 							</div>
 						</div>
@@ -849,12 +849,12 @@
 								<option value="tether">₮ Tether (USDT)</option>
 							</select>
 							{#if getFormError('paymentMethod')}
-								<label class="label">
+								<p class="label">
 									<span class="label-text-alt flex items-center gap-1 text-error">
 										<IconWarning class="size-3" />
 										{getFormError('paymentMethod')}
 									</span>
-								</label>
+								</p>
 							{/if}
 						</div>
 
@@ -881,18 +881,18 @@
 									disabled={$submitting}
 								/>
 								{#if getFormError('ibanNumber')}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt flex items-center gap-1 text-error">
 											<IconWarning class="size-3" />
 											{getFormError('ibanNumber')}
 										</span>
-									</label>
+									</p>
 								{:else}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt text-base-content/50">
 											International Bank Account Number for {needsProfile ? 'receiving' : 'making'} payments
 										</span>
-									</label>
+									</p>
 								{/if}
 							</div>
 						{/if}
@@ -920,18 +920,18 @@
 									disabled={$submitting}
 								/>
 								{#if getFormError('tetherAddress')}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt flex items-center gap-1 text-error">
 											<IconWarning class="size-3" />
 											{getFormError('tetherAddress')}
 										</span>
-									</label>
+									</p>
 								{:else}
-									<label class="label">
+									<p class="label">
 										<span class="label-text-alt text-base-content/50">
 											ERC-20 USDT address on Ethereum network
 										</span>
-									</label>
+									</p>
 								{/if}
 							</div>
 						{/if}
