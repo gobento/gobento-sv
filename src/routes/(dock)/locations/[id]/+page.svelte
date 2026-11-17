@@ -42,7 +42,9 @@
 	);
 
 	// Create description for OG tags
-	const locationDescription = `${data.business.name} at ${data.location.address}, ${data.location.city}. ${data.offers.length} ${data.offers.length === 1 ? 'offer' : 'offers'} available.`;
+	const locationDescription = $derived(
+		`${data.business.name} at ${data.location.address}, ${data.location.city}. ${data.offers.length} ${data.offers.length === 1 ? 'offer' : 'offers'} available.`
+	);
 </script>
 
 <Seo

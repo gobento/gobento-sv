@@ -1,6 +1,9 @@
 <!-- src/routes/(dock)/offers/[id]/+page.svelte -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { goto } from '$app/navigation';
+	import { deserialize } from '$app/forms';
+	import { toast } from '#lib/components/ui/toast.svelte.js';
 	import IconStore from '~icons/fluent/building-retail-24-regular';
 	import IconFluentArrowRight24Filled from '~icons/fluent/arrow-right-24-filled';
 
@@ -69,24 +72,44 @@
 	};
 
 	const handleDelete = async () => {
-		if (!confirm('Are you sure you want to delete this offer?')) return;
-		alert('Delete functionality to be implemented');
+		if (!confirm(`Delete "${data.offer.name}"? Reservations for it are removed too.`)) return;
+		const body = new FormData();
+		body.set('offerId', data.offer.id);
+		const response = await fetch(`${resolve('/(dock)/offers')}?/deleteOffer`, {
+			method: 'POST',
+			headers: { 'x-sveltekit-action': 'true' },
+			body
+		});
+		const result = deserialize(await response.text());
+		if (result.type === 'success') {
+			toast.success('Offer deleted');
+			await goto(resolve('/(dock)/offers'), { replace: true });
+		} else {
+			const message =
+				result.type === 'failure' && typeof result.data?.message === 'string'
+					? result.data.message
+					: 'Could not delete the offer';
+			toast.error(message);
+		}
 	};
 
 	// Create description for OG tags
-	const offerDescription = data.offer.description
-		? data.offer.description
-		: `${data.offer.name} from ${data.business.name}. Save food and money! Original value ${formatPrice(data.offer.displayOriginalValue, data.business.country)}, now only ${formatPrice(data.offer.displayPrice, data.business.country)}.`;
+	const offerDescription = $derived(
+		data.offer.description ||
+			`${data.offer.name} from ${data.business.name}. Save food and money! Original value ${formatPrice(data.offer.displayOriginalValue, data.business.country)}, now only ${formatPrice(data.offer.displayPrice, data.business.country)}.`
+	);
 
 	// Calculate savings
-	const savingsPercent = Math.round(
-		((data.offer.displayOriginalValue - data.offer.displayPrice) /
-			data.offer.displayOriginalValue) *
-			100
+	const savingsPercent = $derived(
+		Math.round(
+			((data.offer.displayOriginalValue - data.offer.displayPrice) /
+				data.offer.displayOriginalValue) *
+				100
+		)
 	);
 
 	// Determine image for OG
-	const ogImage = data.offer.imageUrl || data.location?.imageUrl || data.logo.url;
+	const ogImage = $derived(data.offer.imageUrl || data.location?.imageUrl || data.logo.url);
 </script>
 
 <Seo
